@@ -3,13 +3,14 @@
 //
 
 #include "event-handler.h"
-
+#include "../client-socket/test-client.h"
 
 void *createdFile(void *args) {
     thread_argument *event =  args;
     char* filePath = event->argument;
 
     printf("created file\nargs: %s\n", filePath);
+    sendMessage(filePath);
     *(event->isThreadComplete) = true;
 }
 
