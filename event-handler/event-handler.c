@@ -10,6 +10,7 @@ void *createdFile(void *args) {
     char* filePath = event->argument;
 
     printf("created file\nargs: %s\n", filePath);
+    *(event->isThreadComplete) = true;
 }
 
 void *updatedFile(void *args) {

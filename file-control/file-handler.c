@@ -113,7 +113,8 @@ int main(int argc, char **argv){
         }
         
         DL_FOREACH_SAFE(threadList,elt,tmp) {
-            if(elt->isThreadComplete) {
+            if(elt->isThreadComplete == true) {
+                printf("Thread completed running");
                 DL_DELETE(threadList,elt);
                 free(elt);
             }
