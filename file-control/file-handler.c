@@ -75,16 +75,19 @@ int main(int argc, char **argv){
 
             if(event->len){
                 char* filePath = getFilePath(path_to_be_watched, event->name);
+                newElement = initThreadListElement();
+                thread_argument* fileEventArgument = (thread_argument*)calloc(1, sizeof(thread_argument));
+                fileEventArgument->isThreadComplete = &(newElement->isThreadComplete);
+                fileEventArgument->argument = (void*) filePath;
                 if ( event->mask & IN_CREATE ) {
                     if ( event->mask & IN_ISDIR ) {
                         newElement = initThreadListElement();
 
-                        pthread_create(&(newElement->thread), NULL, createdDir, event);
+                        pthread_create(&(newElement->thread), NULL, createdDir, fileEventArgument);
                         DL_APPEND(threadList, newElement);
                     }
                     else {
-                        newElement = initThreadListElement();
-                        pthread_create(&(newElement->thread), NULL, createdFile, event);
+                        pthread_create(&(newElement->thread), NULL, createdFile, fileEventArgument);
                         printf( "The file %s was created.\n", event->name );
                         DL_APPEND(threadList, newElement);
                     }
@@ -123,6 +126,5 @@ char* getFilePath(char* path, char* fileName) {
     strcpy(filePath, path);
     strcat(filePath, fileName);
 
-    printf( "The file path is %s.\n", filePath );
     return filePath;
 }

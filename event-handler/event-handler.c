@@ -6,8 +6,10 @@
 
 
 void *createdFile(void *args) {
-    struct inotify_event *event =  args;
-    printf("created file\nargs: %s", (char*) args);
+    thread_argument *event =  args;
+    char* filePath = event->argument;
+
+    printf("created file\nargs: %s\n", filePath);
 }
 
 void *updatedFile(void *args) {

@@ -6,6 +6,7 @@
 #define DROPBOX_SISOP2_EVENT_HANDLER_H
 #include<stdio.h>
 #include<sys/inotify.h>
+#include "../lib/helper.h"
 
 void *createdFile(void *args);
 void *updatedFile(void *args);

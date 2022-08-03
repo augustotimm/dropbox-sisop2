@@ -16,5 +16,10 @@ typedef struct thread_list {
     struct thread_list *next, *prev;
 } thread_list;
 
+typedef struct thread_argument {
+    bool* isThreadComplete;
+    void *argument;
+} thread_argument;
+
 thread_list* initThreadListElement();
 #endif //DROPBOX_SISOP2_HELPER_H
