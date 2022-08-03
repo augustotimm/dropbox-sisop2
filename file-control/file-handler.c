@@ -1,11 +1,8 @@
 //
 // Created by augusto on 24/07/2022.
 //
-
+#include "../lib/utlist.h"
 #include "file-handler.h"
-#include <sys/stat.h>
-#include <time.h>
-#include <stdlib.h>
 
 struct stat info;
 struct tm* tm_info;
@@ -34,7 +31,8 @@ void sig_handler(int sig){
 }
 
 int main(int argc, char **argv){
-
+    thread_list* threadList = NULL;
+    thread_list* elt = NULL;
 
     char *path_to_be_watched;
     signal(SIGINT,sig_handler);
@@ -70,16 +68,22 @@ int main(int argc, char **argv){
 
         /* Step 4. Process the events which has occurred */
         while(i<length){
-
+            thread_list* newElement;
             struct inotify_event *event = (struct inotify_event *) &buffer[i];
 
             if(event->len){
                 if ( event->mask & IN_CREATE ) {
                     if ( event->mask & IN_ISDIR ) {
-                        printf( "The directory %s was created.\n", event->name );
+                        newElement = initThreadListElement();
+
+                        pthread_create(&(newElement->thread), NULL, createdDir, event);
+                        DL_APPEND(threadList, newElement);
                     }
                     else {
+                        newElement = initThreadListElement();
+                        pthread_create(&(newElement->thread), NULL, createdFile, event);
                         printf( "The file %s was created.\n", event->name );
+                        DL_APPEND(threadList, newElement);
                     }
                 }
                 else if ( event->mask & IN_DELETE ) {
@@ -101,5 +105,8 @@ int main(int argc, char **argv){
             }
             i += EVENT_SIZE + event->len;
         }
+        int count;
+        DL_COUNT(threadList, elt, count);
+        printf("%d number of elements in list\n", count);
     }
 }
