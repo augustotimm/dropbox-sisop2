@@ -21,6 +21,8 @@ int fd,wd;
 
 time_t getFileLastModifiedEpoch(char* pathname);
 
+char* getFilePath(char* path, char* fileName);
+
 void sig_handler(int sig){
 
     /* Step 5. Remove the watch descriptor and close the inotify instance*/
@@ -32,12 +34,12 @@ void sig_handler(int sig){
 
 int main(int argc, char **argv){
     thread_list* threadList = NULL;
-    thread_list* elt = NULL;
+    thread_list* elt = NULL, *tmp = NULL;
 
     char *path_to_be_watched;
     signal(SIGINT,sig_handler);
 
-    path_to_be_watched = "/home/augusto/repositorios/ufrgs/dropbox-sisop2/watch_folder";
+    path_to_be_watched = "/home/augusto/repositorios/ufrgs/dropbox-sisop2/watch_folder/";
 
     /* Step 1. Initialize inotify */
     fd = inotify_init();
@@ -72,6 +74,7 @@ int main(int argc, char **argv){
             struct inotify_event *event = (struct inotify_event *) &buffer[i];
 
             if(event->len){
+                char* filePath = getFilePath(path_to_be_watched, event->name);
                 if ( event->mask & IN_CREATE ) {
                     if ( event->mask & IN_ISDIR ) {
                         newElement = initThreadListElement();
@@ -105,8 +108,21 @@ int main(int argc, char **argv){
             }
             i += EVENT_SIZE + event->len;
         }
-        int count;
-        DL_COUNT(threadList, elt, count);
-        printf("%d number of elements in list\n", count);
+        
+        DL_FOREACH_SAFE(threadList,elt,tmp) {
+            if(elt->isThreadComplete) {
+                DL_DELETE(threadList,elt);
+                free(elt);
+            }
+        }
     }
+}
+
+char* getFilePath(char* path, char* fileName) {
+    char* filePath = calloc(strlen(fileName) + strlen(path), sizeof(char));
+    strcpy(filePath, path);
+    strcat(filePath, fileName);
+
+    printf( "The file path is %s.\n", filePath );
+    return filePath;
 }

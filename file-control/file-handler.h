@@ -14,12 +14,13 @@
 
 #ifndef DROPBOX_SISOP2_FILE_HANDLER_H
 #define DROPBOX_SISOP2_FILE_HANDLER_H
-#include <sys/stat.h>
-#include <time.h>
-#include <stdlib.h>
-#include <pthread.h>
 #include "../event-handler/event-handler.h"
 #include "../lib/helper.h"
+#include <pthread.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <time.h>
 
 #define MAX_EVENTS 1024  /* Maximum number of events to process*/
 #define LEN_NAME 16  /* Assuming that the length of the filename won't exceed 16 bytes*/
