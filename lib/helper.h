@@ -4,7 +4,7 @@
 
 #ifndef DROPBOX_SISOP2_HELPER_H
 #define DROPBOX_SISOP2_HELPER_H
-#include "../lib/utlist.h"
+#include "./utlist.h"
 #include <pthread.h>
 #include <stdlib.h>
 #include <stdbool.h>
