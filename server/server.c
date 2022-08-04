@@ -16,7 +16,8 @@
 #define MAX 2048
 #define SA struct sockaddr
 char commands[5][13] = {"upload", "download", "list", "get_sync_dir", "exit"};
-char* path = "\\watch_folder\\";
+//TODO change to relative path
+char* path = "/home/augusto/repositorios/ufrgs/dropbox-sisop2/watch_folder/";
 
 void upload() {
     printf("upload function");

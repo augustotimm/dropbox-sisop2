@@ -24,7 +24,7 @@ int sendFile(int socket, char* filepath) {
     char buff[KBYTE];
     bzero(buff, sizeof(buff));
 
-    if (file = fopen(".\\watch_folder\\texto.txt", "rb"))
+    if (file = fopen(filepath, "rb"))
     {
         fileSize = getFileSize(file);
 
