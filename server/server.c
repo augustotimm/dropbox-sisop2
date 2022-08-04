@@ -15,12 +15,23 @@
 #define PORT 8888
 #define MAX 2048
 #define SA struct sockaddr
+
 char commands[5][13] = {"upload", "download", "list", "get_sync_dir", "exit"};
+
 //TODO change to relative path
 char* path = "/home/augusto/repositorios/ufrgs/dropbox-sisop2/watch_folder/";
 
-void upload() {
-    printf("upload function");
+void upload(int socket) {
+    printf("upload function\n");
+    char fileName[FILENAMESIZE];
+    recv(socket, fileName, sizeof(fileName), 0);
+    char* filePath = calloc(strlen(fileName) + strlen(path), sizeof(char));
+    strcpy(filePath, path);
+    strcat(filePath, fileName);
+
+    printf("Receiving file: %s\n", filePath);
+    receiveFile(socket, filePath);
+    free(filePath);
 }
 
 void download(int socket) {
@@ -35,6 +46,7 @@ void download(int socket) {
     strcat(filePath, fileName);
 
     sendFile(socket, filePath);
+    free(filePath);
 
 }
 
@@ -61,9 +73,10 @@ void* clientThread(void* conf)
 
         // read the message from client and copy it in buffer
         recv(socket, currentCommand, sizeof(currentCommand), 0);
+        printf("COMMAND: %s\n", currentCommand);
 
         if(strcmp(currentCommand, commands[UPLOAD]) ==0 ) {
-            upload();
+            upload(socket);
         } else if(strcmp(currentCommand, commands[DOWNLOAD]) ==0 ) {
             download(socket);
         } else if(strcmp(currentCommand, commands[LIST]) ==0 ) {

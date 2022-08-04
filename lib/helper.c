@@ -75,7 +75,7 @@ int receiveFile(int socket, char* fileName) {
 
     if (fileSize < 0)
     {
-        printf("File not found in server\n\n\n");
+        printf("File not found in sender\n\n\n");
         return -1;
     }
     file = fopen(fileName, "wb");

@@ -10,9 +10,28 @@
 
 char commands[5][13] = {"upload", "download", "list", "get_sync_dir", "exit"};
 
+char* path = "/home/augusto/repositorios/ufrgs/dropbox-sisop2/client-socket/sync/";
 
-void upload() {
-    printf("upload function");
+void upload(int socket) {
+    printf("upload function\n");
+
+    write(socket, &commands[UPLOAD], sizeof(commands[UPLOAD]));
+
+    char fileName[FILENAMESIZE];
+    bzero(fileName, sizeof(fileName));
+
+    printf("insert name of file\n");
+    fgets(fileName, sizeof(fileName), stdin);
+    fileName[strcspn(fileName, "\n")] = 0;
+
+    write(socket, &fileName, sizeof(fileName));
+
+    char* filePath = calloc(strlen(fileName) + strlen(path), sizeof(char));
+    strcpy(filePath, path);
+    strcat(filePath, fileName);
+
+    sendFile(socket, filePath);
+    free(filePath);
 }
 
 int download(int socket) {
@@ -24,9 +43,6 @@ int download(int socket) {
     printf("insert name of file\n");
     fgets(fileName, sizeof(fileName), stdin);
     fileName[strcspn(fileName, "\n")] = 0;
-    request.command = DOWNLOAD;
-    strcpy(request.file, fileName);
-    // write(socket, &request, sizeof(request));
     write(socket, &fileName, sizeof(fileName));
     return receiveFile(socket, fileName);
 }
@@ -61,7 +77,7 @@ void clientThread(int connfd)
         fgets(userInput, sizeof(userInput), stdin);
         userInput[strcspn(userInput, "\n")] = 0;
         if(strcmp(userInput, commands[UPLOAD]) ==0 ) {
-            upload();
+            upload(connfd);
         } else if(strcmp(userInput, commands[DOWNLOAD]) ==0 ) {
             if(download(connfd) == OUTFOSYNCERROR) {
                 return;
