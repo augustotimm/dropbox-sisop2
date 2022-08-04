@@ -10,7 +10,6 @@
 #include <stdbool.h>
 #include <stdint-gcc.h>
 
-#define DATA -1
 #define EXIT 4
 #define SYNC 3
 #define LIST 2

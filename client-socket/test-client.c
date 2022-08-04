@@ -11,30 +11,31 @@
 
 char commands[5][13] = {"upload", "download", "list", "get_sync_dir", "exit"};
 
-void clientThread(int sockfd)
+void clientThread(int connfd)
 {
     char request[MAX];
     char buff[MAX];
     char username[USERNAMESIZE];
+    bzero(username, sizeof(username));
     int n;
 
     printf("Enter username: ");
     fgets(username, USERNAMESIZE, stdin);
-    write(sockfd, username, sizeof(username));
+    username[strcspn(username, "\n")] = 0;
+    write(connfd, username, sizeof(username));
 
     for (;;) {
+        bzero(request, sizeof(request));
         bzero(buff, sizeof(buff));
         printf("Enter the string : ");
         n = 0;
         fgets(request, sizeof(request), stdin);
+        request[strcspn(request, "\n")] = 0;
 
-        if(strcmp(request, commands[DOWNLOAD])){
-            printf("Enter the name of the file : ");
-            fgets(buff, sizeof(buff), stdin);
-            write(connfd, packet, sizeof(packet));
-        }
+        write(connfd, request, sizeof(request));
 
-        if ((strncmp(buff, "exit", 4)) == 0) {
+
+        if ((strncmp(request, "exit", 4)) == 0) {
             printf("Client Exit...\n");
             break;
         }

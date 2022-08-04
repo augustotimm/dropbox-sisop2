@@ -15,33 +15,58 @@
 #define PORT 8888
 #define MAX 2048
 #define SA struct sockaddr
+char commands[5][13] = {"upload", "download", "list", "get_sync_dir", "exit"};
 
-// Function designed for chat between client and server.
+void upload() {
+    printf("upload function");
+}
+
+void download() {
+    printf("download function");
+}
+
+void list() {
+    printf("list function");
+}
+
+void sync() {
+    printf("sync function");
+}
+
 void* clientThread(void* conf)
 {
     char buff[MAX];
-    int n;
     int socket = * (int*) conf;
     char username[USERNAMESIZE];
     read(socket, username, USERNAMESIZE);
-
+    char currentCommand[13];
+    bzero(currentCommand, sizeof(currentCommand));
+    //waiting for command
     for (;;) {
         bzero(buff, MAX);
 
         // read the message from client and copy it in buffer
-        read(socket, buff, sizeof(buff));
-        // print buffer which contains the client contents
-        printf("From client: %d\nReceived message: %s\n", socket, buff);
-        n = 0;
-        // copy server message in the buffer
+        read(socket, currentCommand, sizeof(currentCommand));
 
-        // if msg contains "Exit" then server exit and chat ended.
-        if (strncmp("exit", buff, 4) == 0) {
+        if(strcmp(currentCommand, commands[UPLOAD]) ==0 ) {
+            upload();
+        } else if(strcmp(currentCommand, commands[DOWNLOAD]) ==0 ) {
+            download();
+        } else if(strcmp(currentCommand, commands[LIST]) ==0 ) {
+            list();
+        } else if(strcmp(currentCommand, commands[SYNC]) ==0 ) {
+            sync();
+        }
+
+
+
+        if (strcmp(currentCommand, commands[EXIT]) == 0) {
             printf("Server Exit...\n");
-            break;
+            close(socket);
+            return (void*) socket;
         }
     }
-    close(socket);
+
 }
 
 // Driver function
