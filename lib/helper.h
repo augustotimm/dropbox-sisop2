@@ -21,6 +21,8 @@
 
 #define USERNAMESIZE 64
 
+#define OUTFOSYNCERROR -99
+char endCommand[6] = "\nend\n";
 
 typedef struct packet_t{
     uint16_t type; //Tipo do pacote

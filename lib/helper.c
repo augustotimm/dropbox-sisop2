@@ -20,7 +20,7 @@ thread_list* initThreadListElement() {
 int sendFile(int socket, char* filepath) {
     int fileSize, byteCount;
     FILE* file;
-    char buff[2*KBYTE];
+    char buff[KBYTE];
     bzero(buff, sizeof(buff));
 
     if (file = fopen(filepath, "rb"))
@@ -45,7 +45,10 @@ int sendFile(int socket, char* filepath) {
     {
         fileSize = -1;
         byteCount = write(socket, &fileSize, sizeof(fileSize));
+        return -1;
     }
+    write(socket, endCommand, sizeof(endCommand));
+    return 0;
 }
 
 int getFileSize(FILE *ptrfile)
@@ -58,4 +61,51 @@ int getFileSize(FILE *ptrfile)
     rewind(ptrfile);
 
     return size;
+}
+
+int receiveFile(int socket, char* fileName) {
+    int fileSize, bytesLeft;
+    FILE* file;
+    char buff[KBYTE];
+
+    if(read(socket, &fileSize, sizeof(fileSize)) < 0) {
+        printf("Failure receiving filesize\n");
+    }
+
+    if (fileSize < 0)
+    {
+        printf("File not found in server\n\n\n");
+        return -1;
+    }
+    file = fopen(fileName, "wb");
+
+    bytesLeft = fileSize;
+
+    while(bytesLeft > 0)
+    {
+        read(socket, buff, KBYTE);
+
+        // escreve no arquivo os bytes lidos
+        if(bytesLeft > KBYTE)
+        {
+            fwrite(buff, KBYTE, 1, file);
+        }
+        else
+        {
+            fwrite(buff, bytesLeft, 1, file);
+        }
+        // decrementa a quantidade de bytes lidos
+        bytesLeft -= KBYTE;
+    }
+    fclose(file);
+
+    read(socket, buff, KBYTE);
+    if(strcmp(buff, endCommand) != 0) {
+        printf("Connection out of sync\n");
+        printf("Expected end command signal but received: %s\n\n", buff);
+        return OUTFOSYNCERROR;
+    }
+
+    printf("File %s has been downloaded\n\n", file);
+    return 0;
 }
