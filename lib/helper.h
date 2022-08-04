@@ -10,6 +10,9 @@
 #include <stdbool.h>
 #include <stdint-gcc.h>
 
+#define FILENAMESIZE 64
+#define KBYTE 1024
+
 #define EXIT 4
 #define SYNC 3
 #define LIST 2
@@ -40,4 +43,8 @@ typedef struct thread_argument {
 } thread_argument;
 
 thread_list* initThreadListElement();
+
+//server comunication functions
+
+int sendFile(int socket, char* filepath);
 #endif //DROPBOX_SISOP2_HELPER_H

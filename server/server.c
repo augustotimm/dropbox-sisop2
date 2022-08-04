@@ -16,13 +16,26 @@
 #define MAX 2048
 #define SA struct sockaddr
 char commands[5][13] = {"upload", "download", "list", "get_sync_dir", "exit"};
+char* path = "./watch_folder/";
+
 
 void upload() {
     printf("upload function");
 }
 
-void download() {
+void download(int socket) {
     printf("download function");
+    char fileName[FILENAMESIZE];
+    bzero(fileName, sizeof(fileName));
+    read(socket, fileName, sizeof(fileName));
+
+
+    char* filePath = calloc(strlen(fileName) + strlen(path), sizeof(char));
+    strcpy(filePath, path);
+    strcat(filePath, fileName);
+
+    sendFile(socket, filePath);
+
 }
 
 void list() {
