@@ -12,23 +12,26 @@
 #include <sys/types.h>
 #include <pthread.h>
 
-#define MAX 80
-#define PORT 8889
+#define PORT 8888
+#define MAX 2048
 #define SA struct sockaddr
 
 // Function designed for chat between client and server.
-void func(int connfd)
+void* clientThread(void* conf)
 {
     char buff[MAX];
     int n;
-    // infinite loop for chat
+    int socket = * (int*) conf;
+    char username[USERNAMESIZE];
+    read(socket, username, USERNAMESIZE);
+
     for (;;) {
         bzero(buff, MAX);
 
         // read the message from client and copy it in buffer
-        read(connfd, buff, sizeof(buff));
+        read(socket, buff, sizeof(buff));
         // print buffer which contains the client contents
-        printf("From client: %d\nReceived message: %s\n",connfd, buff);
+        printf("From client: %d\nReceived message: %s\n", socket, buff);
         n = 0;
         // copy server message in the buffer
 
@@ -38,7 +41,7 @@ void func(int connfd)
             break;
         }
     }
-    close(connfd);
+    close(socket);
 }
 
 // Driver function
@@ -83,7 +86,7 @@ int main()
     while( (connfd = accept(sockfd, (struct sockaddr *)&cli, (socklen_t*)&len))  || i < 5)
     {
         puts("Connection accepted");
-        pthread_create(&thread[i], NULL, func, connfd);
+        pthread_create(&thread[i], NULL, clientThread, &connfd);
 
         //Reply to the client
 

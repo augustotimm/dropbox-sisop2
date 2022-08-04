@@ -1,29 +1,38 @@
-//
-// Created by augusto on 03/08/2022.
-//
-
-#include "test-client.h"
 #include <netdb.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
+#include "../lib/helper.h"
+#define PORT 8888
 
-// TODO increase buffer size
 #define MAX 80
-#define PORT 9090
 #define SA struct sockaddr
-void func(int sockfd)
+
+char commands[5][13] = {"upload", "download", "list", "get_sync_dir", "exit"};
+
+void clientThread(int sockfd)
 {
+    char request[MAX];
     char buff[MAX];
+    char username[USERNAMESIZE];
     int n;
+
+    printf("Enter username: ");
+    fgets(username, USERNAMESIZE, stdin);
+    write(sockfd, username, sizeof(username));
+
     for (;;) {
         bzero(buff, sizeof(buff));
         printf("Enter the string : ");
         n = 0;
-        while ((buff[n++] = getchar()) != '\n')
-            ;
+        fgets(request, sizeof(request), stdin);
 
+        if(strcmp(request, commands[DOWNLOAD])){
+            printf("Enter the name of the file : ");
+            fgets(buff, sizeof(buff), stdin);
+            write(connfd, packet, sizeof(packet));
+        }
 
         if ((strncmp(buff, "exit", 4)) == 0) {
             printf("Client Exit...\n");
@@ -32,7 +41,7 @@ void func(int sockfd)
     }
 }
 
-int sendMessage(char* message)
+int main()
 {
     int sockfd, connfd;
     struct sockaddr_in servaddr, cli;
@@ -61,7 +70,8 @@ int sendMessage(char* message)
         printf("connected to the server..\n");
 
     // function for chat
-    write(sockfd, message, strlen(message) * sizeof(char));
+    clientThread(sockfd);
+
     // close the socket
     close(sockfd);
 }

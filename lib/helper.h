@@ -8,6 +8,25 @@
 #include <pthread.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <stdint-gcc.h>
+
+#define DATA -1
+#define EXIT 4
+#define SYNC 3
+#define LIST 2
+#define DOWNLOAD 1
+#define UPLOAD 0
+
+#define USERNAMESIZE 64
+
+
+typedef struct packet_t{
+    uint16_t type; //Tipo do pacote
+    uint16_t seqn; //Número de sequência
+    uint32_t total_size; //Número total de fragmentos
+    uint16_t length; //Comprimento do payload
+    const char* _payload; //Dados do pacote
+} packet_t;
 
 
 typedef struct thread_list {
