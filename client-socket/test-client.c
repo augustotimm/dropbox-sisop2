@@ -10,9 +10,39 @@
 
 char commands[5][13] = {"upload", "download", "list", "get_sync_dir", "exit"};
 
+
+void upload() {
+    printf("upload function");
+}
+
+int download(int socket) {
+    request_t request;
+    char fileName[FILENAMESIZE];
+    printf("download function\n");
+
+    write(socket, &commands[DOWNLOAD], sizeof(commands[DOWNLOAD]));
+    printf("insert name of file\n");
+    fgets(fileName, sizeof(fileName), stdin);
+    fileName[strcspn(fileName, "\n")] = 0;
+    request.command = DOWNLOAD;
+    strcpy(request.file, fileName);
+    // write(socket, &request, sizeof(request));
+    write(socket, &fileName, sizeof(fileName));
+    return receiveFile(socket, fileName);
+}
+
+void list() {
+    printf("list function");
+}
+
+void sync() {
+    printf("sync function");
+}
+
+
 void clientThread(int connfd)
 {
-    char request[MAX];
+    char userInput[MAX];
     char buff[MAX];
     char username[USERNAMESIZE];
     bzero(username, sizeof(username));
@@ -24,17 +54,25 @@ void clientThread(int connfd)
     write(connfd, username, sizeof(username));
 
     for (;;) {
-        bzero(request, sizeof(request));
+        bzero(userInput, sizeof(userInput));
         bzero(buff, sizeof(buff));
         printf("Enter the string : ");
         n = 0;
-        fgets(request, sizeof(request), stdin);
-        request[strcspn(request, "\n")] = 0;
+        fgets(userInput, sizeof(userInput), stdin);
+        userInput[strcspn(userInput, "\n")] = 0;
+        if(strcmp(userInput, commands[UPLOAD]) ==0 ) {
+            upload();
+        } else if(strcmp(userInput, commands[DOWNLOAD]) ==0 ) {
+            if(download(connfd) == OUTFOSYNCERROR) {
+                return;
+            }
+        } else if(strcmp(userInput, commands[LIST]) ==0 ) {
+            list();
+        } else if(strcmp(userInput, commands[SYNC]) ==0 ) {
+            sync();
+        }
 
-        write(connfd, request, sizeof(request));
-
-
-        if ((strncmp(request, "exit", 4)) == 0) {
+        if ((strncmp(userInput, "exit", 4)) == 0) {
             printf("Client Exit...\n");
             break;
         }

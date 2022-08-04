@@ -22,15 +22,12 @@
 #define USERNAMESIZE 64
 
 #define OUTFOSYNCERROR -99
-char endCommand[6] = "\nend\n";
 
-typedef struct packet_t{
-    uint16_t type; //Tipo do pacote
-    uint16_t seqn; //Número de sequência
-    uint32_t total_size; //Número total de fragmentos
-    uint16_t length; //Comprimento do payload
-    const char* _payload; //Dados do pacote
-} packet_t;
+typedef struct request_t
+{
+    char file[200];
+    int command;
+} request_t;
 
 
 typedef struct thread_list {
@@ -49,4 +46,5 @@ thread_list* initThreadListElement();
 //server comunication functions
 
 int sendFile(int socket, char* filepath);
+int receiveFile(int socket, char* fileName);
 #endif //DROPBOX_SISOP2_HELPER_H

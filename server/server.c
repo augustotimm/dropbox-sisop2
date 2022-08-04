@@ -16,8 +16,7 @@
 #define MAX 2048
 #define SA struct sockaddr
 char commands[5][13] = {"upload", "download", "list", "get_sync_dir", "exit"};
-char* path = "./watch_folder/";
-
+char* path = "\\watch_folder\\";
 
 void upload() {
     printf("upload function");
@@ -27,7 +26,7 @@ void download(int socket) {
     printf("download function");
     char fileName[FILENAMESIZE];
     bzero(fileName, sizeof(fileName));
-    read(socket, fileName, sizeof(fileName));
+    recv(socket, fileName, sizeof(fileName), 0);
 
 
     char* filePath = calloc(strlen(fileName) + strlen(path), sizeof(char));
@@ -51,20 +50,21 @@ void* clientThread(void* conf)
     char buff[MAX];
     int socket = * (int*) conf;
     char username[USERNAMESIZE];
-    read(socket, username, USERNAMESIZE);
+    recv(socket, username, USERNAMESIZE, 0);
     char currentCommand[13];
     bzero(currentCommand, sizeof(currentCommand));
     //waiting for command
+    printf("waiting for first command\n");
     for (;;) {
         bzero(buff, MAX);
 
         // read the message from client and copy it in buffer
-        read(socket, currentCommand, sizeof(currentCommand));
+        recv(socket, currentCommand, sizeof(currentCommand), 0);
 
         if(strcmp(currentCommand, commands[UPLOAD]) ==0 ) {
             upload();
         } else if(strcmp(currentCommand, commands[DOWNLOAD]) ==0 ) {
-            download();
+            download(socket);
         } else if(strcmp(currentCommand, commands[LIST]) ==0 ) {
             list();
         } else if(strcmp(currentCommand, commands[SYNC]) ==0 ) {

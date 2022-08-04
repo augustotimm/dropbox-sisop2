@@ -5,6 +5,7 @@
 #include <sys/socket.h>
 #include <stdio.h>
 #include <string.h>
+char endCommand[6] = "\nend\n";
 
 int getFileSize(FILE *ptrfile);
 
@@ -23,7 +24,7 @@ int sendFile(int socket, char* filepath) {
     char buff[KBYTE];
     bzero(buff, sizeof(buff));
 
-    if (file = fopen(filepath, "rb"))
+    if (file = fopen(".\\watch_folder\\texto.txt", "rb"))
     {
         fileSize = getFileSize(file);
 
@@ -68,7 +69,7 @@ int receiveFile(int socket, char* fileName) {
     FILE* file;
     char buff[KBYTE];
 
-    if(read(socket, &fileSize, sizeof(fileSize)) < 0) {
+    if(recv(socket, &fileSize, sizeof(fileSize), 0) < 0) {
         printf("Failure receiving filesize\n");
     }
 
@@ -83,7 +84,7 @@ int receiveFile(int socket, char* fileName) {
 
     while(bytesLeft > 0)
     {
-        read(socket, buff, KBYTE);
+        recv(socket, buff, KBYTE, 0);
 
         // escreve no arquivo os bytes lidos
         if(bytesLeft > KBYTE)
@@ -99,13 +100,13 @@ int receiveFile(int socket, char* fileName) {
     }
     fclose(file);
 
-    read(socket, buff, KBYTE);
+    recv(socket, buff, KBYTE, 0);
     if(strcmp(buff, endCommand) != 0) {
         printf("Connection out of sync\n");
         printf("Expected end command signal but received: %s\n\n", buff);
         return OUTFOSYNCERROR;
     }
 
-    printf("File %s has been downloaded\n\n", file);
+    printf("File %s has been downloaded\n\n", fileName);
     return 0;
 }
