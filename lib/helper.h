@@ -23,11 +23,6 @@
 
 #define OUTFOSYNCERROR -99
 
-typedef struct request_t
-{
-    char file[200];
-    int command;
-} request_t;
 
 
 typedef struct thread_list {
@@ -36,10 +31,29 @@ typedef struct thread_list {
     struct thread_list *next, *prev;
 } thread_list;
 
+typedef struct d_thread {
+    pthread_t thread;
+    bool isThreadComplete;
+} d_thread;
+
+typedef struct user_t {
+    d_thread clientThread[2];
+    d_thread watchDirThread;
+    char* username;
+    int userid;
+} user_t;
+
+typedef struct user_list {
+    user_t user;
+    struct thread_list *next, *prev;
+} user_list;
+
 typedef struct thread_argument {
     bool* isThreadComplete;
     void *argument;
 } thread_argument;
+
+
 
 thread_list* initThreadListElement();
 char* strcatSafe(char* head, char* tail);
