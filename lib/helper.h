@@ -42,7 +42,7 @@ typedef struct thread_argument {
 } thread_argument;
 
 thread_list* initThreadListElement();
-
+char* strcatSafe(char* head, char* tail);
 //server comunication functions
 
 int sendFile(int socket, char* filepath);

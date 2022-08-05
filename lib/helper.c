@@ -110,3 +110,10 @@ int receiveFile(int socket, char* fileName) {
     printf("File %s has been downloaded\n\n", fileName);
     return 0;
 }
+
+char* strcatSafe(char* head, char* tail) {
+    char* destiny = calloc(strlen(head) + strlen(tail), sizeof(char));
+    strcpy(destiny, head);
+    strcat(destiny, tail);
+    return destiny;
+}

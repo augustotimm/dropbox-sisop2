@@ -16,6 +16,8 @@
 #define MAX 2048
 #define SA struct sockaddr
 
+int getuserDirPath(char* username);
+
 char commands[5][13] = {"upload", "download", "list", "get_sync_dir", "exit"};
 
 //TODO change to relative path
@@ -25,9 +27,8 @@ void upload(int socket) {
     printf("upload function\n");
     char fileName[FILENAMESIZE];
     recv(socket, fileName, sizeof(fileName), 0);
-    char* filePath = calloc(strlen(fileName) + strlen(path), sizeof(char));
-    strcpy(filePath, path);
-    strcat(filePath, fileName);
+    char* filePath = strcatSafe(path, fileName);
+
 
     printf("Receiving file: %s\n", filePath);
     receiveFile(socket, filePath);
@@ -41,9 +42,7 @@ void download(int socket) {
     recv(socket, fileName, sizeof(fileName), 0);
 
 
-    char* filePath = calloc(strlen(fileName) + strlen(path), sizeof(char));
-    strcpy(filePath, path);
-    strcat(filePath, fileName);
+    char* filePath = strcatSafe(path, fileName);
 
     sendFile(socket, filePath);
     free(filePath);
@@ -64,6 +63,10 @@ void* clientThread(void* conf)
     int socket = * (int*) conf;
     char username[USERNAMESIZE];
     recv(socket, username, USERNAMESIZE, 0);
+
+    getuserDirPath(username);
+    thread_list* watchDirThread = initThreadListElement();
+
     char currentCommand[13];
     bzero(currentCommand, sizeof(currentCommand));
     //waiting for command
@@ -94,6 +97,14 @@ void* clientThread(void* conf)
         }
     }
 
+}
+
+int getuserDirPath(char* username) {
+    char* filePath = strcatSafe(path, username);
+    char* dirPath = strcatSafe(filePath, "/");
+    free(filePath);
+
+    return dirPath;
 }
 
 // Driver function
