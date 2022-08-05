@@ -5,7 +5,7 @@
 #ifndef DROPBOX_SISOP2_USER_H
 #define DROPBOX_SISOP2_USER_H
 char* getuserDirPath(char* username);
-void* startUserSession( void* voidUsername);
+int startUserSession( char* username, int socket) ;
 
 typedef struct start_user_argument {
     char* username;

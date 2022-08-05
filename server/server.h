@@ -11,5 +11,5 @@ sem_t userListWrite;
 
 char path[KBYTE];
 
-
+void* clientConnThread(void* conf);
 #endif //DROPBOX_SISOP2_SERVER_H

@@ -42,7 +42,7 @@ typedef struct user_t {
     d_thread* watchDirThread;
     sem_t startSessionSem;
     char* username;
-    bool* isUserActive;
+    bool isUserActive;
     int userid;
 } user_t;
 

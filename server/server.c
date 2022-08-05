@@ -56,14 +56,14 @@ void sync() {
     printf("sync function");
 }
 
-void* clientThread(void* conf)
+void* clientConnThread(void* conf)
 {
     char buff[MAX];
+    bzero(buff, MAX);
     int socket = * (int*) conf;
-    char username[USERNAMESIZE];
-    recv(socket, username, USERNAMESIZE, 0);
 
-    thread_list* watchDirThread = initThreadListElement();
+    strcpy(buff, "TRUE");
+    write(socket, buff, sizeof(buff));
 
     char currentCommand[13];
     bzero(currentCommand, sizeof(currentCommand));
@@ -97,6 +97,19 @@ void* clientThread(void* conf)
 
 }
 
+void* connectUser(void* arg) {
+    thread_argument* argument = (thread_argument*) arg;
+    int socket = * (int*) argument->argument;
+    char username[USERNAMESIZE];
+    bzero(username, USERNAMESIZE);
+    recv(socket, username, USERNAMESIZE, 0);
+    if(!startUserSession(username, socket)) {
+        close(socket);
+    }
+    *argument->isThreadComplete = true;
+    free(arg);
+}
+
 
 // Driver function
 int main()
@@ -107,11 +120,7 @@ int main()
 
     int sockfd, connfd, len;
     struct sockaddr_in servaddr, cli;
-    pthread_t userThread;
-    char* username = "user";
-    pthread_create(&userThread, NULL, startUserSession, (void*) username);
 
-    pthread_t thread[5];
     // socket create and verification
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd == -1) {
@@ -145,12 +154,26 @@ int main()
     len = sizeof(cli);
 
     int i = 0;
+    thread_list* createUserThreadList = NULL;
     while( (connfd = accept(sockfd, (struct sockaddr *)&cli, (socklen_t*)&len))  || i < 5)
     {
         puts("Connection accepted");
-        pthread_create(&thread[i], NULL, clientThread, &connfd);
+        thread_list* newUserThread = initThreadListElement();
+        int* newSocket = calloc(1, sizeof(int ));
+        *newSocket = connfd;
+
+        thread_argument* argument = (thread_argument*) calloc(1, sizeof(thread_argument));
+
+        argument->isThreadComplete = &(newUserThread->isThreadComplete);
+        argument->argument = (void*) newSocket;
+
+        pthread_create(&newUserThread->thread, NULL, connectUser, argument);
+
+        DL_APPEND(createUserThreadList, newUserThread);
 
         //Reply to the client
 
     }
 }
+
+

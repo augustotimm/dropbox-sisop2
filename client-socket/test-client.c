@@ -35,7 +35,6 @@ void upload(int socket) {
 }
 
 int download(int socket) {
-    request_t request;
     char fileName[FILENAMESIZE];
     printf("download function\n");
 
@@ -62,12 +61,15 @@ void clientThread(int connfd)
     char buff[MAX];
     char username[USERNAMESIZE];
     bzero(username, sizeof(username));
+    bzero(buff, sizeof(buff));
     int n;
 
     printf("Enter username: ");
     fgets(username, USERNAMESIZE, stdin);
     username[strcspn(username, "\n")] = 0;
     write(connfd, username, sizeof(username));
+    recv(connfd, buff, sizeof(buff), 0);
+    printf("SERVER CONNECTION STATUS: %s", buff);
 
     for (;;) {
         bzero(userInput, sizeof(userInput));
