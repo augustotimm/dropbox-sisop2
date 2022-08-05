@@ -32,5 +32,7 @@ int fd,wd;
 
 time_t getFileLastModifiedEpoch(char* pathname);
 
+void watchDir(char *pathToDir, bool* parentFinished, bool* threadFinished);
+
 void sig_handler(int sig);
 #endif //DROPBOX_SISOP2_FILE_HANDLER_H

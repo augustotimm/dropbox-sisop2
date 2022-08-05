@@ -32,14 +32,12 @@ void sig_handler(int sig){
 
 }
 
-int main(int argc, char **argv){
+void watchDir(char *pathToDir, bool* parentFinished, bool* threadFinished){
     thread_list* threadList = NULL;
     thread_list* elt = NULL, *tmp = NULL;
 
-    char *path_to_be_watched;
-    signal(SIGINT,sig_handler);
 
-    path_to_be_watched = "/home/augusto/repositorios/ufrgs/dropbox-sisop2/watch_folder/";
+    signal(SIGINT,sig_handler);
 
     /* Step 1. Initialize inotify */
     fd = inotify_init();
@@ -49,18 +47,18 @@ int main(int argc, char **argv){
         exit(2);
 
     /* Step 2. Add Watch */
-    wd = inotify_add_watch(fd,path_to_be_watched,IN_MODIFY | IN_CREATE | IN_DELETE);
+    wd = inotify_add_watch(fd,pathToDir,IN_MODIFY | IN_CREATE | IN_DELETE);
 
     if(wd==-1){
-        printf("Could not watch : %s\n",path_to_be_watched);
+        printf("Could not watch : %s\n",pathToDir);
         return COULD_NOT_WATCH;
     }
     else{
-        printf("Watching : %s\n",path_to_be_watched);
+        printf("Watching : %s\n",pathToDir);
     }
 
 
-    while(1){
+    while(!(*parentFinished)){
 
         int i=0,length;
         char buffer[BUF_LEN];
@@ -74,7 +72,7 @@ int main(int argc, char **argv){
             struct inotify_event *event = (struct inotify_event *) &buffer[i];
 
             if(event->len){
-                char* filePath = getFilePath(path_to_be_watched, event->name);
+                char* filePath = getFilePath(pathToDir, event->name);
                 newElement = initThreadListElement();
                 thread_argument* fileEventArgument = (thread_argument*)calloc(1, sizeof(thread_argument));
                 fileEventArgument->isThreadComplete = &(newElement->isThreadComplete);
@@ -108,6 +106,9 @@ int main(int argc, char **argv){
                         printf( "The file %s was modified.\n", event->name );
                     }
                 }
+                if ( event->mask & IN_CLOSE_WRITE ) {
+                    printf( "The directory %s IN_CLOSE_WRITE.\n", event->name );
+                }
             }
             i += EVENT_SIZE + event->len;
         }
@@ -120,6 +121,7 @@ int main(int argc, char **argv){
             }
         }
     }
+    *threadFinished = true;
 }
 
 char* getFilePath(char* path, char* fileName) {
