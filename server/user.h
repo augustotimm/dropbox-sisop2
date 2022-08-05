@@ -7,4 +7,9 @@
 char* getuserDirPath(char* username);
 void* startUserSession( void* voidUsername);
 
+typedef struct start_user_argument {
+    char* username;
+    int socket;
+} start_user_argument;
+
 #endif //DROPBOX_SISOP2_USER_H

@@ -33,13 +33,13 @@ bool addSession(user_t user, d_thread* clientThread){
     return false;
 }
 
-int startSession(user_list* user) {
+int startSession(user_list* user, int sessionSocket) {
     if(hasAvailableSession(user->user)) {
         sem_wait( &(user->user.startSessionSem));
         if(hasAvailableSession(user->user)) {
             d_thread* clientThread = (d_thread*) calloc(1, sizeof(d_thread));
             // TODO args has to be the socket the client thread should use
-            pthread_create(&clientThread->thread, NULL, watchDir, (void*) 1);
+            pthread_create(&clientThread->thread, NULL, watchDir, &sessionSocket);
             if(!addSession(user->user, clientThread)) {
                 sem_post(&(user->user.startSessionSem));
                 printf("User has reached limit of active sessions\n");
@@ -72,8 +72,9 @@ user_list* createUser(char* username) {
     return newUser;
 }
 
-void* startUserSession( void* voidUsername) {
-    char* username = voidUsername;
+void* startUserSession( void* voidArg) {
+    start_user_argument* argument = (start_user_argument*) voidArg;
+    char* username = argument->username;
     user_list* user = NULL;
     user_list etmp;
 
@@ -81,13 +82,13 @@ void* startUserSession( void* voidUsername) {
 
     DL_SEARCH(connectedUserListHead, user, &etmp, userCompare);
     if(user){
-        startSession(user);
+        startSession(user, argument->socket);
     }
     else{
         sem_wait( &userListWrite);
         DL_SEARCH(connectedUserListHead, user, &etmp, userCompare);
         if(user){
-            startSession(user);
+            startSession(user, argument->socket);
         }
         else{
             char* dirPath = getuserDirPath(username);
