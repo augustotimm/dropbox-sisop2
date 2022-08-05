@@ -9,4 +9,7 @@
 user_list* connectedUserListHead = NULL;
 sem_t userListWrite;
 
+char* path = "/home/augusto/repositorios/ufrgs/dropbox-sisop2/watch_folder/";
+
+
 #endif //DROPBOX_SISOP2_SERVER_H

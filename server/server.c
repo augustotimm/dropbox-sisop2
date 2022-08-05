@@ -16,12 +16,10 @@
 #define MAX 2048
 #define SA struct sockaddr
 
-int getuserDirPath(char* username);
 
 char commands[5][13] = {"upload", "download", "list", "get_sync_dir", "exit"};
 
 //TODO change to relative path
-char* path = "/home/augusto/repositorios/ufrgs/dropbox-sisop2/watch_folder/";
 
 void upload(int socket) {
     printf("upload function\n");
@@ -64,7 +62,6 @@ void* clientThread(void* conf)
     char username[USERNAMESIZE];
     recv(socket, username, USERNAMESIZE, 0);
 
-    getuserDirPath(username);
     thread_list* watchDirThread = initThreadListElement();
 
     char currentCommand[13];
@@ -99,18 +96,13 @@ void* clientThread(void* conf)
 
 }
 
-int getuserDirPath(char* username) {
-    char* filePath = strcatSafe(path, username);
-    char* dirPath = strcatSafe(filePath, "/");
-    free(filePath);
-
-    return dirPath;
-}
 
 // Driver function
 int main()
 {
     sem_init(&userListWrite, 0, 1);
+    connectedUserListHead = NULL;
+
     int sockfd, connfd, len;
     struct sockaddr_in servaddr, cli;
     pthread_t thread[5];

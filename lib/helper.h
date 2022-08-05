@@ -38,8 +38,9 @@ typedef struct d_thread {
 
 typedef struct user_t {
     d_thread clientThread[2];
-    d_thread watchDirThread;
+    d_thread* watchDirThread;
     char* username;
+    bool* isUserActive;
     int userid;
 } user_t;
 
