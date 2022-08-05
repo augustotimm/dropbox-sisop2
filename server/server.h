@@ -6,10 +6,10 @@
 #define DROPBOX_SISOP2_SERVER_H
 #include <semaphore.h>
 #include "../lib/helper.h"
-user_list* connectedUserListHead = NULL;
+user_list* connectedUserListHead;
 sem_t userListWrite;
 
-char* path = "/home/augusto/repositorios/ufrgs/dropbox-sisop2/watch_folder/";
+char path[KBYTE];
 
 
 #endif //DROPBOX_SISOP2_SERVER_H

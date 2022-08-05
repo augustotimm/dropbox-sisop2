@@ -46,7 +46,7 @@ typedef struct user_t {
 
 typedef struct user_list {
     user_t user;
-    struct thread_list *next, *prev;
+    struct user_list *next, *prev;
 } user_list;
 
 typedef struct thread_argument {

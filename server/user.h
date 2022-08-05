@@ -4,6 +4,7 @@
 
 #ifndef DROPBOX_SISOP2_USER_H
 #define DROPBOX_SISOP2_USER_H
-int getuserDirPath(char* username);
+char* getuserDirPath(char* username);
+void* startUserSession( void* voidUsername);
 
 #endif //DROPBOX_SISOP2_USER_H

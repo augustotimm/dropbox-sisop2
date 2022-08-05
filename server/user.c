@@ -32,12 +32,12 @@ user_list* createUser(char* username) {
     return newUser;
 }
 
-void* startUserSession( char* username) {
-
+void* startUserSession( void* voidUsername) {
+    char* username = voidUsername;
     user_list* user = NULL;
     user_list etmp;
 
-    strcpy(etmp.user.username, username);
+    etmp.user.username = username;
 
     DL_SEARCH(connectedUserListHead, user, &etmp, userCompare);
     if(user){
@@ -54,7 +54,6 @@ void* startUserSession( char* username) {
             user_list* newUser = createUser(username);
             startWatchDir(newUser->user, dirPath);
             DL_APPEND(connectedUserListHead, newUser);
-
         }
 
     }
@@ -65,12 +64,12 @@ int startWatchDir(user_t user, char* dirPath) {
     watch_dir_argument * argument = (watch_dir_argument*)calloc(1, sizeof(thread_argument));
 
     argument->isThreadComplete = &(user.watchDirThread->isThreadComplete);
-    argument->isUserActive = &(user.isUserActive);
+    argument->isUserActive = user.isUserActive;
     argument->dirPath = dirPath;
-    return pthread_create(&user.watchDirThread, NULL, watchDir, (void*) argument);
+    return pthread_create(&user.watchDirThread->thread, NULL, watchDir, (void*) argument);
 }
 
-int getuserDirPath(char* username) {
+char* getuserDirPath(char* username) {
     char* filePath = strcatSafe(path, username);
     char* dirPath = strcatSafe(filePath, "/");
     free(filePath);

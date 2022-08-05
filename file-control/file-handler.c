@@ -36,7 +36,7 @@ void* watchDir(void* args){
     watch_dir_argument* watchDirArgument = (watch_dir_argument*) args;
     thread_list* threadList = NULL;
     thread_list* elt = NULL, *tmp = NULL;
-    char* pathToDir = &(watchDirArgument->dirPath);
+    char* pathToDir = watchDirArgument->dirPath;
 
     signal(SIGINT,sig_handler);
 
@@ -52,7 +52,7 @@ void* watchDir(void* args){
 
     if(wd==-1){
         printf("Could not watch : %s\n",pathToDir);
-        return COULD_NOT_WATCH;
+        return NULL;
     }
     else{
         printf("Watching : %s\n",pathToDir);
@@ -81,14 +81,14 @@ void* watchDir(void* args){
                 if ( event->mask & IN_CREATE ) {
                     if ( event->mask & IN_ISDIR ) {
                         newElement = initThreadListElement();
-
-                        pthread_create(&(newElement->thread), NULL, createdDir, fileEventArgument);
-                        DL_APPEND(threadList, newElement);
+                        printf( "The file %s was created.\n", event->name );
+                        // pthread_create(&(newElement->thread), NULL, createdDir, fileEventArgument);
+                        // DL_APPEND(threadList, newElement);
                     }
                     else {
-                        pthread_create(&(newElement->thread), NULL, createdFile, fileEventArgument);
+                        // pthread_create(&(newElement->thread), NULL, createdFile, fileEventArgument);
                         printf( "The file %s was created.\n", event->name );
-                        DL_APPEND(threadList, newElement);
+                        // DL_APPEND(threadList, newElement);
                     }
                 }
                 else if ( event->mask & IN_DELETE ) {
@@ -122,7 +122,7 @@ void* watchDir(void* args){
             }
         }
     }
-    watchDirArgument->isThreadComplete = true;
+    *(watchDirArgument->isThreadComplete) = true;
 }
 
 char* getFilePath(char* path, char* fileName) {

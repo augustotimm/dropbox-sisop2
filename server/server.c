@@ -11,6 +11,7 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <pthread.h>
+#include "user.h"
 
 #define PORT 8888
 #define MAX 2048
@@ -90,7 +91,7 @@ void* clientThread(void* conf)
         if (strcmp(currentCommand, commands[EXIT]) == 0) {
             printf("Server Exit...\n");
             close(socket);
-            return (void*) socket;
+            return NULL;
         }
     }
 
@@ -102,9 +103,14 @@ int main()
 {
     sem_init(&userListWrite, 0, 1);
     connectedUserListHead = NULL;
+    strcpy(path, "/home/augusto/repositorios/ufrgs/dropbox-sisop2/watch_folder/");
 
     int sockfd, connfd, len;
     struct sockaddr_in servaddr, cli;
+    pthread_t userThread;
+    char* username = "user";
+    pthread_create(&userThread, NULL, startUserSession, (void*) username);
+
     pthread_t thread[5];
     // socket create and verification
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
