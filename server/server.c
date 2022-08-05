@@ -110,6 +110,7 @@ int getuserDirPath(char* username) {
 // Driver function
 int main()
 {
+    sem_init(&userListWrite, 0, 1);
     int sockfd, connfd, len;
     struct sockaddr_in servaddr, cli;
     pthread_t thread[5];
