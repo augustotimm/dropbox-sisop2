@@ -56,11 +56,12 @@ void sync() {
     printf("sync function");
 }
 
-void* clientConnThread(void* conf)
+void* clientConnThread(void* voidArg)
 {
+    thread_argument* argument = voidArg;
     char buff[MAX];
     bzero(buff, MAX);
-    int socket = * (int*) conf;
+    int socket =  (int*) argument->argument;
 
     strcpy(buff, "TRUE");
     write(socket, buff, sizeof(buff));
@@ -91,6 +92,8 @@ void* clientConnThread(void* conf)
         if (strcmp(currentCommand, commands[EXIT]) == 0) {
             printf("Server Exit...\n");
             close(socket);
+
+            argument->isThreadComplete = true;
             return NULL;
         }
     }

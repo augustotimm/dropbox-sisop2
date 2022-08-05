@@ -69,7 +69,7 @@ void clientThread(int connfd)
     username[strcspn(username, "\n")] = 0;
     write(connfd, username, sizeof(username));
     recv(connfd, buff, sizeof(buff), 0);
-    printf("SERVER CONNECTION STATUS: %s", buff);
+    printf("SERVER CONNECTION STATUS: %s\n", buff);
 
     for (;;) {
         bzero(userInput, sizeof(userInput));

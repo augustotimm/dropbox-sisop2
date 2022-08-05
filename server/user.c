@@ -39,7 +39,12 @@ int startSession(user_list* user, int sessionSocket) {
         if(hasAvailableSession(user->user)) {
             d_thread* newClientThread = (d_thread*) calloc(1, sizeof(d_thread));
             // TODO args has to be the socket the client thread should use
-            pthread_create(&newClientThread->thread, NULL, clientConnThread, &sessionSocket);
+            thread_argument* argument = (thread_argument*) calloc(1, sizeof(thread_argument));
+
+            argument->isThreadComplete = &(newClientThread->isThreadComplete);
+            argument->argument = (void*) sessionSocket;
+
+            pthread_create(&newClientThread->thread, NULL, clientConnThread, argument);
             if(!addSession(user->user, newClientThread)) {
                 sem_post(&(user->user.startSessionSem));
                 printf("User has reached limit of active sessions\n");
