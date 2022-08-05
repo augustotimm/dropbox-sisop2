@@ -30,9 +30,15 @@
 #define COULD_NOT_WATCH -13
 int fd,wd;
 
+typedef struct watch_dir_argument {
+    bool* isThreadComplete;
+    bool* isUserActive;
+    char* dirPath;
+} watch_dir_argument;
+
 time_t getFileLastModifiedEpoch(char* pathname);
 
-void watchDir(char *pathToDir, bool* parentFinished, bool* threadFinished);
+void* watchDir(void* args);
 
 void sig_handler(int sig);
 #endif //DROPBOX_SISOP2_FILE_HANDLER_H

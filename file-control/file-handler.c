@@ -32,10 +32,11 @@ void sig_handler(int sig){
 
 }
 
-void watchDir(char *pathToDir, bool* parentFinished, bool* threadFinished){
+void* watchDir(void* args){
+    watch_dir_argument* watchDirArgument = (watch_dir_argument*) args;
     thread_list* threadList = NULL;
     thread_list* elt = NULL, *tmp = NULL;
-
+    char* pathToDir = &(watchDirArgument->dirPath);
 
     signal(SIGINT,sig_handler);
 
@@ -58,7 +59,7 @@ void watchDir(char *pathToDir, bool* parentFinished, bool* threadFinished){
     }
 
 
-    while(!(*parentFinished)){
+    while(watchDirArgument->isUserActive){
 
         int i=0,length;
         char buffer[BUF_LEN];
@@ -121,7 +122,7 @@ void watchDir(char *pathToDir, bool* parentFinished, bool* threadFinished){
             }
         }
     }
-    *threadFinished = true;
+    watchDirArgument->isThreadComplete = true;
 }
 
 char* getFilePath(char* path, char* fileName) {
