@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <stdint-gcc.h>
+#include <semaphore.h>
 
 #define FILENAMESIZE 64
 #define KBYTE 1024
@@ -37,8 +38,9 @@ typedef struct d_thread {
 } d_thread;
 
 typedef struct user_t {
-    d_thread clientThread[2];
+    d_thread* clientThread[2];
     d_thread* watchDirThread;
+    sem_t startSessionSem;
     char* username;
     bool* isUserActive;
     int userid;

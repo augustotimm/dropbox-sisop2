@@ -7,6 +7,7 @@
 #include "server.h"
 #include <string.h>
 #include "../file-control/file-handler.h"
+#define OUTOFSESSION -90
 
 int startWatchDir(user_t user, char* dirPath);
 
@@ -14,9 +15,45 @@ int  userCompare(user_list* a, user_list* b) {
     return strcmp(a->user.username,b->user.username);
 
 }
-int addSession(user_list* user) {
-    if(user->user.clientThread) {
 
+bool hasAvailableSession(user_t user) {
+    return (user.clientThread[0] == NULL || user.clientThread[1] == NULL);
+}
+
+bool addSession(user_t user, d_thread* clientThread){
+    if(user.clientThread[0] == NULL) {
+        user.clientThread[0] = clientThread;
+        return true;
+    }
+    if(user.clientThread[1] == NULL) {
+        user.clientThread[1] = clientThread;
+        return true;
+    }
+
+    return false;
+}
+
+int startSession(user_list* user) {
+    if(hasAvailableSession(user->user)) {
+        sem_wait( &(user->user.startSessionSem));
+        if(hasAvailableSession(user->user)) {
+            d_thread* clientThread = (d_thread*) calloc(1, sizeof(d_thread));
+            // TODO args has to be the socket the client thread should use
+            pthread_create(&clientThread->thread, NULL, watchDir, (void*) 1);
+            if(!addSession(user->user, clientThread)) {
+                sem_post(&(user->user.startSessionSem));
+                printf("User has reached limit of active sessions\n");
+                return OUTOFSESSION;
+            }
+            sem_post(&(user->user.startSessionSem));
+            return 1;
+
+        }
+        else {
+            printf("User has reached limit of active sessions\n");
+            sem_post(&(user->user.startSessionSem));
+            return OUTOFSESSION;
+        }
     }
 
 }
@@ -26,8 +63,11 @@ user_list* createUser(char* username) {
     newUser->prev = NULL;
     newUser->next = NULL;
 
+    newUser->user.clientThread[0] = NULL;
+    newUser->user.clientThread[1] = NULL;
     newUser->user.username = username;
     newUser->user.watchDirThread = NULL;
+    sem_init(&newUser->user.startSessionSem, 0, 1);
 
     return newUser;
 }
@@ -41,19 +81,20 @@ void* startUserSession( void* voidUsername) {
 
     DL_SEARCH(connectedUserListHead, user, &etmp, userCompare);
     if(user){
-        addSession(user);
+        startSession(user);
     }
     else{
         sem_wait( &userListWrite);
         DL_SEARCH(connectedUserListHead, user, &etmp, userCompare);
         if(user){
-            addSession(user);
+            startSession(user);
         }
         else{
             char* dirPath = getuserDirPath(username);
             user_list* newUser = createUser(username);
             startWatchDir(newUser->user, dirPath);
             DL_APPEND(connectedUserListHead, newUser);
+            sem_post(&userListWrite);
         }
 
     }
