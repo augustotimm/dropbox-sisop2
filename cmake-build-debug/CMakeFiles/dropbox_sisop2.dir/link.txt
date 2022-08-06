@@ -1,1 +1,0 @@
-/usr/bin/gcc  -g   CMakeFiles/dropbox_sisop2.dir/file-control/file-handler.c.o CMakeFiles/dropbox_sisop2.dir/event-handler/event-handler.c.o CMakeFiles/dropbox_sisop2.dir/lib/helper.c.o  -o dropbox_sisop2 -rdynamic -lpthread 
