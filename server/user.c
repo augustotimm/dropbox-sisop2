@@ -74,12 +74,12 @@ bool addSession(user_t* user, d_thread* clientThread){
     return false;
 }
 
-d_thread* createClientThreadArgument(bool* isThreadComplete, char* dirPath, int sessionSocket) {
+client_thread_argument* createClientThreadArgument(bool* isThreadComplete, char* dirPath, int sessionSocket) {
     client_thread_argument* argument = (client_thread_argument*) calloc(1, sizeof(thread_argument));
 
     argument->isThreadComplete = isThreadComplete;
     argument->clientDirPath = calloc(strlen(dirPath)+1, sizeof(char));
-    strcpy(&argument->clientDirPath, dirPath);
+    strcpy(argument->clientDirPath, dirPath);
     argument->socket = sessionSocket;
 
     return argument;
