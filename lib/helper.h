@@ -19,6 +19,7 @@
 #define LIST 2
 #define DOWNLOAD 1
 #define UPLOAD 0
+#define USERSESSIONNUMBER 2
 
 #define USERNAMESIZE 64
 
@@ -39,7 +40,7 @@ typedef struct d_thread {
 } d_thread;
 
 typedef struct user_t {
-    d_thread* clientThread[2];
+    d_thread* clientThread[USERSESSIONNUMBER];
     d_thread watchDirThread;
     sem_t startSessionSem;
     char* username;

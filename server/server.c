@@ -88,7 +88,7 @@ void* userDisconnector(void *arg) {
 
         sleep(10);
         DL_FOREACH_SAFE(connectedUserListHead, currentUser, userTmp) {
-            if(!hasAvailableSession(currentUser->user)) {
+            if(!hasSessionOpen(currentUser->user)) {
                 pthread_t thread;
                 pthread_create(&thread, NULL, killUser, currentUser);
                 pthread_detach(thread);

@@ -15,8 +15,34 @@ int  userCompare(user_list* a, user_list* b) {
 
 }
 
+bool isSessionAvailable(user_t user, int sessionNumber) {
+    return user.clientThread[sessionNumber] == NULL || user.clientThread[sessionNumber]->isThreadComplete;
+}
+
+bool isSessionOpen(user_t user, int sessionNumber) {
+    return user.clientThread[sessionNumber] != NULL && !user.clientThread[sessionNumber]->isThreadComplete;
+}
+
+bool hasSessionOpen(user_t user) {
+    int i = 0;
+    while(i < USERSESSIONNUMBER) {
+        if(isSessionOpen(user, i)){
+            return true;
+        }
+        i++;
+    }
+    return false;
+}
+
 bool hasAvailableSession(user_t user) {
-    return (user.clientThread[0] == NULL || user.clientThread[1] == NULL);
+    int i = 0;
+    while(i < USERSESSIONNUMBER) {
+        if(isSessionAvailable(user, i)){
+            return true;
+        }
+        i++;
+    }
+    return false;
 }
 
 void* killUser(void * voidUserList){
