@@ -14,7 +14,7 @@
 #include "user.h"
 #include "server_functions.h"
 
-#define PORT 8889
+#define PORT 8888
 #define MAX 2048
 #define SA struct sockaddr
 
@@ -28,10 +28,10 @@ char commands[5][13] = {"upload", "download", "list", "get_sync_dir", "exit"};
 
 void* clientConnThread(void* voidArg)
 {
-    thread_argument* argument = voidArg;
+    client_thread_argument* argument = voidArg;
     char buff[MAX];
     bzero(buff, MAX);
-    int socket =  (int *) argument->argument;
+    int socket = argument->socket;
 
     strcpy(buff, "TRUE");
     write(socket, buff, sizeof(buff));
@@ -64,6 +64,7 @@ void* clientConnThread(void* voidArg)
             close(socket);
 
             *argument->isThreadComplete = true;
+            pthread_cond_signal(&closedUserConnection);
             return NULL;
         }
     }
@@ -86,14 +87,17 @@ void* userDisconnector(void *arg) {
         thread_list* currentThread = NULL, *tmp = NULL;
         user_list* currentUser = NULL, *userTmp = NULL;
 
-        sleep(10);
+        pthread_cond_wait(&closedUserConnection, &connectedUsersMutex);
         DL_FOREACH_SAFE(connectedUserListHead, currentUser, userTmp) {
-            if(!hasSessionOpen(currentUser->user)) {
-                pthread_t thread;
-                pthread_create(&thread, NULL, killUser, currentUser);
-                pthread_detach(thread);
+            if(!hasSessionOpen(currentUser->user) && currentUser->canDie) {
+                sem_wait(&currentUser->user.userAccessSem);
+                currentUser->canDie = false;
+                DL_DELETE(connectedUserListHead, currentUser);
+
+                freeUserList(currentUser);
             }
         }
+        pthread_mutex_unlock(&connectedUsersMutex);
     }
 }
 
@@ -101,7 +105,6 @@ void* userDisconnector(void *arg) {
 // Driver function
 int main()
 {
-    sem_init(&userListWrite, 0, 1);
     connectedUserListHead = NULL;
     strcpy(path, "/home/augusto/repositorios/ufrgs/dropbox-sisop2/watch_folder/");
 

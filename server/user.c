@@ -8,7 +8,8 @@
 #include "../file-control/file-handler.h"
 #define OUTOFSESSION -90
 
-int startWatchDir(user_t* user, char* dirPath);
+void startWatchDir(user_t* user, char* dirPath);
+void freeUserList(user_list* userList);
 
 int  userCompare(user_list* a, user_list* b) {
     return strcmp(a->user.username,b->user.username);
@@ -45,9 +46,19 @@ bool hasAvailableSession(user_t user) {
     return false;
 }
 
-void* killUser(void * voidUserList){
-    user_list* user = (user_list*) voidUserList;
-    printf("killing user: %s\n", user->user.username);
+void freeUser(user_t* user) {
+    free(user->username);
+    user->username = NULL;
+    for(int i = 0; i < USERSESSIONNUMBER; i++ ) {
+        free(user->clientThread[i]);
+        user->clientThread[i] = NULL;
+    }
+}
+
+void freeUserList(user_list* userList){
+    freeUser(&userList->user);
+    free(userList);
+    userList = NULL;
 }
 
 bool addSession(user_t* user, d_thread* clientThread){
@@ -65,30 +76,29 @@ bool addSession(user_t* user, d_thread* clientThread){
 
 int startNewSession(user_list* user, int sessionSocket) {
     if(hasAvailableSession(user->user)) {
-        sem_wait( &(user->user.startSessionSem));
+        sem_wait( &(user->user.userAccessSem));
         if(hasAvailableSession(user->user)) {
             d_thread* newClientThread = (d_thread*) calloc(1, sizeof(d_thread));
-            // TODO args has to be the socket the client thread should use
-            thread_argument* argument = (thread_argument*) calloc(1, sizeof(thread_argument));
+            client_thread_argument* argument = (client_thread_argument*) calloc(1, sizeof(thread_argument));
 
             argument->isThreadComplete = &(newClientThread->isThreadComplete);
-            argument->argument = (void*) sessionSocket;
+            argument->socket = sessionSocket;
 
             pthread_create(&newClientThread->thread, NULL, clientConnThread, argument);
             pthread_detach(newClientThread->thread);
 
             if(!addSession(&user->user, newClientThread)) {
-                sem_post(&(user->user.startSessionSem));
+                sem_post(&(user->user.userAccessSem));
                 printf("User has reached limit of active sessions\n");
                 return OUTOFSESSION;
             }
-            sem_post(&(user->user.startSessionSem));
+            sem_post(&(user->user.userAccessSem));
             return 1;
 
         }
         else {
             printf("User has reached limit of active sessions\n");
-            sem_post(&(user->user.startSessionSem));
+            sem_post(&(user->user.userAccessSem));
             return OUTOFSESSION;
         }
     }
@@ -99,14 +109,14 @@ user_list* createUser(char* username) {
     user_list* newUser = calloc(1, sizeof(user_list));
     newUser->prev = NULL;
     newUser->next = NULL;
-
+    newUser->canDie = true;
     newUser->user.clientThread[0] = NULL;
     newUser->user.clientThread[1] = NULL;
     newUser->user.username = (char*) calloc(strlen(username), sizeof(char));
 
     strcpy(newUser->user.username, username);
     newUser->user.isUserActive = true;
-    sem_init(&newUser->user.startSessionSem, 0, 1);
+    sem_init(&newUser->user.userAccessSem, 0, 1);
 
     return newUser;
 }
@@ -117,34 +127,29 @@ int startUserSession( char* username, int socket) {
 
     etmp.user.username = username;
 
+    pthread_mutex_lock( &connectedUsersMutex);
     DL_SEARCH(connectedUserListHead, user, &etmp, userCompare);
     if(user){
+        user->canDie = true;
+        pthread_mutex_unlock( &connectedUsersMutex);
         return startNewSession(user, socket);
     }
     else{
-        sem_wait( &userListWrite);
-        DL_SEARCH(connectedUserListHead, user, &etmp, userCompare);
-        if(user){
-            return startNewSession(user, socket);
-        }
-        else{
-            char* dirPath = getuserDirPath(username);
-            user_list* newUser = createUser(username);
-            DL_APPEND(connectedUserListHead, newUser);
-            int startedWatchingDir = startWatchDir(&(newUser->user), dirPath);
-            sem_post(&userListWrite);
-            return startNewSession(newUser, socket);
-        }
+        char* dirPath = getuserDirPath(username);
+        user_list* newUser = createUser(username);
+        DL_APPEND(connectedUserListHead, newUser);
+        pthread_mutex_unlock(&connectedUsersMutex);
+
+        startWatchDir(&(newUser->user), dirPath);
+        return startNewSession(newUser, socket);
 
     }
 }
 
-int startWatchDir(user_t* user, char* dirPath) {
-    watch_dir_argument * argument = (watch_dir_argument*)calloc(1, sizeof(watch_dir_argument));
-    argument->isThreadComplete = &(user->watchDirThread.isThreadComplete);
-    argument->isUserActive = &(user->isUserActive);
-    argument->dirPath = dirPath;
-   return pthread_create(&user->watchDirThread.thread, NULL, watchDir, argument);
+void startWatchDir(user_t* user, char* dirPath) {
+    sem_wait( &(user->userAccessSem));
+    pthread_create(&user->watchDirThread, NULL, watchDir, dirPath);
+    sem_post(&(user->userAccessSem));
 }
 
 char* getuserDirPath(char* username) {

@@ -7,7 +7,8 @@
 #include <semaphore.h>
 #include "../lib/helper.h"
 user_list* connectedUserListHead;
-sem_t userListWrite;
+pthread_mutex_t connectedUsersMutex;
+pthread_cond_t closedUserConnection;
 
 char path[KBYTE];
 

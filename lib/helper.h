@@ -41,8 +41,8 @@ typedef struct d_thread {
 
 typedef struct user_t {
     d_thread* clientThread[USERSESSIONNUMBER];
-    d_thread watchDirThread;
-    sem_t startSessionSem;
+    pthread_t watchDirThread;
+    sem_t userAccessSem;
     char* username;
     bool isUserActive;
     int userid;
@@ -50,6 +50,7 @@ typedef struct user_t {
 
 typedef struct user_list {
     user_t user;
+    bool canDie;
     struct user_list *next, *prev;
 } user_list;
 
@@ -58,6 +59,10 @@ typedef struct thread_argument {
     void *argument;
 } thread_argument;
 
+typedef struct client_thread_argument {
+    bool* isThreadComplete;
+    int socket;
+} client_thread_argument;
 
 
 thread_list* initThreadListElement();

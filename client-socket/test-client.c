@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "../lib/helper.h"
-#define PORT 8889
+#define PORT 8888
 
 #define MAX 80
 #define SA struct sockaddr

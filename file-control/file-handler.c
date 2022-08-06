@@ -33,10 +33,8 @@ void sig_handler(int sig){
 }
 
 void* watchDir(void* args){
-    watch_dir_argument* watchDirArgument = (watch_dir_argument*) args;
-    thread_list* threadList = NULL;
-    thread_list* elt = NULL, *tmp = NULL;
-    char* pathToDir = watchDirArgument->dirPath;
+
+    char* pathToDir = (char*)args;
 
     signal(SIGINT,sig_handler);
 
@@ -59,7 +57,7 @@ void* watchDir(void* args){
     }
 
 
-    while(watchDirArgument->isUserActive){
+    while(1){
 
         int i=0,length;
         char buffer[BUF_LEN];
@@ -113,16 +111,7 @@ void* watchDir(void* args){
             }
             i += EVENT_SIZE + event->len;
         }
-        
-        DL_FOREACH_SAFE(threadList,elt,tmp) {
-            if(elt->isThreadComplete == true) {
-                printf("Thread completed running");
-                DL_DELETE(threadList,elt);
-                free(elt);
-            }
-        }
     }
-    *(watchDirArgument->isThreadComplete) = true;
 }
 
 char* getFilePath(char* path, char* fileName) {
