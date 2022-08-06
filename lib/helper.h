@@ -23,6 +23,7 @@
 #define USERNAMESIZE 64
 
 #define OUTFOSYNCERROR -99
+static const char endCommand[] = "\nend\n";
 
 
 
@@ -39,7 +40,7 @@ typedef struct d_thread {
 
 typedef struct user_t {
     d_thread* clientThread[2];
-    d_thread* watchDirThread;
+    d_thread watchDirThread;
     sem_t startSessionSem;
     char* username;
     bool isUserActive;

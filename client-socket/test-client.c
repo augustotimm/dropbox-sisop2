@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "../lib/helper.h"
-#define PORT 8888
+#define PORT 8889
 
 #define MAX 80
 #define SA struct sockaddr
@@ -92,6 +92,7 @@ void clientThread(int connfd)
 
         if ((strncmp(userInput, "exit", 4)) == 0) {
             printf("Client Exit...\n");
+            write(socket, &commands[EXIT], sizeof(commands[EXIT]));
             break;
         }
     }

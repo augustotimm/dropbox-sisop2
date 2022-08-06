@@ -6,10 +6,7 @@
 #define DROPBOX_SISOP2_USER_H
 char* getuserDirPath(char* username);
 int startUserSession( char* username, int socket) ;
-
-typedef struct start_user_argument {
-    char* username;
-    int socket;
-} start_user_argument;
+bool hasAvailableSession(user_t user);
+void* killUser(void * voidUserList);
 
 #endif //DROPBOX_SISOP2_USER_H

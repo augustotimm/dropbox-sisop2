@@ -5,7 +5,6 @@
 #include <sys/socket.h>
 #include <stdio.h>
 #include <string.h>
-char endCommand[6] = "\nend\n";
 
 int getFileSize(FILE *ptrfile);
 
