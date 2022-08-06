@@ -12,56 +12,26 @@
 #include <sys/types.h>
 #include <pthread.h>
 #include "user.h"
+#include "server_functions.h"
 
-#define PORT 8888
+#define PORT 8889
 #define MAX 2048
 #define SA struct sockaddr
 
+#include <unistd.h>
 
 char commands[5][13] = {"upload", "download", "list", "get_sync_dir", "exit"};
 
 //TODO change to relative path
 
-void upload(int socket) {
-    printf("upload function\n");
-    char fileName[FILENAMESIZE];
-    recv(socket, fileName, sizeof(fileName), 0);
-    char* filePath = strcatSafe(path, fileName);
 
-
-    printf("Receiving file: %s\n", filePath);
-    receiveFile(socket, filePath);
-    free(filePath);
-}
-
-void download(int socket) {
-    printf("download function");
-    char fileName[FILENAMESIZE];
-    bzero(fileName, sizeof(fileName));
-    recv(socket, fileName, sizeof(fileName), 0);
-
-
-    char* filePath = strcatSafe(path, fileName);
-
-    sendFile(socket, filePath);
-    free(filePath);
-
-}
-
-void list() {
-    printf("list function");
-}
-
-void sync() {
-    printf("sync function");
-}
 
 void* clientConnThread(void* voidArg)
 {
     thread_argument* argument = voidArg;
     char buff[MAX];
     bzero(buff, MAX);
-    int socket =  (int*) argument->argument;
+    int socket =  (int *) argument->argument;
 
     strcpy(buff, "TRUE");
     write(socket, buff, sizeof(buff));
@@ -89,11 +59,11 @@ void* clientConnThread(void* voidArg)
 
 
 
-        if (strcmp(currentCommand, commands[EXIT]) == 0) {
+        if (strlen(currentCommand) == 0 || strcmp(currentCommand, commands[EXIT]) == 0) {
             printf("Server Exit...\n");
             close(socket);
 
-            argument->isThreadComplete = true;
+            *argument->isThreadComplete = true;
             return NULL;
         }
     }
@@ -101,16 +71,30 @@ void* clientConnThread(void* voidArg)
 }
 
 void* connectUser(void* arg) {
-    thread_argument* argument = (thread_argument*) arg;
-    int socket = * (int*) argument->argument;
+    int socket = * (int*) arg;
     char username[USERNAMESIZE];
     bzero(username, USERNAMESIZE);
     recv(socket, username, USERNAMESIZE, 0);
     if(!startUserSession(username, socket)) {
         close(socket);
     }
-    *argument->isThreadComplete = true;
     free(arg);
+}
+
+void* userDisconnector(void *arg) {
+    while(1) {
+        thread_list* currentThread = NULL, *tmp = NULL;
+        user_list* currentUser = NULL, *userTmp = NULL;
+
+        sleep(10);
+        DL_FOREACH_SAFE(connectedUserListHead, currentUser, userTmp) {
+            if(!hasAvailableSession(currentUser->user)) {
+                pthread_t thread;
+                pthread_create(&thread, NULL, killUser, currentUser);
+                pthread_detach(thread);
+            }
+        }
+    }
 }
 
 
@@ -120,6 +104,9 @@ int main()
     sem_init(&userListWrite, 0, 1);
     connectedUserListHead = NULL;
     strcpy(path, "/home/augusto/repositorios/ufrgs/dropbox-sisop2/watch_folder/");
+
+    pthread_t userDisconnectorThread;
+    pthread_create(&userDisconnectorThread, NULL, userDisconnector, NULL);
 
     int sockfd, connfd, len;
     struct sockaddr_in servaddr, cli;
@@ -157,23 +144,17 @@ int main()
     len = sizeof(cli);
 
     int i = 0;
-    thread_list* createUserThreadList = NULL;
     while( (connfd = accept(sockfd, (struct sockaddr *)&cli, (socklen_t*)&len))  || i < 5)
     {
         puts("Connection accepted");
-        thread_list* newUserThread = initThreadListElement();
+        pthread_t newUserThread;
         int* newSocket = calloc(1, sizeof(int ));
         *newSocket = connfd;
 
-        thread_argument* argument = (thread_argument*) calloc(1, sizeof(thread_argument));
 
-        argument->isThreadComplete = &(newUserThread->isThreadComplete);
-        argument->argument = (void*) newSocket;
+        pthread_create(&newUserThread, NULL, connectUser, newSocket);
 
-        pthread_create(&newUserThread->thread, NULL, connectUser, argument);
-
-        DL_APPEND(createUserThreadList, newUserThread);
-
+        pthread_detach(newUserThread);
         //Reply to the client
 
     }
