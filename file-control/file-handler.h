@@ -26,6 +26,6 @@
 time_t getFileLastModifiedEpoch(char* pathname);
 
 void* watchDir(void* args);
-char* getuserDirPath(char* rootPath, char* username);
+char* getuserDirPath(char* username);
 void sig_handler(int sig);
 #endif //DROPBOX_SISOP2_FILE_HANDLER_H

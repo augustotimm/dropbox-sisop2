@@ -74,15 +74,24 @@ bool addSession(user_t* user, d_thread* clientThread){
     return false;
 }
 
-int startNewSession(user_list* user, int sessionSocket) {
+d_thread* createClientThreadArgument(bool* isThreadComplete, char* dirPath, int sessionSocket) {
+    client_thread_argument* argument = (client_thread_argument*) calloc(1, sizeof(thread_argument));
+
+    argument->isThreadComplete = isThreadComplete;
+    argument->clientDirPath = calloc(strlen(dirPath)+1, sizeof(char));
+    strcpy(&argument->clientDirPath, dirPath);
+    argument->socket = sessionSocket;
+
+    return argument;
+}
+
+int startNewSession(user_list* user, int sessionSocket, char* userDirPath) {
     if(hasAvailableSession(user->user)) {
         sem_wait( &(user->user.userAccessSem));
         if(hasAvailableSession(user->user)) {
             d_thread* newClientThread = (d_thread*) calloc(1, sizeof(d_thread));
-            client_thread_argument* argument = (client_thread_argument*) calloc(1, sizeof(thread_argument));
-
-            argument->isThreadComplete = &(newClientThread->isThreadComplete);
-            argument->socket = sessionSocket;
+            client_thread_argument* argument =
+                    createClientThreadArgument(&newClientThread->isThreadComplete, userDirPath, sessionSocket);
 
             pthread_create(&newClientThread->thread, NULL, clientConnThread, argument);
             pthread_detach(newClientThread->thread);
@@ -102,6 +111,7 @@ int startNewSession(user_list* user, int sessionSocket) {
             return OUTOFSESSION;
         }
     }
+    return OUTOFSESSION;
 
 }
 
@@ -123,6 +133,7 @@ user_list* createUser(char* username) {
 int startUserSession( char* username, int socket) {
     user_list* user = NULL;
     user_list etmp;
+    char* dirPath = getuserDirPath(username);
 
     etmp.user.username = username;
 
@@ -131,16 +142,16 @@ int startUserSession( char* username, int socket) {
     if(user){
         user->canDie = true;
         pthread_mutex_unlock( &connectedUsersMutex);
-        return startNewSession(user, socket);
+        return startNewSession(user, socket, dirPath);
     }
     else{
-        char* dirPath = getuserDirPath(path, username);
+
         user_list* newUser = createUser(username);
         DL_APPEND(connectedUserListHead, newUser);
         pthread_mutex_unlock(&connectedUsersMutex);
 
         startWatchDir(&(newUser->user), dirPath);
-        return startNewSession(newUser, socket);
+        return startNewSession(newUser, socket, dirPath);
 
     }
 }

@@ -5,8 +5,8 @@
 #ifndef DROPBOX_SISOP2_SERVER_FUNCTIONS_H
 #define DROPBOX_SISOP2_SERVER_FUNCTIONS_H
 
-void upload(int socket);
-void download(int socket);
+void upload(int socket, char* path);
+void download(int socket, char* path);
 void list();
 void sync();
 #endif //DROPBOX_SISOP2_SERVER_FUNCTIONS_H

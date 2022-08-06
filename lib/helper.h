@@ -60,6 +60,7 @@ typedef struct thread_argument {
 typedef struct client_thread_argument {
     bool* isThreadComplete;
     int socket;
+    char* clientDirPath;
 } client_thread_argument;
 
 

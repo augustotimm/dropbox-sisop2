@@ -30,6 +30,7 @@ void* clientConnThread(void* voidArg)
 {
     client_thread_argument* argument = voidArg;
     char buff[MAX];
+    char* path = argument->clientDirPath;
     bzero(buff, MAX);
     int socket = argument->socket;
 
@@ -48,9 +49,9 @@ void* clientConnThread(void* voidArg)
         printf("COMMAND: %s\n", currentCommand);
 
         if(strcmp(currentCommand, commands[UPLOAD]) ==0 ) {
-            upload(socket);
+            upload(socket, path);
         } else if(strcmp(currentCommand, commands[DOWNLOAD]) ==0 ) {
-            download(socket);
+            download(socket, path);
         } else if(strcmp(currentCommand, commands[LIST]) ==0 ) {
             list();
         } else if(strcmp(currentCommand, commands[SYNC]) ==0 ) {
@@ -106,7 +107,6 @@ void* userDisconnectedEvent(void *arg) {
 int main()
 {
     connectedUserListHead = NULL;
-    strcpy(path, "/home/augusto/repositorios/ufrgs/dropbox-sisop2/watch_folder/");
 
     pthread_t userDisconnectedThread;
     pthread_create(&userDisconnectedThread, NULL, userDisconnectedEvent, NULL);

@@ -11,6 +11,8 @@ struct stat info;
 struct tm* tm_info;
 time_t  epoch_time;
 
+char rootPath[KBYTE] = "/home/augusto/repositorios/ufrgs/dropbox-sisop2/watch_folder/";
+
 time_t getFileLastModifiedEpoch(char* pathname) {
     char buffer[16];
 
@@ -35,7 +37,7 @@ void sig_handler(int sig){
 
 }
 
-char* getuserDirPath(char* rootPath, char* username) {
+char* getuserDirPath(char* username) {
     char* filePath = strcatSafe(rootPath, username);
     char* dirPath = strcatSafe(filePath, "/");
     free(filePath);
