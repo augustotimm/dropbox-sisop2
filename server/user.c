@@ -115,7 +115,6 @@ user_list* createUser(char* username) {
     newUser->user.username = (char*) calloc(strlen(username) + 1, sizeof(char));
 
     strcpy(newUser->user.username, username);
-    newUser->user.isUserActive = true;
     sem_init(&newUser->user.userAccessSem, 0, 1);
 
     return newUser;
@@ -135,7 +134,7 @@ int startUserSession( char* username, int socket) {
         return startNewSession(user, socket);
     }
     else{
-        char* dirPath = getuserDirPath(username);
+        char* dirPath = getuserDirPath(path, username);
         user_list* newUser = createUser(username);
         DL_APPEND(connectedUserListHead, newUser);
         pthread_mutex_unlock(&connectedUsersMutex);
@@ -150,12 +149,4 @@ void startWatchDir(user_t* user, char* dirPath) {
     sem_wait( &(user->userAccessSem));
     pthread_create(&user->watchDirThread, NULL, watchDir, dirPath);
     sem_post(&(user->userAccessSem));
-}
-
-char* getuserDirPath(char* username) {
-    char* filePath = strcatSafe(path, username);
-    char* dirPath = strcatSafe(filePath, "/");
-    free(filePath);
-
-    return dirPath;
 }

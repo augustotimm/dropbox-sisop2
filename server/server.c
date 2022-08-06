@@ -82,7 +82,7 @@ void* connectUser(void* arg) {
     free(arg);
 }
 
-void* userDisconnector(void *arg) {
+void* userDisconnectedEvent(void *arg) {
     while(1) {
         thread_list* currentThread = NULL, *tmp = NULL;
         user_list* currentUser = NULL, *userTmp = NULL;
@@ -108,8 +108,9 @@ int main()
     connectedUserListHead = NULL;
     strcpy(path, "/home/augusto/repositorios/ufrgs/dropbox-sisop2/watch_folder/");
 
-    pthread_t userDisconnectorThread;
-    pthread_create(&userDisconnectorThread, NULL, userDisconnector, NULL);
+    pthread_t userDisconnectedThread;
+    pthread_create(&userDisconnectedThread, NULL, userDisconnectedEvent, NULL);
+    pthread_detach(userDisconnectedThread);
 
     int sockfd, connfd, len;
     struct sockaddr_in servaddr, cli;

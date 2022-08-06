@@ -1,8 +1,11 @@
 //
 // Created by augusto on 24/07/2022.
 //
-#include "../lib/utlist.h"
 #include "file-handler.h"
+#include <sys/stat.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
 
 struct stat info;
 struct tm* tm_info;
@@ -31,6 +34,19 @@ void sig_handler(int sig){
     exit( 0 );
 
 }
+
+char* getuserDirPath(char* rootPath, char* username) {
+    char* filePath = strcatSafe(rootPath, username);
+    char* dirPath = strcatSafe(filePath, "/");
+    free(filePath);
+    struct stat st = {0};
+    if(stat(dirPath, &st) == -1) {
+        mkdir(dirPath, 0700);
+    }
+
+    return dirPath;
+}
+
 
 void* watchDir(void* args){
 

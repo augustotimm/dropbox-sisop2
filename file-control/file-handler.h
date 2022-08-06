@@ -16,29 +16,16 @@
 #define DROPBOX_SISOP2_FILE_HANDLER_H
 #include "../event-handler/event-handler.h"
 #include "../lib/helper.h"
-#include <pthread.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/stat.h>
-#include <time.h>
+
 
 #define MAX_EVENTS 1024  /* Maximum number of events to process*/
 #define LEN_NAME 16  /* Assuming that the length of the filename won't exceed 16 bytes*/
 #define EVENT_SIZE  ( sizeof (struct inotify_event) ) /*size of one event*/
 #define BUF_LEN     ( MAX_EVENTS * ( EVENT_SIZE + LEN_NAME ))
 
-#define COULD_NOT_WATCH -13
-int fd,wd;
-
-typedef struct watch_dir_argument {
-    bool* isThreadComplete;
-    bool* isUserActive;
-    char* dirPath;
-} watch_dir_argument;
-
 time_t getFileLastModifiedEpoch(char* pathname);
 
 void* watchDir(void* args);
-
+char* getuserDirPath(char* rootPath, char* username);
 void sig_handler(int sig);
 #endif //DROPBOX_SISOP2_FILE_HANDLER_H

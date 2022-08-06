@@ -44,8 +44,6 @@ typedef struct user_t {
     pthread_t watchDirThread;
     sem_t userAccessSem;
     char* username;
-    bool isUserActive;
-    int userid;
 } user_t;
 
 typedef struct user_list {

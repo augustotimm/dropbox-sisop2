@@ -4,7 +4,6 @@
 
 #ifndef DROPBOX_SISOP2_USER_H
 #define DROPBOX_SISOP2_USER_H
-char* getuserDirPath(char* username);
 int startUserSession( char* username, int socket) ;
 bool hasAvailableSession(user_t user);
 void freeUserList(user_list* userList);
