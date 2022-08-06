@@ -112,7 +112,7 @@ user_list* createUser(char* username) {
     newUser->canDie = true;
     newUser->user.clientThread[0] = NULL;
     newUser->user.clientThread[1] = NULL;
-    newUser->user.username = (char*) calloc(strlen(username), sizeof(char));
+    newUser->user.username = (char*) calloc(strlen(username) + 1, sizeof(char));
 
     strcpy(newUser->user.username, username);
     newUser->user.isUserActive = true;

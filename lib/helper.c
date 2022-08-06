@@ -111,7 +111,7 @@ int receiveFile(int socket, char* fileName) {
 }
 
 char* strcatSafe(char* head, char* tail) {
-    char* destiny = calloc(strlen(head) + strlen(tail), sizeof(char));
+    char* destiny = calloc(strlen(head) + strlen(tail) + 1, sizeof(char));
     strcpy(destiny, head);
     strcat(destiny, tail);
     return destiny;
