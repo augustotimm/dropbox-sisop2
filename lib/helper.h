@@ -79,7 +79,6 @@ thread_list* initThreadListElement();
 char* strcatSafe(char* head, char* tail);
 
 //server comunication functions
-
 int sendFile(int socket, char* filepath);
 int receiveFile(int socket, char* fileName);
 

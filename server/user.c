@@ -62,15 +62,14 @@ void freeUserList(user_list* userList){
 }
 
 bool addSession(user_t* user, d_thread* clientThread){
-    if(user->clientThread[0] == NULL) {
-        user->clientThread[0] = clientThread;
-        return true;
+    int i = 0;
+    while(i < USERSESSIONNUMBER) {
+        if(isSessionAvailable(*user, i)){
+            user->clientThread[i] = clientThread;
+            return true;
+        }
+        i++;
     }
-    if(user->clientThread[1] == NULL) {
-        user->clientThread[1] = clientThread;
-        return true;
-    }
-
     return false;
 }
 
@@ -102,7 +101,7 @@ int startNewSession(user_list* user, int sessionSocket, char* userDirPath) {
                 return OUTOFSESSION;
             }
             sem_post(&(user->user.userAccessSem));
-            return 1;
+            return 0;
 
         }
         else {
@@ -142,7 +141,7 @@ int startUserSession( char* username, int socket) {
     if(user){
         user->canDie = true;
         pthread_mutex_unlock( &connectedUsersMutex);
-        return startNewSession(user, socket, dirPath);
+
     }
     else{
 
@@ -151,13 +150,19 @@ int startUserSession( char* username, int socket) {
         pthread_mutex_unlock(&connectedUsersMutex);
 
         startWatchDir(&(newUser->user), dirPath);
-        return startNewSession(newUser, socket, dirPath);
+        user = newUser;
 
     }
+    int result = startNewSession(user, socket, dirPath);
+    free(dirPath);
+    return result;
 }
 
 void startWatchDir(user_t* user, char* dirPath) {
+    char* dirPathArgument = calloc(strlen(dirPath) +1, sizeof(char ));
+    strcpy(dirPathArgument, dirPath);
+
     sem_wait( &(user->userAccessSem));
-    pthread_create(&user->watchDirThread, NULL, watchDir, dirPath);
+    pthread_create(&user->watchDirThread, NULL, watchDir, dirPathArgument);
     sem_post(&(user->userAccessSem));
 }

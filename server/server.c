@@ -14,7 +14,7 @@
 #include "user.h"
 #include "server_functions.h"
 
-#define PORT 8888
+#define PORT 8889
 #define MAX 2048
 #define SA struct sockaddr
 
@@ -71,13 +71,17 @@ void* clientConnThread(void* voidArg)
     }
 
 }
+void writeMessageToSocket(int socket, char* message) {
+    write(socket, message, strlen(message)+1);
+}
 
 void* connectUser(void* arg) {
     int socket = * (int*) arg;
     char username[USERNAMESIZE];
     bzero(username, USERNAMESIZE);
     recv(socket, username, USERNAMESIZE, 0);
-    if(!startUserSession(username, socket)) {
+    if(startUserSession(username, socket) != 0) {
+        writeMessageToSocket(socket, "FALSE");
         close(socket);
     }
     free(arg);
@@ -85,7 +89,6 @@ void* connectUser(void* arg) {
 
 void* userDisconnectedEvent(void *arg) {
     while(1) {
-        thread_list* currentThread = NULL, *tmp = NULL;
         user_list* currentUser = NULL, *userTmp = NULL;
 
         pthread_cond_wait(&closedUserConnection, &connectedUsersMutex);

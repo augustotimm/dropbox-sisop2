@@ -5,8 +5,6 @@
 #include "../lib/helper.h"
 #include "../file-control/file-handler.h"
 
-#define PORT 8888
-
 #define MAX 80
 #define SA struct sockaddr
 
