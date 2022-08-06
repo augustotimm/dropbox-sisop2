@@ -3,13 +3,12 @@
 //
 #include "../lib/helper.h"
 #include "user.h"
-#include "user.h"
 #include "server.h"
 #include <string.h>
 #include "../file-control/file-handler.h"
 #define OUTOFSESSION -90
 
-int startWatchDir(user_t user, char* dirPath);
+int startWatchDir(user_t* user, char* dirPath);
 
 int  userCompare(user_list* a, user_list* b) {
     return strcmp(a->user.username,b->user.username);
@@ -18,6 +17,11 @@ int  userCompare(user_list* a, user_list* b) {
 
 bool hasAvailableSession(user_t user) {
     return (user.clientThread[0] == NULL || user.clientThread[1] == NULL);
+}
+
+void* killUser(void * voidUserList){
+    user_list* user = (user_list*) voidUserList;
+    printf("killing user: %s\n", user->user.username);
 }
 
 bool addSession(user_t user, d_thread* clientThread){
@@ -70,8 +74,9 @@ user_list* createUser(char* username) {
 
     newUser->user.clientThread[0] = NULL;
     newUser->user.clientThread[1] = NULL;
-    newUser->user.username = username;
-    newUser->user.watchDirThread = NULL;
+    newUser->user.username = (char*) calloc(strlen(username), sizeof(char));
+
+    strcpy(newUser->user.username, username);
     newUser->user.isUserActive = true;
     sem_init(&newUser->user.startSessionSem, 0, 1);
 
@@ -98,7 +103,7 @@ int startUserSession( char* username, int socket) {
             char* dirPath = getuserDirPath(username);
             user_list* newUser = createUser(username);
             DL_APPEND(connectedUserListHead, newUser);
-            int startedWatchingDir = startWatchDir(newUser->user, dirPath);
+            int startedWatchingDir = startWatchDir(&(newUser->user), dirPath);
             sem_post(&userListWrite);
             return startSession(newUser, socket);
         }
@@ -106,14 +111,12 @@ int startUserSession( char* username, int socket) {
     }
 }
 
-int startWatchDir(user_t user, char* dirPath) {
-    user.watchDirThread = (d_thread*) calloc(1, sizeof(d_thread));
+int startWatchDir(user_t* user, char* dirPath) {
     watch_dir_argument * argument = (watch_dir_argument*)calloc(1, sizeof(watch_dir_argument));
-
-    argument->isThreadComplete = &(user.watchDirThread->isThreadComplete);
-    argument->isUserActive = &(user.isUserActive);
+    argument->isThreadComplete = &(user->watchDirThread.isThreadComplete);
+    argument->isUserActive = &(user->isUserActive);
     argument->dirPath = dirPath;
-    return pthread_create(&user.watchDirThread->thread, NULL, watchDir, argument);
+   return pthread_create(&user->watchDirThread.thread, NULL, watchDir, argument);
 }
 
 char* getuserDirPath(char* username) {
