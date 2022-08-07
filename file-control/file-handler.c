@@ -71,7 +71,7 @@ void* watchDir(void* args){
         exit(2);
 
     /* Step 2. Add Watch */
-    wd = inotify_add_watch(fd,pathToDir,IN_MODIFY | IN_CREATE | IN_DELETE);
+    wd = inotify_add_watch(fd,pathToDir,IN_CLOSE_WRITE | IN_CREATE | IN_DELETE | IN_MOVED_FROM | IN_MOVED_TO);
 
     if(wd==-1){
         printf("Could not watch : %s\n",pathToDir);
@@ -109,7 +109,8 @@ void* watchDir(void* args){
                 } else if (event->mask & IN_DELETE || event->mask & IN_MOVED_FROM) {
                     printf( "The file %s was removed.\n", event->name );
                 }
-            }
+
+                }
             i += EVENT_SIZE + event->len;
         }
     }

@@ -162,9 +162,9 @@ file_info_list* getListOfFiles(char* path) {
                 pathname = strcatSafe(path, dir->d_name);
                 stat(pathname, &info);
                 infos.fileName = dir->d_name;
-                infos.lastAccessDate = localtime (&info.st_atime);
-                infos.lastChangeDate = localtime (&info.st_ctime);
-                infos.lastModificationDate = localtime (&info.st_mtime);
+                infos.lastAccessDate = localtime(&info.st_atime);
+                infos.lastChangeDate = localtime(&info.st_ctime);
+                infos.lastModificationDate = localtime(&info.st_mtime);
                 //printFileInfos(infos);
                 file_info_list* newList = initFileInfoListElement();
                 newList->fileInfo = infos;
@@ -178,14 +178,20 @@ file_info_list* getListOfFiles(char* path) {
 
 void printFileInfos(file_info fileInfo) {
     char fModDate[20], fAccessDate[20], fChangeDate[20];
-    struct tm * timeinfo;
 
-    timeinfo = localtime(fileInfo.lastModificationDate);
-    strftime(fModDate, sizeof(fModDate), "%b %d %y %H:%M", timeinfo);
-    timeinfo = localtime(fileInfo.lastAccessDate);
-    strftime(fAccessDate, sizeof(fAccessDate), "%b %d %y %H:%M", timeinfo);
-    timeinfo = localtime(fileInfo.lastChangeDate);
-    strftime(fChangeDate, sizeof(fChangeDate), "%b %d %y %H:%M", timeinfo);
+    strftime(fModDate, sizeof(fModDate), "%b %d %y %H:%M", fileInfo.lastModificationDate);
+    strftime(fAccessDate, sizeof(fAccessDate), "%b %d %y %H:%M", fileInfo.lastAccessDate);
+    strftime(fChangeDate, sizeof(fChangeDate), "%b %d %y %H:%M", fileInfo.lastChangeDate);
+    printf("%s - Last access: %s, Last modification : %s, Last change: %s\n",
+           fileInfo.fileName,fAccessDate,fChangeDate,fModDate);
+}
+
+char* fileInfoToString(file_info fileInfo) {
+    char fModDate[20], fAccessDate[20], fChangeDate[20];
+
+    strftime(fModDate, sizeof(fModDate), "%b %d %y %H:%M", fileInfo.lastModificationDate);
+    strftime(fAccessDate, sizeof(fAccessDate), "%b %d %y %H:%M", fileInfo.lastAccessDate);
+    strftime(fChangeDate, sizeof(fChangeDate), "%b %d %y %H:%M", fileInfo.lastChangeDate);
     printf("%s - Last access: %s, Last modification : %s, Last change: %s\n",
            fileInfo.fileName,fAccessDate,fChangeDate,fModDate);
 }

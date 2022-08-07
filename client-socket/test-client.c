@@ -9,9 +9,13 @@
 #define SA struct sockaddr
 char username[USERNAMESIZE];
 
+void startWatchDir(int socket);
 char commands[5][13] = {"upload", "download", "list local", "get_sync_dir", "exit"};
 
 char* path = "/home/augusto/repositorios/ufrgs/dropbox-sisop2/client-socket/sync/";
+
+sem_t syncDirSem;
+
 
 void upload(int socket) {
     printf("Upload\n");
@@ -86,6 +90,18 @@ void sync(int serverSocket) {
     recv(sockfd, &endCommand, sizeof(endCommand), 0);
 
     write(sockfd, &username, sizeof(username));
+    startWatchDir(sockfd);
+}
+
+void startWatchDir(int socket) {
+    pthread_t syncDirThread;
+    watch_dir_argument* argument = calloc(1, sizeof(watch_dir_argument));
+    argument->dirPath = path;
+    argument->socketConnList = initSocketConnList(socket);
+    argument->userSem = &syncDirSem;
+
+    pthread_create(&syncDirThread, NULL, watchDir, argument);
+    pthread_detach(syncDirThread);
 }
 
 
@@ -96,18 +112,6 @@ void clientThread(int connfd)
     bzero(username, sizeof(username));
     bzero(buff, sizeof(buff));
     int n;
-
-    write(connfd, &socketTypes[CLIENTSOCKET], sizeof(socketTypes[CLIENTSOCKET]));
-
-
-
-    printf("Enter username: ");
-    fgets(username, USERNAMESIZE, stdin);
-    username[strcspn(username, "\n")] = 0;
-    write(connfd, &username, sizeof(username));
-    recv(connfd, buff, sizeof(buff), 0);
-    printf("SERVER CONNECTION STATUS: %s\n", buff);
-    sync(connfd);
 
     for (;;) {
         bzero(userInput, sizeof(userInput));
@@ -163,6 +167,27 @@ int main()
     }
     else
         printf("Connected to the server..\n");
+
+    char userInput[MAX];
+    char buff[MAX];
+    bzero(username, sizeof(username));
+    bzero(buff, sizeof(buff));
+    int n;
+
+    write(sockfd, &socketTypes[CLIENTSOCKET], sizeof(socketTypes[CLIENTSOCKET]));
+
+
+
+    printf("Enter username: ");
+    fgets(username, USERNAMESIZE, stdin);
+    username[strcspn(username, "\n")] = 0;
+    write(sockfd, &username, sizeof(username));
+    recv(sockfd, buff, sizeof(buff), 0);
+    printf("SERVER CONNECTION STATUS: %s\n", buff);
+
+    write(sockfd, &endCommand, sizeof(endCommand));
+
+    sync(sockfd);
 
     // function for chat
     clientThread(sockfd);

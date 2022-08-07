@@ -21,7 +21,7 @@
 
 
 
-void connectUser(int socket);
+int connectUser(int socket);
 int connectSyncDir(int socket, char* username);
 void* clientConnThread(void* voidArg)
 {
@@ -32,8 +32,6 @@ void* clientConnThread(void* voidArg)
     char currentCommand[13];
     bzero(currentCommand, sizeof(currentCommand));
 
-    strcpy(currentCommand, "TRUE");
-    write(socket, currentCommand, sizeof(currentCommand));
 
     //waiting for command
     printf("waiting for first command\n");
@@ -81,18 +79,7 @@ void* newConnection(void* arg) {
     char newSocketType[USERNAMESIZE];
     bzero(newSocketType, sizeof(newSocketType));
     recv(socket, newSocketType, sizeof(newSocketType), 0);
-    if(strcmp(newSocketType, socketTypes[CLIENTSOCKET]) == 0) {
-        connectUser(socket);
-    }
-    if(strcmp(newSocketType, socketTypes[SYNCSOCKET]) == 0) {
-        bzero(newSocketType, USERNAMESIZE);
-        write(socket, &endCommand, sizeof(endCommand));
-
-        // get username to find in connected usersList
-        recv(socket, newSocketType, USERNAMESIZE, 0);
-        connectSyncDir(socket, newSocketType);
-
-    }
+    connectUser(socket);
 
 }
 
@@ -107,14 +94,28 @@ int connectSyncDir(int socket, char* username) {
 
 }
 
-void connectUser(int socket) {
+int connectUser(int socket) {
     char username[USERNAMESIZE];
+    char buff[BUFFERSIZE];
     bzero(username, USERNAMESIZE);
     recv(socket, username, USERNAMESIZE, 0);
     if(startUserSession(username, socket) != 0) {
         writeMessageToSocket(socket, "FALSE");
         close(socket);
+        return OUTFOSYNCERROR;
     }
+
+    bzero(buff, BUFFERSIZE);
+    writeMessageToSocket(socket, "TRUE");
+
+    // get username to find in connected usersList
+    recv(socket, buff, BUFFERSIZE, 0);
+    if(strcmp(buff, endCommand) != 0){
+        close(socket);
+        return OUTFOSYNCERROR;
+    }
+    connectSyncDir(socket, username);
+    return 0;
 }
 
 void* userDisconnectedEvent(void *arg) {
@@ -138,7 +139,17 @@ void* userDisconnectedEvent(void *arg) {
 // Driver function
 int main()
 {
+    pthread_mutex_init(&connectedUsersMutex, NULL);
+    char rootPath[KBYTE] = "/home/augusto/repositorios/ufrgs/dropbox-sisop2/watch_folder/";
+    file_info_list* filesInDir = getListOfFiles(rootPath);
+    printFileInfoList(filesInDir);
     connectedUserListHead = NULL;
+
+    if (pthread_mutex_init(&connectedUsersMutex, NULL) != 0)
+    {
+        printf("\n mutex init failed\n");
+        return 1;
+    }
 
     pthread_t userDisconnectedThread;
     pthread_create(&userDisconnectedThread, NULL, userDisconnectedEvent, NULL);

@@ -13,7 +13,7 @@
 
 #define FILENAMESIZE 64
 #define KBYTE 1024
-
+#define BUFFERSIZE 16
 #define EXIT 4
 #define SYNC 3
 #define LIST 2
@@ -29,6 +29,7 @@
 
 #define CLIENTSOCKET 0
 #define SYNCSOCKET 1
+
 
 static const char endCommand[] = "\nend\n";
 static const char commands[5][10] = {"upload", "download", "list", "sync", "exit"};
@@ -72,9 +73,9 @@ typedef struct client_thread_argument {
 
 typedef struct file_info {
     char* fileName;
-    time_t lastAccessDate;   /* time of last access */
-    time_t lastModificationDate;   /* time of last modification */
-    time_t lastChangeDate;   /* time of last status change */
+    struct tm* lastAccessDate;   /* time of last access */
+    struct tm*  lastModificationDate;   /* time of last modification */
+    struct tm*  lastChangeDate;   /* time of last status change */
 } file_info;
 
 typedef struct file_info_list {
@@ -82,7 +83,6 @@ typedef struct file_info_list {
     struct file_info_list *next, *prev;
 } file_info_list;
 
-thread_list* initThreadListElement();
 char* strcatSafe(char* head, char* tail);
 socket_conn_list* initSocketConnList(int socket);
 
