@@ -15,7 +15,7 @@ void upload(int socket, char* filePath, char* fileName) {
     char buff[BUFFERSIZE];
     recv(socket, buff, sizeof(buff), 0);
 
-    write(socket, fileName, sizeof(fileName));
+    write(socket, fileName, strlen(fileName));
 
     printf("clientUpload function\n");
     sendFile(socket, filePath);

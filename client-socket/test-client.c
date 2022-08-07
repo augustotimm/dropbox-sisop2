@@ -27,9 +27,11 @@ void clientUpload(int socket) {
     printf("Insert name of file:\n");
     fgets(fileName, sizeof(fileName), stdin);
     fileName[strcspn(fileName, "\n")] = 0;
+    char* filePath = strcatSafe(path, fileName);
 
+    upload(socket, filePath, fileName);
 
-    upload(socket, path, fileName);
+    free(filePath);
 }
 
 int clientDownload(int socket) {
@@ -91,8 +93,14 @@ void startListenSyncDir() {
     // startWatchDir(sockfd);
     int* newSocket = calloc(1, sizeof(int ));
     *newSocket = sockfd;
-    pthread_create(&listenSyncThread, NULL, listenSyncDir, newSocket);
+   int created = pthread_create(&listenSyncThread, NULL, listenSyncDir, newSocket);
     pthread_detach(listenSyncThread);
+    if(created != 0) {
+        printf("Listen sync dir failed\n");
+        pthread_cancel(listenSyncThread);
+        close(sockfd);
+        free(newSocket);
+   }
 }
 
 void startWatchDir(int socket) {
