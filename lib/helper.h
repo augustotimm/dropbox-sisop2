@@ -35,15 +35,6 @@ static const char commands[5][10] = {"upload", "download", "list", "sync", "exit
 static const char socketTypes[2][8] = {"client", "syncdir"};
 
 
-
-
-
-typedef struct thread_list {
-    pthread_t thread;
-    bool isThreadComplete;
-    struct thread_list *next, *prev;
-} thread_list;
-
 typedef struct d_thread {
     pthread_t thread;
     bool isThreadComplete;
@@ -76,6 +67,7 @@ typedef struct client_thread_argument {
     bool* isThreadComplete;
     int socket;
     char* clientDirPath;
+    sem_t* userAccessSem;
 } client_thread_argument;
 
 typedef struct file_info {

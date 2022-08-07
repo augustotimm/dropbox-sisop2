@@ -13,15 +13,6 @@ struct stat info;
 time_t  modification;
 file_info infos;
 
-thread_list* initThreadListElement() {
-    thread_list* newElement = calloc(1, sizeof(thread_list));
-    newElement->isThreadComplete = false;
-    newElement->next = NULL;
-    newElement->prev = NULL;
-
-    return newElement;
-}
-
 socket_conn_list* initSocketConnList(int socket) {
     socket_conn_list* newElement = calloc(1, sizeof(socket_conn_list));
     newElement->socket = socket;

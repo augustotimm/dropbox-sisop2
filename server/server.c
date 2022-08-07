@@ -45,9 +45,9 @@ void* clientConnThread(void* voidArg)
         printf("COMMAND: %s\n", currentCommand);
 
         if(strcmp(currentCommand, commands[UPLOAD]) ==0 ) {
-            upload(socket, path);
+            upload(socket, path, argument->userAccessSem );
         } else if(strcmp(currentCommand, commands[DOWNLOAD]) ==0 ) {
-            download(socket, path);
+            download(socket, path, argument->userAccessSem);
         } else if(strcmp(currentCommand, commands[LIST]) ==0 ) {
             list();
         } else if(strcmp(currentCommand, commands[SYNC]) ==0 ) {
@@ -99,7 +99,7 @@ int connectSyncDir(int socket, char* username) {
         close(socket);
         return -1;
     }
-    addSyncDir(socket, user);
+    addSyncDir(socket, &user->user);
 
 }
 

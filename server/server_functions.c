@@ -11,19 +11,20 @@
 
 
 
-void upload(int socket, char* path) {
+void upload(int socket, char* path, sem_t* userSem) {
     printf("upload function\n");
     char fileName[FILENAMESIZE];
     recv(socket, fileName, sizeof(fileName), 0);
     char* filePath = strcatSafe(path, fileName);
 
 
-    printf("Receiving file: %s\n", filePath);
+    sem_wait(userSem);
     receiveFile(socket, filePath);
+    sem_post(userSem);
     free(filePath);
 }
 
-void download(int socket, char* path) {
+void download(int socket, char* path, sem_t* userSem) {
     printf("download function");
     char fileName[FILENAMESIZE];
     bzero(fileName, sizeof(fileName));
@@ -31,8 +32,9 @@ void download(int socket, char* path) {
 
 
     char* filePath = strcatSafe(path, fileName);
-
+    sem_wait(userSem);
     sendFile(socket, filePath);
+    sem_post(userSem);
     free(filePath);
 
 }
