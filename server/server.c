@@ -21,7 +21,7 @@
 
 
 
-int connectUser(int socket);
+void connectUser(int socket);
 int connectSyncDir(int socket, char* username);
 void* clientConnThread(void* voidArg)
 {
@@ -32,6 +32,8 @@ void* clientConnThread(void* voidArg)
     char currentCommand[13];
     bzero(currentCommand, sizeof(currentCommand));
 
+    strcpy(currentCommand, "TRUE");
+    write(socket, currentCommand, sizeof(currentCommand));
 
     //waiting for command
     printf("waiting for first command\n");
@@ -79,7 +81,18 @@ void* newConnection(void* arg) {
     char newSocketType[USERNAMESIZE];
     bzero(newSocketType, sizeof(newSocketType));
     recv(socket, newSocketType, sizeof(newSocketType), 0);
-    connectUser(socket);
+    if(strcmp(newSocketType, socketTypes[CLIENTSOCKET]) == 0) {
+        connectUser(socket);
+    }
+    if(strcmp(newSocketType, socketTypes[SYNCSOCKET]) == 0) {
+        bzero(newSocketType, USERNAMESIZE);
+        write(socket, &endCommand, sizeof(endCommand));
+
+        // get username to find in connected usersList
+        recv(socket, newSocketType, USERNAMESIZE, 0);
+        connectSyncDir(socket, newSocketType);
+
+    }
 
 }
 
@@ -94,28 +107,14 @@ int connectSyncDir(int socket, char* username) {
 
 }
 
-int connectUser(int socket) {
+void connectUser(int socket) {
     char username[USERNAMESIZE];
-    char buff[BUFFERSIZE];
     bzero(username, USERNAMESIZE);
     recv(socket, username, USERNAMESIZE, 0);
     if(startUserSession(username, socket) != 0) {
         writeMessageToSocket(socket, "FALSE");
         close(socket);
-        return OUTFOSYNCERROR;
     }
-
-    bzero(buff, BUFFERSIZE);
-    writeMessageToSocket(socket, "TRUE");
-
-    // get username to find in connected usersList
-    recv(socket, buff, BUFFERSIZE, 0);
-    if(strcmp(buff, endCommand) != 0){
-        close(socket);
-        return OUTFOSYNCERROR;
-    }
-    connectSyncDir(socket, username);
-    return 0;
 }
 
 void* userDisconnectedEvent(void *arg) {
@@ -136,24 +135,7 @@ void* userDisconnectedEvent(void *arg) {
 }
 
 
-// Driver function
-int main()
-{
-    pthread_mutex_init(&connectedUsersMutex, NULL);
-    char rootPath[KBYTE] = "/home/augusto/repositorios/ufrgs/dropbox-sisop2/watch_folder/";
-    file_info_list* filesInDir = getListOfFiles(rootPath);
-    printFileInfoList(filesInDir);
-    connectedUserListHead = NULL;
-
-    if (pthread_mutex_init(&connectedUsersMutex, NULL) != 0)
-    {
-        printf("\n mutex init failed\n");
-        return 1;
-    }
-
-    pthread_t userDisconnectedThread;
-    pthread_create(&userDisconnectedThread, NULL, userDisconnectedEvent, NULL);
-    pthread_detach(userDisconnectedThread);
+void* clientConn(void* args) {
 
     int sockfd, connfd, len;
     struct sockaddr_in servaddr, cli;
@@ -161,11 +143,11 @@ int main()
     // socket create and verification
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd == -1) {
-        printf("socket creation failed...\n");
+        printf("CLIENTCONN socket creation failed...\n");
         exit(0);
     }
     else
-        printf("Socket successfully created..\n");
+        printf("CLIENTCONN Socket successfully created..\n");
     bzero(&servaddr, sizeof(servaddr));
 
     // assign IP, PORT
@@ -175,19 +157,19 @@ int main()
 
     // Binding newly created socket to given IP and verification
     if ((bind(sockfd, (struct sockaddr *)&servaddr, sizeof(servaddr))) != 0) {
-        printf("socket bind failed...\n");
+        printf("CLIENTCONN socket bind failed...\n");
         exit(0);
     }
     else
-        printf("Socket successfully binded..\n");
+        printf("CLIENTCONN Socket successfully binded..\n");
 
     // Now server is ready to listen and verification
     if ((listen(sockfd, 5)) != 0) {
-        printf("Listen failed...\n");
+        printf("CLIENTCONN Listen failed...\n");
         exit(0);
     }
     else
-        printf("Server listening..\n");
+        printf("CLIENTCONN Server listening..\n");
     len = sizeof(cli);
 
     int i = 0;
@@ -205,6 +187,80 @@ int main()
         //Reply to the client
 
     }
+}
+
+void* syncDirConn(void* args) {
+
+    int sockfd, connfd, len;
+    struct sockaddr_in servaddr, cli;
+
+    // socket create and verification
+    sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    if (sockfd == -1) {
+        printf("socket creation failed...\n");
+        exit(0);
+    }
+    else
+        printf("Socket successfully created..\n");
+    bzero(&servaddr, sizeof(servaddr));
+
+    // assign IP, PORT
+    servaddr.sin_family = AF_INET;
+    servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+    servaddr.sin_port = htons(SYNCPORT);
+
+    // Binding newly created socket to given IP and verification
+    if ((bind(sockfd, (struct sockaddr *)&servaddr, sizeof(servaddr))) != 0) {
+        printf("SYNCDIR socket bind failed...\n");
+        exit(0);
+    }
+    else
+        printf("SYNCDIR Socket successfully binded..\n");
+
+    // Now server is ready to listen and verification
+    if ((listen(sockfd, 5)) != 0) {
+        printf("SYNCDIR Listen failed...\n");
+        exit(0);
+    }
+    else
+        printf("SYNCDIR Server listening..\n");
+    len = sizeof(cli);
+
+    int i = 0;
+    while( (connfd = accept(sockfd, (struct sockaddr *)&cli, (socklen_t*)&len))  || i < 5)
+    {
+        puts("Connection accepted");
+        pthread_t newUserThread;
+        int* newSocket = calloc(1, sizeof(int ));
+        *newSocket = connfd;
+
+
+        pthread_create(&newUserThread, NULL, newConnection, newSocket);
+
+        pthread_detach(newUserThread);
+        //Reply to the client
+
+    }
+}
+
+
+// Driver function
+int main()
+{
+    connectedUserListHead = NULL;
+
+    pthread_t userDisconnectedThread;
+    pthread_create(&userDisconnectedThread, NULL, userDisconnectedEvent, NULL);
+    pthread_detach(userDisconnectedThread);
+    pthread_t clientConnThread;
+    pthread_create(&clientConnThread, NULL, clientConn, NULL);
+
+    pthread_t syncDirConnThread;
+    pthread_create(&syncDirConnThread, NULL, syncDirConn, NULL);
+    void** args;
+    pthread_join(clientConnThread, args);
+    pthread_join(syncDirConnThread, args);
+
 }
 
 

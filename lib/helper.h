@@ -21,6 +21,7 @@
 #define UPLOAD 0
 #define USERSESSIONNUMBER 2
 #define SERVERPORT 8880
+#define SYNCPORT 9990
 
 
 #define USERNAMESIZE 64

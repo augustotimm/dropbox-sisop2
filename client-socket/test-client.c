@@ -75,7 +75,7 @@ void sync(int serverSocket) {
     // assign IP, PORT
     servaddr.sin_family = AF_INET;
     servaddr.sin_addr.s_addr = inet_addr("127.0.0.1");
-    servaddr.sin_port = htons(SERVERPORT);
+    servaddr.sin_port = htons(SYNCPORT);
 
     // connect the client socket to server socket
     if (connect(sockfd, (SA*)&servaddr, sizeof(servaddr)) != 0) {
