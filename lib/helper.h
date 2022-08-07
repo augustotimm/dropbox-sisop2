@@ -63,11 +63,28 @@ typedef struct client_thread_argument {
     char* clientDirPath;
 } client_thread_argument;
 
+typedef struct file_info {
+    char* fileName;
+    time_t lastAccessDate;   /* time of last access */
+    time_t lastModificationDate;   /* time of last modification */
+    time_t lastChangeDate;   /* time of last status change */
+} file_info;
+
+typedef struct file_info_list {
+    file_info fileInfo;
+    struct file_info_list *next, *prev;
+} file_info_list;
 
 thread_list* initThreadListElement();
 char* strcatSafe(char* head, char* tail);
+
 //server comunication functions
 
 int sendFile(int socket, char* filepath);
 int receiveFile(int socket, char* fileName);
+
+//file information functions
+file_info_list* getListOfFiles(char* pathname);
+void printFileInfos(file_info fileInfo);
+void printFileInfoList(file_info_list* fileInfoList);
 #endif //DROPBOX_SISOP2_HELPER_H

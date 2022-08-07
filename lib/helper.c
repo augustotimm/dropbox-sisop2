@@ -5,8 +5,13 @@
 #include <sys/socket.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/stat.h>
+#include <dirent.h>
 
 int getFileSize(FILE *ptrfile);
+struct stat info;
+time_t  modification;
+file_info infos;
 
 thread_list* initThreadListElement() {
     thread_list* newElement = calloc(1, sizeof(thread_list));
@@ -115,4 +120,72 @@ char* strcatSafe(char* head, char* tail) {
     strcpy(destiny, head);
     strcat(destiny, tail);
     return destiny;
+}
+
+time_t getFileLastModified(char* pathname) {
+    char buffer[16];
+
+    stat(pathname, &info);
+    modification = time(&info.st_mtime);
+
+
+
+    return modification;
+}
+
+file_info_list* initFileInfoListElement() {
+    file_info_list* newElement = calloc(1, sizeof(file_info_list));
+    newElement->next = NULL;
+    newElement->prev = NULL;
+
+    return newElement;
+}
+
+file_info_list* getListOfFiles(char* path) {
+    file_info_list* listOfFiles = NULL;
+    DIR *dirPath;
+    struct dirent *dir;
+    char* pathname = NULL;
+
+    dirPath = opendir(path);
+
+    if(dirPath) {
+        while ((dir = readdir(dirPath)) != NULL) {
+            if (dir->d_type == DT_REG) { // verifica se é um arquivo
+                pathname = strcatSafe(path, dir->d_name);
+                stat(pathname, &info);
+                infos.fileName = dir->d_name;
+                infos.lastAccessDate = localtime (&info.st_atime);
+                infos.lastChangeDate = localtime (&info.st_ctime);
+                infos.lastModificationDate = localtime (&info.st_mtime);
+                //printFileInfos(infos);
+                file_info_list* newList = initFileInfoListElement();
+                newList->fileInfo = infos;
+                DL_APPEND(listOfFiles, newList);
+            }
+        }
+        closedir(dirPath);
+    }
+    return listOfFiles;
+}
+
+void printFileInfos(file_info fileInfo) {
+    char fModDate[20], fAccessDate[20], fChangeDate[20];
+    struct tm * timeinfo;
+
+    timeinfo = localtime(fileInfo.lastModificationDate);
+    strftime(fModDate, sizeof(fModDate), "%b %d %y %H:%M", timeinfo);
+    timeinfo = localtime(fileInfo.lastAccessDate);
+    strftime(fAccessDate, sizeof(fAccessDate), "%b %d %y %H:%M", timeinfo);
+    timeinfo = localtime(fileInfo.lastChangeDate);
+    strftime(fChangeDate, sizeof(fChangeDate), "%b %d %y %H:%M", timeinfo);
+    printf("%s - Last access: %s, Last modification : %s, Last change: %s\n",
+           fileInfo.fileName,fAccessDate,fChangeDate,fModDate);
+}
+
+void printFileInfoList(file_info_list* fileInfoList) {
+    file_info_list* infosList;
+    DL_FOREACH(fileInfoList, infosList) {
+        printFileInfos(infosList->fileInfo);
+    }
 }

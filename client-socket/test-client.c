@@ -46,8 +46,9 @@ int download(int socket) {
     return receiveFile(socket, fileName);
 }
 
-void list() {
-    printf("list function");
+void list(char * pathname) {
+    file_info_list* infoList = getListOfFiles(pathname);
+    printFileInfoList(infoList);
 }
 
 void sync() {
@@ -85,7 +86,7 @@ void clientThread(int connfd)
                 return;
             }
         } else if(strcmp(userInput, commands[LIST]) ==0 ) {
-            list();
+            list("/home/juschmitt/");
         } else if(strcmp(userInput, commands[SYNC]) ==0 ) {
             sync();
         }
