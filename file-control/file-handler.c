@@ -15,7 +15,8 @@
 #include "../server/server.h"
 struct stat info;
 time_t  epoch_time;
-
+// /home/augusto/repositorios/ufrgs/dropbox-sisop2/watch_folder/
+// /home/augusto/repositorios/ufrgs/dropbox-sisop2/client-socket/sync/
 //TODO change to relative path
 
 time_t getFileLastModifiedEpoch(char* pathname) {
@@ -109,6 +110,16 @@ void* watchDir(void* args){
                     sem_post(argument->userSem);
                     printf( "The file %s was created.\n", event->name );
                 } else if (event->mask & IN_DELETE || event->mask & IN_MOVED_FROM) {
+
+                    sem_wait(argument->userSem);
+                    DL_FOREACH(argument->socketConnList, elt) {
+                        write(elt->socket, &commands[DELETE], sizeof(commands[DELETE]));
+                        write(elt->socket, event->name, strlen(event->name));
+                        char buff[BUFFERSIZE];
+                        bzero(buff, sizeof(buff));
+                        recv(elt->socket, buff, sizeof(buff), 0);
+                    }
+                    sem_post(argument->userSem);
                     printf( "The file %s was removed.\n", event->name );
                 }
 
