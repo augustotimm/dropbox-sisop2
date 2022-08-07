@@ -91,14 +91,17 @@ int startNewSession(user_list* user, int sessionSocket, char* userDirPath) {
         if(hasAvailableSession(user->user)) {
             d_thread* newClientThread = (d_thread*) calloc(1, sizeof(d_thread));
             client_thread_argument* argument =
-                    createClientThreadArgument(&newClientThread->isThreadComplete, userDirPath, sessionSocket);
+                    createClientThreadArgument(
+                                &newClientThread->isThreadComplete,
+                                userDirPath,
+                                sessionSocket
+                            );
 
             pthread_create(&newClientThread->thread, NULL, clientConnThread, argument);
             pthread_detach(newClientThread->thread);
 
             if(!addSession(&user->user, newClientThread)) {
                 sem_post(&(user->user.userAccessSem));
-                printf("User has reached limit of active sessions\n");
                 return OUTOFSESSION;
             }
             sem_post(&(user->user.userAccessSem));
@@ -106,7 +109,6 @@ int startNewSession(user_list* user, int sessionSocket, char* userDirPath) {
 
         }
         else {
-            printf("User has reached limit of active sessions\n");
             sem_post(&(user->user.userAccessSem));
             return OUTOFSESSION;
         }
@@ -135,10 +137,11 @@ user_list* createUser(char* username) {
 int startUserSession( char* username, int socket) {
     user_list* user = NULL;
     user_list etmp;
-    char* dirPath = getuserDirPath(username);
+    char* userSafe = strcatSafe(username, "\0");
+    char* dirPath = getuserDirPath(userSafe);
 
-    etmp.user.username = username;
-    user_list* newUser = createUser(username);
+    etmp.user.username = userSafe;
+    user_list* newUser = createUser(userSafe);
     pthread_mutex_lock( &connectedUsersMutex);
     DL_SEARCH(connectedUserListHead, user, &etmp, userCompare);
     if(!user){
@@ -149,6 +152,7 @@ int startUserSession( char* username, int socket) {
     pthread_mutex_unlock(&connectedUsersMutex);
     int result = startNewSession(user, socket, dirPath);
     free(dirPath);
+    free(userSafe);
     return result;
 }
 

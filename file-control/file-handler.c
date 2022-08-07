@@ -44,8 +44,9 @@ void sig_handler(int sig){
 }
 
 char* getuserDirPath(char* username) {
+    char slash[2] = "/";
     char* filePath = strcatSafe(rootPath, username);
-    char* dirPath = strcatSafe(filePath, "/");
+    char* dirPath = strcatSafe(filePath, slash);
     free(filePath);
     struct stat st = {0};
     if(stat(dirPath, &st) == -1) {
