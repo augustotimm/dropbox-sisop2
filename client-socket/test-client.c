@@ -3,24 +3,26 @@
 #include <stdlib.h>
 #include <string.h>
 #include "../lib/helper.h"
+#include "../file-control/file-handler.h"
+
 #define PORT 8888
 
 #define MAX 80
 #define SA struct sockaddr
 
-char commands[5][13] = {"upload", "download", "list", "get_sync_dir", "exit"};
+char commands[5][13] = {"upload", "download", "list local", "get_sync_dir", "exit"};
 
 char* path = "/home/augusto/repositorios/ufrgs/dropbox-sisop2/client-socket/sync/";
 
 void upload(int socket) {
-    printf("upload function\n");
+    printf("Upload\n");
 
     write(socket, &commands[UPLOAD], sizeof(commands[UPLOAD]));
 
     char fileName[FILENAMESIZE];
     bzero(fileName, sizeof(fileName));
 
-    printf("insert name of file\n");
+    printf("Insert name of file:\n");
     fgets(fileName, sizeof(fileName), stdin);
     fileName[strcspn(fileName, "\n")] = 0;
 
@@ -36,17 +38,17 @@ void upload(int socket) {
 
 int download(int socket) {
     char fileName[FILENAMESIZE];
-    printf("download function\n");
+    printf("Download\n");
 
     write(socket, &commands[DOWNLOAD], sizeof(commands[DOWNLOAD]));
-    printf("insert name of file\n");
+    printf("Insert name of file:\n");
     fgets(fileName, sizeof(fileName), stdin);
     fileName[strcspn(fileName, "\n")] = 0;
     write(socket, &fileName, sizeof(fileName));
     return receiveFile(socket, fileName);
 }
 
-void list(char * pathname) {
+void list_local(char * pathname) {
     file_info_list* infoList = getListOfFiles(pathname);
     printFileInfoList(infoList);
 }
@@ -75,7 +77,7 @@ void clientThread(int connfd)
     for (;;) {
         bzero(userInput, sizeof(userInput));
         bzero(buff, sizeof(buff));
-        printf("Enter the string : ");
+        printf("Enter the string: ");
         n = 0;
         fgets(userInput, sizeof(userInput), stdin);
         userInput[strcspn(userInput, "\n")] = 0;
@@ -86,7 +88,7 @@ void clientThread(int connfd)
                 return;
             }
         } else if(strcmp(userInput, commands[LIST]) ==0 ) {
-            list("/home/juschmitt/");
+            list_local(path);
         } else if(strcmp(userInput, commands[SYNC]) ==0 ) {
             sync();
         }
@@ -121,11 +123,11 @@ int main()
 
     // connect the client socket to server socket
     if (connect(sockfd, (SA*)&servaddr, sizeof(servaddr)) != 0) {
-        printf("connection with the server failed...\n");
+        printf("Connection with the server failed...\n");
         exit(0);
     }
     else
-        printf("connected to the server..\n");
+        printf("Connected to the server..\n");
 
     // function for chat
     clientThread(sockfd);
