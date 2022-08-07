@@ -98,13 +98,16 @@ void* watchDir(void* args){
                 socket_conn_list* elt = NULL;
                 // TODO Create event threads
                 if ( event->mask & IN_CLOSE_WRITE || event->mask & IN_CREATE || event->mask & IN_MOVED_TO) {
-                    char* filePath = strcatSafe(pathToDir, event->name);
+                    printf( "The file %s was created.\n", event->name );
+
                     sem_wait(argument->userSem);
                     DL_FOREACH(argument->socketConnList, elt) {
-                        upload(elt->socket, filePath);
+                        write(elt->socket, &commands[UPLOAD], sizeof(commands[UPLOAD]));
+                        char* filePath = strcatSafe(pathToDir, event->name);
+                        upload(elt->socket, filePath, event->name);
+                        free(filePath);
                     }
                     sem_post(argument->userSem);
-                    free(filePath);
                     printf( "The file %s was created.\n", event->name );
                 } else if (event->mask & IN_DELETE || event->mask & IN_MOVED_FROM) {
                     printf( "The file %s was removed.\n", event->name );

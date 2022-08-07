@@ -5,7 +5,7 @@ set(CMAKE_C_STANDARD 99)
 find_package(Threads REQUIRED)
 
 add_executable(server ./server/server.c ./server/server.h lib/utlist.h lib/helper.h lib/helper.c server/user.c server/user.h ./file-control/file-handler.c ./file-control/file-handler.h server/server_functions.c server/server_functions.h)
-add_executable(client ./client-socket/test-client.c ./client-socket/test-client.h lib/utlist.h lib/helper.h lib/helper.c ./file-control/file-handler.c ./file-control/file-handler.h)
+add_executable(client ./client-socket/test-client.c ./client-socket/test-client.h lib/utlist.h lib/helper.h lib/helper.c ./file-control/file-handler.c ./file-control/file-handler.h server/server_functions.c server/server_functions.h)
 
 
 

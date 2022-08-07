@@ -23,7 +23,7 @@
 
 void connectUser(int socket);
 int connectSyncDir(int socket, char* username);
-void* clientConnThread(void* voidArg)
+void* clientListen(void* voidArg)
 {
     client_thread_argument* argument = voidArg;
     char* path = argument->clientDirPath;
@@ -37,39 +37,20 @@ void* clientConnThread(void* voidArg)
 
     //waiting for command
     printf("waiting for first command\n");
-    for (;;) {
-        bzero(currentCommand, sizeof(currentCommand));
-
-        // read the message from client and copy it in buffer
-        recv(socket, currentCommand, sizeof(currentCommand), 0);
-        printf("COMMAND: %s\n", currentCommand);
-
-        if(strcmp(currentCommand, commands[UPLOAD]) ==0 ) {
-            sem_wait(argument->userAccessSem);
-            upload(socket, path );
-            sem_post(argument->userAccessSem);
-        } else if(strcmp(currentCommand, commands[DOWNLOAD]) ==0 ) {
-            sem_wait(argument->userAccessSem);
-            download(socket, path);
-            sem_post(argument->userAccessSem);
-        } else if(strcmp(currentCommand, commands[LIST]) ==0 ) {
-            list();
-        } else if(strcmp(currentCommand, commands[SYNC]) ==0 ) {
-            sync_dir(socket);
-        }
-
-
-
-        if (strlen(currentCommand) == 0 || strcmp(currentCommand, commands[EXIT]) == 0) {
-            printf("Server Exit...\n");
-            close(socket);
-            free(argument->clientDirPath);
-            *argument->isThreadComplete = true;
-            free(argument);
-            pthread_cond_signal(&closedUserConnection);
-            return NULL;
-        }
+    recv(socket, currentCommand, sizeof(currentCommand), 0);
+    if(strcmp(currentCommand, endCommand) != 0) {
+        printf("Connection out of sync\n");
+        printf("Expected end command signal but received: %s\n\n", currentCommand);
+        return NULL;
     }
+
+    listenForSocketMessage(socket, path, argument->userAccessSem);
+
+    printf("Server Exiting socket: %d\n", socket);
+    close(socket);
+    *argument->isThreadComplete = true;
+    free(argument);
+    pthread_cond_signal(&closedUserConnection);
 
 }
 void writeMessageToSocket(int socket, char* message) {

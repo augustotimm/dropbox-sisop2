@@ -10,6 +10,7 @@
 #include <stdbool.h>
 #include <stdint-gcc.h>
 #include <semaphore.h>
+#include "../server/server_functions.h"
 
 #define FILENAMESIZE 64
 #define KBYTE 1024
@@ -26,14 +27,14 @@
 
 #define USERNAMESIZE 64
 
-#define OUTFOSYNCERROR -99
+#define OUTOFSYNCERROR -99
 
 #define CLIENTSOCKET 0
 #define SYNCSOCKET 1
 
 
 static const char endCommand[] = "\nend\n";
-static const char commands[5][10] = {"upload", "download", "list", "sync", "exit"};
+static const char commands[5][13] = {"upload", "download", "list local", "sync", "exit"};
 static const char socketTypes[2][8] = {"client", "syncdir"};
 
 
@@ -90,7 +91,7 @@ socket_conn_list* initSocketConnList(int socket);
 //server comunication functions
 int sendFile(int socket, char* filepath);
 int receiveFile(int socket, char* fileName);
-
+int listenForSocketMessage(int socket, char* clientDirPath, sem_t* dirSem);
 
 
 //file information functions

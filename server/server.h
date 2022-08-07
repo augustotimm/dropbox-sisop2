@@ -11,5 +11,5 @@ pthread_mutex_t connectedUsersMutex;
 pthread_cond_t closedUserConnection;
 
 
-void* clientConnThread(void* conf);
+void* clientListen(void* conf);
 #endif //DROPBOX_SISOP2_SERVER_H

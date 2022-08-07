@@ -56,7 +56,7 @@ int sendFile(int socket, char* filepath) {
     if(strcmp(buff, endCommand) != 0) {
         printf("Connection out of sync\n");
         printf("Expected end command signal but received: %s\n\n", buff);
-        return OUTFOSYNCERROR;
+        return OUTOFSYNCERROR;
     }
     write(socket, endCommand, sizeof(endCommand));
     return 0;
@@ -115,7 +115,7 @@ int receiveFile(int socket, char* fileName) {
     if(strcmp(buff, endCommand) != 0) {
         printf("Connection out of sync\n");
         printf("Expected end command signal but received: %s\n\n", buff);
-        return OUTFOSYNCERROR;
+        return OUTOFSYNCERROR;
     }
 
     printf("File %s has been downloaded\n\n", fileName);
@@ -210,4 +210,41 @@ void deleteFile(char* filename, char* path) {
     else {
         printf("Unable to delete the file\n");
     }
+}
+
+int listenForSocketMessage(int socket, char* clientDirPath, sem_t* dirSem) {
+    char currentCommand[13];
+    char fileName[FILENAMESIZE];
+
+    for (;;) {
+        bzero(currentCommand, sizeof(currentCommand));
+        bzero(fileName, sizeof(fileName));
+
+
+        // read the message from client and copy it in buffer
+        recv(socket, currentCommand, sizeof(currentCommand), 0);
+        printf("COMMAND: %s\n", currentCommand);
+
+        if(strcmp(currentCommand, commands[UPLOAD]) ==0 ) {
+            sem_wait(dirSem);
+            download(socket, clientDirPath );
+            sem_post(dirSem);
+        } else if(strcmp(currentCommand, commands[DOWNLOAD]) ==0 ) {
+            recv(socket, fileName, sizeof(fileName), 0);
+            sem_wait(dirSem);
+            char* filePath = strcatSafe(clientDirPath, fileName);
+            upload(socket, filePath, fileName);
+            sem_post(dirSem);
+        } else if(strcmp(currentCommand, commands[LIST]) ==0 ) {
+            list();
+        }
+
+
+
+        if (strcmp(currentCommand, commands[EXIT]) == 0) {
+
+            return 0;
+        }
+    }
+
 }

@@ -10,14 +10,13 @@
 char username[USERNAMESIZE];
 
 void startWatchDir(int socket);
-char commands[5][13] = {"upload", "download", "list local", "get_sync_dir", "exit"};
-
 char* path = "/home/augusto/repositorios/ufrgs/dropbox-sisop2/client-socket/sync/";
 
 sem_t syncDirSem;
 
+pthread_t listenSyncThread;
 
-void upload(int socket) {
+void clientUpload(int socket) {
     printf("Upload\n");
 
     write(socket, &commands[UPLOAD], sizeof(commands[UPLOAD]));
@@ -29,26 +28,20 @@ void upload(int socket) {
     fgets(fileName, sizeof(fileName), stdin);
     fileName[strcspn(fileName, "\n")] = 0;
 
-    write(socket, &fileName, sizeof(fileName));
 
-    char* filePath = calloc(strlen(fileName) + strlen(path), sizeof(char));
-    strcpy(filePath, path);
-    strcat(filePath, fileName);
-
-    sendFile(socket, filePath);
-    free(filePath);
+    upload(socket, path, fileName);
 }
 
-int download(int socket) {
+int clientDownload(int socket) {
+    printf("clientDownload function");
     char fileName[FILENAMESIZE];
-    printf("Download\n");
-
-    write(socket, &commands[DOWNLOAD], sizeof(commands[DOWNLOAD]));
-    printf("Insert name of file:\n");
     fgets(fileName, sizeof(fileName), stdin);
     fileName[strcspn(fileName, "\n")] = 0;
-    write(socket, &fileName, sizeof(fileName));
-    return receiveFile(socket, fileName);
+
+
+    char* filePath = strcatSafe(path, fileName);
+    receiveFile(socket, filePath);
+    free(filePath);
 }
 
 void list_local(char * pathname) {
@@ -56,9 +49,14 @@ void list_local(char * pathname) {
     printFileInfoList(infoList);
 }
 
-void sync(int serverSocket) {
-    printf("sync function");
-    write(serverSocket, &commands[SYNC], sizeof(commands[SYNC]));
+void* listenSyncDir(void* args) {
+    int socket = *(int*)args;
+    free(args);
+    listenForSocketMessage(socket, path, &syncDirSem);
+    close(socket);
+}
+
+void startListenSyncDir() {
     int sockfd;
     struct sockaddr_in servaddr;
 
@@ -90,7 +88,11 @@ void sync(int serverSocket) {
     recv(sockfd, &endCommand, sizeof(endCommand), 0);
 
     write(sockfd, &username, sizeof(username));
-    startWatchDir(sockfd);
+    // startWatchDir(sockfd);
+    int* newSocket = calloc(1, sizeof(int ));
+    *newSocket = sockfd;
+    pthread_create(&listenSyncThread, NULL, listenSyncDir, newSocket);
+    pthread_detach(listenSyncThread);
 }
 
 void startWatchDir(int socket) {
@@ -121,15 +123,15 @@ void clientThread(int connfd)
         fgets(userInput, sizeof(userInput), stdin);
         userInput[strcspn(userInput, "\n")] = 0;
         if(strcmp(userInput, commands[UPLOAD]) ==0 ) {
-            upload(connfd);
+            sem_wait(&syncDirSem);
+            clientUpload(connfd);
+            sem_post(&syncDirSem);
         } else if(strcmp(userInput, commands[DOWNLOAD]) ==0 ) {
-            if(download(connfd) == OUTFOSYNCERROR) {
-                return;
-            }
+            sem_wait(&syncDirSem);
+            clientDownload(connfd);
+            sem_post(&syncDirSem);
         } else if(strcmp(userInput, commands[LIST]) ==0 ) {
             list_local(path);
-        } else if(strcmp(userInput, commands[SYNC]) ==0 ) {
-            sync(connfd);
         }
 
         if ((strncmp(userInput, "exit", 4)) == 0) {
@@ -144,6 +146,8 @@ int main()
 {
     int sockfd;
     struct sockaddr_in servaddr;
+
+    sem_init(&syncDirSem, 0, 1);
 
     // socket create and verification
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -187,7 +191,7 @@ int main()
 
     write(sockfd, &endCommand, sizeof(endCommand));
 
-    sync(sockfd);
+    startListenSyncDir();
 
     // function for chat
     clientThread(sockfd);

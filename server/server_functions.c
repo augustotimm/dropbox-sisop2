@@ -11,34 +11,30 @@
 
 
 
-void upload(int socket, char* path) {
-    printf("upload function\n");
-    char fileName[FILENAMESIZE];
-    recv(socket, fileName, sizeof(fileName), 0);
-    char* filePath = strcatSafe(path, fileName);
+void upload(int socket, char* filePath, char* fileName) {
+    char buff[BUFFERSIZE];
+    recv(socket, buff, sizeof(buff), 0);
 
+    write(socket, fileName, sizeof(fileName));
 
-    receiveFile(socket, filePath);
-    free(filePath);
+    printf("clientUpload function\n");
+    sendFile(socket, filePath);
 }
 
 void download(int socket, char* path) {
-    printf("download function");
+    write(socket, &endCommand, sizeof(endCommand));
+    printf("clientDownload function");
     char fileName[FILENAMESIZE];
     bzero(fileName, sizeof(fileName));
     recv(socket, fileName, sizeof(fileName), 0);
 
 
     char* filePath = strcatSafe(path, fileName);
-    sendFile(socket, filePath);
+    receiveFile(socket, filePath);
     free(filePath);
 
 }
 
 void list() {
     printf("list function");
-}
-
-int sync_dir(int clientSocket) {
-
 }

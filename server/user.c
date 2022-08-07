@@ -99,7 +99,7 @@ int startNewSession(user_list* user, int sessionSocket, char* userDirPath) {
                                 &user->user.userAccessSem
                             );
 
-            pthread_create(&newClientThread->thread, NULL, clientConnThread, argument);
+            pthread_create(&newClientThread->thread, NULL, clientListen, argument);
             pthread_detach(newClientThread->thread);
 
             if(!addSession(&user->user, newClientThread)) {
