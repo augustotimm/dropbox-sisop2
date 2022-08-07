@@ -228,6 +228,9 @@ void* syncDirConn(void* args) {
 // Driver function
 int main()
 {
+    printf("Insira o caminho para a pasta raiz onde ficarão as pastas de usuários\n");
+    fgets(rootPath, sizeof(rootPath), stdin);
+    rootPath[strcspn(rootPath, "\n")] = 0;
     connectedUserListHead = NULL;
 
     pthread_t userDisconnectedThread;

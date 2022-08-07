@@ -10,7 +10,7 @@
 char username[USERNAMESIZE];
 
 void startWatchDir(int socket);
-char* path = "/home/augusto/repositorios/ufrgs/dropbox-sisop2/client-socket/sync/";
+char path[KBYTE];
 
 sem_t syncDirSem;
 
@@ -175,7 +175,12 @@ int main()
     int sockfd;
     struct sockaddr_in servaddr;
 
+
     sem_init(&syncDirSem, 0, 1);
+
+    printf("Insira o caminho para a pasta sync_dir\n");
+    fgets(path, sizeof(path), stdin);
+    path[strcspn(path, "\n")] = 0;
 
     // socket create and verification
     sockfd = socket(AF_INET, SOCK_STREAM, 0);

@@ -9,6 +9,7 @@
 user_list* connectedUserListHead;
 pthread_mutex_t connectedUsersMutex;
 pthread_cond_t closedUserConnection;
+char rootPath[KBYTE];
 
 
 void* clientListen(void* conf);
