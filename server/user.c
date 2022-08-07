@@ -173,6 +173,7 @@ void createWatchDir(user_t* user) {
     watch_dir_argument* argument = calloc(1, sizeof(watch_dir_argument));
     argument->dirPath = dirPath;
     argument->socketConnList = user->syncSocketList;
+    argument->userSem = &user->userAccessSem;
     user->watchDirThread.isThreadComplete = false;
 
     pthread_create(&user->watchDirThread.thread, NULL, watchDir, argument);

@@ -20,7 +20,7 @@
 #define DOWNLOAD 1
 #define UPLOAD 0
 #define USERSESSIONNUMBER 2
-#define SERVERPORT 8889
+#define SERVERPORT 8880
 
 
 #define USERNAMESIZE 64

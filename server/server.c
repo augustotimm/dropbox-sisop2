@@ -45,9 +45,13 @@ void* clientConnThread(void* voidArg)
         printf("COMMAND: %s\n", currentCommand);
 
         if(strcmp(currentCommand, commands[UPLOAD]) ==0 ) {
-            upload(socket, path, argument->userAccessSem );
+            sem_wait(argument->userAccessSem);
+            upload(socket, path );
+            sem_post(argument->userAccessSem);
         } else if(strcmp(currentCommand, commands[DOWNLOAD]) ==0 ) {
-            download(socket, path, argument->userAccessSem);
+            sem_wait(argument->userAccessSem);
+            download(socket, path);
+            sem_post(argument->userAccessSem);
         } else if(strcmp(currentCommand, commands[LIST]) ==0 ) {
             list();
         } else if(strcmp(currentCommand, commands[SYNC]) ==0 ) {

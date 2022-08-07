@@ -11,7 +11,7 @@
 #include<unistd.h>
 #include<signal.h>
 #include<fcntl.h>
-#include "../event-handler/event-handler.h"
+#include "../server/server_functions.h"
 
 struct stat info;
 time_t  epoch_time;
@@ -95,7 +95,16 @@ void* watchDir(void* args){
             struct inotify_event *event = (struct inotify_event *) &buffer[i];
 
             if(event->len){
+                socket_conn_list* elt = NULL;
+                // TODO Create event threads
                 if ( event->mask & IN_CLOSE_WRITE || event->mask & IN_CREATE || event->mask & IN_MOVED_TO) {
+                    char* filePath = strcatSafe(pathToDir, event->name);
+                    sem_wait(argument->userSem);
+                    DL_FOREACH(argument->socketConnList, elt) {
+                        upload(elt->socket, filePath);
+                    }
+                    sem_post(argument->userSem);
+                    free(filePath);
                     printf( "The file %s was created.\n", event->name );
                 } else if (event->mask & IN_DELETE || event->mask & IN_MOVED_FROM) {
                     printf( "The file %s was removed.\n", event->name );
