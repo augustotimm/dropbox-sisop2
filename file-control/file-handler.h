@@ -1,21 +1,11 @@
 //
 // Created by augusto on 24/07/2022.
 //
-
-#include <sys/stat.h>
-#include<time.h>
-#include<stdio.h>
-#include<sys/inotify.h>
-#include<unistd.h>
-#include<stdlib.h>
-#include<signal.h>
-#include<fcntl.h>
-
-
 #ifndef DROPBOX_SISOP2_FILE_HANDLER_H
 #define DROPBOX_SISOP2_FILE_HANDLER_H
-#include "../event-handler/event-handler.h"
 #include "../lib/helper.h"
+
+#include <stdlib.h>
 
 
 #define MAX_EVENTS 1024  /* Maximum number of events to process*/

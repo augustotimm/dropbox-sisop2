@@ -59,8 +59,9 @@ void* clientConnThread(void* voidArg)
         if (strlen(currentCommand) == 0 || strcmp(currentCommand, commands[EXIT]) == 0) {
             printf("Server Exit...\n");
             close(socket);
-
+            free(argument->clientDirPath);
             *argument->isThreadComplete = true;
+            free(argument);
             pthread_cond_signal(&closedUserConnection);
             return NULL;
         }

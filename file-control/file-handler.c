@@ -6,9 +6,14 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include<stdio.h>
+#include<sys/inotify.h>
+#include<unistd.h>
+#include<signal.h>
+#include<fcntl.h>
+#include "../event-handler/event-handler.h"
 
 struct stat info;
-struct tm* tm_info;
 time_t  epoch_time;
 
 //TODO change to relative path
@@ -86,44 +91,19 @@ void* watchDir(void* args){
 
         /* Step 4. Process the events which has occurred */
         while(i<length){
-            thread_list* newElement;
             struct inotify_event *event = (struct inotify_event *) &buffer[i];
 
             if(event->len){
-                char* filePath = getFilePath(pathToDir, event->name);
-                newElement = initThreadListElement();
-                thread_argument* fileEventArgument = (thread_argument*)calloc(1, sizeof(thread_argument));
-                fileEventArgument->isThreadComplete = &(newElement->isThreadComplete);
-                fileEventArgument->argument = (void*) filePath;
-                if ( event->mask & IN_CREATE ) {
-                    if ( event->mask & IN_ISDIR ) {
-                        newElement = initThreadListElement();
-                        printf( "The file %s was created.\n", event->name );
-                        // pthread_create(&(newElement->thread), NULL, createdDir, fileEventArgument);
-                        // DL_APPEND(threadList, newElement);
-                    }
-                    else {
-                        // pthread_create(&(newElement->thread), NULL, createdFile, fileEventArgument);
-                        printf( "The file %s was created.\n", event->name );
-                        // DL_APPEND(threadList, newElement);
-                    }
+                if ( (event->mask & IN_CREATE) && !(event->mask & IN_ISDIR) ) {
+                    printf( "The file %s was created.\n", event->name );
                 }
-                else if ( event->mask & IN_DELETE ) {
-                    if ( event->mask & IN_ISDIR ) {
-                        printf( "The directory %s was deleted.\n", event->name );
-                    }
-                    else {
-                        printf( "The file %s was deleted.\n", event->name );
-                    }
+                else if ( (event->mask & IN_DELETE) && !(event->mask & IN_ISDIR) ) {
+                    printf( "The file %s was deleted.\n", event->name );
                 }
-                else if ( event->mask & IN_MODIFY ) {
-                    if ( event->mask & IN_ISDIR ) {
-                        printf( "The directory %s was modified.\n", event->name );
-                    }
-                    else {
-                        printf( "The file %s was modified.\n", event->name );
-                    }
+                else if ( (event->mask & IN_MODIFY) && !(event->mask & IN_ISDIR)) {
+                    printf( "The file %s was modified.\n", event->name );
                 }
+
                 if ( event->mask & IN_CLOSE_WRITE ) {
                     printf( "The directory %s IN_CLOSE_WRITE.\n", event->name );
                 }
