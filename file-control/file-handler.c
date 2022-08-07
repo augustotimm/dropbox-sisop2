@@ -95,18 +95,10 @@ void* watchDir(void* args){
             struct inotify_event *event = (struct inotify_event *) &buffer[i];
 
             if(event->len){
-                if ( (event->mask & IN_CREATE) && !(event->mask & IN_ISDIR) ) {
+                if ( event->mask & IN_CLOSE_WRITE || event->mask & IN_CREATE || event->mask & IN_MOVED_TO) {
                     printf( "The file %s was created.\n", event->name );
-                }
-                else if ( (event->mask & IN_DELETE) && !(event->mask & IN_ISDIR) ) {
-                    printf( "The file %s was deleted.\n", event->name );
-                }
-                else if ( (event->mask & IN_MODIFY) && !(event->mask & IN_ISDIR)) {
-                    printf( "The file %s was modified.\n", event->name );
-                }
-
-                if ( event->mask & IN_CLOSE_WRITE ) {
-                    printf( "The directory %s IN_CLOSE_WRITE.\n", event->name );
+                } else if (event->mask & IN_DELETE || event->mask & IN_MOVED_FROM) {
+                    printf( "The file %s was removed.\n", event->name );
                 }
             }
             i += EVENT_SIZE + event->len;

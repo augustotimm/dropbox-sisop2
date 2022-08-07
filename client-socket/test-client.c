@@ -100,12 +100,14 @@ void clientThread(int connfd)
     write(connfd, &socketTypes[CLIENTSOCKET], sizeof(socketTypes[CLIENTSOCKET]));
 
 
+
     printf("Enter username: ");
     fgets(username, USERNAMESIZE, stdin);
     username[strcspn(username, "\n")] = 0;
     write(connfd, &username, sizeof(username));
     recv(connfd, buff, sizeof(buff), 0);
     printf("SERVER CONNECTION STATUS: %s\n", buff);
+    sync(connfd);
 
     for (;;) {
         bzero(userInput, sizeof(userInput));

@@ -23,5 +23,6 @@ void sig_handler(int sig);
 typedef struct watch_dir_argument {
     char* dirPath;
     socket_conn_list* socketConnList;
+    sem_t* userSem;
 } watch_dir_argument;
 #endif //DROPBOX_SISOP2_FILE_HANDLER_H
