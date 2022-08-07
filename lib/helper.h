@@ -14,15 +14,15 @@
 
 #define FILENAMESIZE 64
 #define KBYTE 1024
-#define BUFFERSIZE 16
+#define BUFFERSIZE 30
 #define EXIT 4
 #define SYNC 3
 #define LIST 2
 #define DOWNLOAD 1
 #define UPLOAD 0
 #define USERSESSIONNUMBER 2
-#define SERVERPORT 8889
-#define SYNCPORT 9998
+#define SERVERPORT 8888
+#define SYNCPORT 9999
 
 
 #define USERNAMESIZE 64
@@ -34,6 +34,8 @@
 
 
 static const char endCommand[] = "\nend\n";
+static const char continueCommand[] = "\ncontinue\n";
+
 static const char commands[5][13] = {"upload", "download", "list local", "sync", "exit"};
 static const char socketTypes[2][8] = {"client", "syncdir"};
 
@@ -89,8 +91,6 @@ char* strcatSafe(char* head, char* tail);
 socket_conn_list* initSocketConnList(int socket);
 
 //server comunication functions
-int sendFile(int socket, char* filepath);
-int receiveFile(int socket, char* fileName);
 int listenForSocketMessage(int socket, char* clientDirPath, sem_t* dirSem);
 
 
@@ -98,6 +98,12 @@ int listenForSocketMessage(int socket, char* clientDirPath, sem_t* dirSem);
 file_info_list* getListOfFiles(char* pathname);
 void printFileInfos(file_info fileInfo);
 void printFileInfoList(file_info_list* fileInfoList);
+struct tm iso8601ToTM(char* timestamp);
 
 void deleteFile(char* filename, char* path);
+void freeFileInfo(file_info info);
+bool checkFileExists(char* filePath);
+bool checkUpdateFile(char* path, char*filename, char* timestamp);
+char* tmToIso(struct tm* time);
+file_info getFileInfo(char* path, char* fileName);
 #endif //DROPBOX_SISOP2_HELPER_H

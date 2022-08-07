@@ -11,4 +11,7 @@ void download(int socket, char* path);
 void list();
 int sync_dir(int socket);
 
+int sendFile(int socket, char* filepath);
+int receiveFile(int socket, char* fileName);
+
 #endif //DROPBOX_SISOP2_SERVER_FUNCTIONS_H
