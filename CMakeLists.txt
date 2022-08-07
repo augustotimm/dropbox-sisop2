@@ -4,7 +4,6 @@ project(dropbox_sisop2 C)
 set(CMAKE_C_STANDARD 99)
 find_package(Threads REQUIRED)
 
-add_executable(fileController ./file-control/file-handler.c ./file-control/file-handler.h event-handler/event-handler.c event-handler/event-handler.h lib/utlist.h lib/helper.h lib/helper.c client-socket/test-client.c client-socket/test-client.h)
 add_executable(server ./server/server.c ./server/server.h lib/utlist.h lib/helper.h lib/helper.c server/user.c server/user.h ./file-control/file-handler.c ./file-control/file-handler.h server/server_functions.c server/server_functions.h)
 add_executable(client ./client-socket/test-client.c ./client-socket/test-client.h lib/utlist.h lib/helper.h lib/helper.c)
 

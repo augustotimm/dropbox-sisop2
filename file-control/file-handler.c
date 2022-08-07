@@ -52,8 +52,8 @@ char* getuserDirPath(char* username) {
 
 
 void* watchDir(void* args){
-
-    char* pathToDir = (char*)args;
+    watch_dir_argument* argument = (watch_dir_argument *) args;
+    char* pathToDir = argument->dirPath;
 
     signal(SIGINT,sig_handler);
 

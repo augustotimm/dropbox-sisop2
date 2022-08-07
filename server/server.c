@@ -26,20 +26,19 @@ int connectSyncDir(int socket, char* username);
 void* clientConnThread(void* voidArg)
 {
     client_thread_argument* argument = voidArg;
-    char buff[MAX];
     char* path = argument->clientDirPath;
-    bzero(buff, MAX);
     int socket = argument->socket;
-
-    strcpy(buff, "TRUE");
-    write(socket, buff, sizeof(buff));
 
     char currentCommand[13];
     bzero(currentCommand, sizeof(currentCommand));
+
+    strcpy(currentCommand, "TRUE");
+    write(socket, currentCommand, sizeof(currentCommand));
+
     //waiting for command
     printf("waiting for first command\n");
     for (;;) {
-        bzero(buff, MAX);
+        bzero(currentCommand, sizeof(currentCommand));
 
         // read the message from client and copy it in buffer
         recv(socket, currentCommand, sizeof(currentCommand), 0);
@@ -82,10 +81,11 @@ void* newConnection(void* arg) {
     }
     if(strcmp(newSocketType, socketTypes[SYNCSOCKET]) == 0) {
         bzero(newSocketType, USERNAMESIZE);
+        write(socket, &endCommand, sizeof(endCommand));
+
         // get username to find in connected usersList
         recv(socket, newSocketType, USERNAMESIZE, 0);
         connectSyncDir(socket, newSocketType);
-
 
     }
 

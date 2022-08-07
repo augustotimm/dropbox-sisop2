@@ -7,6 +7,7 @@
 
 #define MAX 80
 #define SA struct sockaddr
+char username[USERNAMESIZE];
 
 char commands[5][13] = {"upload", "download", "list local", "get_sync_dir", "exit"};
 
@@ -54,7 +55,7 @@ void list_local(char * pathname) {
 void sync(int serverSocket) {
     printf("sync function");
     write(serverSocket, &commands[SYNC], sizeof(commands[SYNC]));
-    int sockfd, connfd;
+    int sockfd;
     struct sockaddr_in servaddr;
 
     // socket create and verification
@@ -79,6 +80,12 @@ void sync(int serverSocket) {
     }
     else
         printf("connected to the server..\n");
+    write(sockfd, &socketTypes[SYNCSOCKET], sizeof(socketTypes[SYNCSOCKET]));
+    printf("username: %s", username);
+    char endCommand[6];
+    recv(sockfd, &endCommand, sizeof(endCommand), 0);
+
+    write(sockfd, &username, sizeof(username));
 }
 
 
@@ -86,7 +93,6 @@ void clientThread(int connfd)
 {
     char userInput[MAX];
     char buff[MAX];
-    char username[USERNAMESIZE];
     bzero(username, sizeof(username));
     bzero(buff, sizeof(buff));
     int n;
@@ -97,7 +103,7 @@ void clientThread(int connfd)
     printf("Enter username: ");
     fgets(username, USERNAMESIZE, stdin);
     username[strcspn(username, "\n")] = 0;
-    write(connfd, username, sizeof(username));
+    write(connfd, &username, sizeof(username));
     recv(connfd, buff, sizeof(buff), 0);
     printf("SERVER CONNECTION STATUS: %s\n", buff);
 
@@ -130,7 +136,7 @@ void clientThread(int connfd)
 
 int main()
 {
-    int sockfd, connfd;
+    int sockfd;
     struct sockaddr_in servaddr;
 
     // socket create and verification

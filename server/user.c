@@ -121,7 +121,7 @@ user_list* createUser(char* username) {
     newUser->next = NULL;
     newUser->user.clientThread[0] = NULL;
     newUser->user.clientThread[1] = NULL;
-    newUser->user.dirSocketList = NULL;
+    newUser->user.syncSocketList = NULL;
     newUser->user.watchDirThread.isThreadComplete = true;
 
     newUser->user.username = (char*) calloc(strlen(username) + 1, sizeof(char));
@@ -155,7 +155,7 @@ int startUserSession( char* username, int socket) {
 void addSyncDir(int dirSocket, user_t* user) {
     sem_wait(&user->userAccessSem);
     socket_conn_list* newElement = initSocketConnList(dirSocket);
-    DL_APPEND(user->dirSocketList, newElement);
+    DL_APPEND(user->syncSocketList, newElement);
     if(user->watchDirThread.isThreadComplete) {
         createWatchDir(user);
     }
@@ -166,10 +166,10 @@ void createWatchDir(user_t* user) {
     char* dirPath = getuserDirPath(user->username);
     watch_dir_argument* argument = calloc(1, sizeof(watch_dir_argument));
     argument->dirPath = dirPath;
-    argument->socketConnList = user->dirSocketList;
+    argument->socketConnList = user->syncSocketList;
     user->watchDirThread.isThreadComplete = false;
 
-    pthread_create(&user->watchDirThread.thread, NULL, watchDir, dirPath);
+    pthread_create(&user->watchDirThread.thread, NULL, watchDir, argument);
 }
 
 user_list* findUser(char* username){

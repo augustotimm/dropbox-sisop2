@@ -58,7 +58,7 @@ typedef struct user_t {
     d_thread* clientThread[USERSESSIONNUMBER];
     d_thread watchDirThread;
     sem_t userAccessSem;
-    socket_conn_list* dirSocketList;
+    socket_conn_list* syncSocketList;
     char* username;
 } user_t;
 
