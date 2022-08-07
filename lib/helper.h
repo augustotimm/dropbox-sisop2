@@ -87,4 +87,6 @@ int receiveFile(int socket, char* fileName);
 file_info_list* getListOfFiles(char* pathname);
 void printFileInfos(file_info fileInfo);
 void printFileInfoList(file_info_list* fileInfoList);
+
+void deleteFile(char* filename, char* path);
 #endif //DROPBOX_SISOP2_HELPER_H

@@ -189,3 +189,12 @@ void printFileInfoList(file_info_list* fileInfoList) {
         printFileInfos(infosList->fileInfo);
     }
 }
+
+void deleteFile(char* filename, char* path) {
+    char* filePath = strcatSafe(path,filename);
+    if( remove(filePath) == 0 )
+        printf("%s file deleted successfully.\n",  filename);
+    else {
+        printf("Unable to delete the file\n");
+    }
+}
