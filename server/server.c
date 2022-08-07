@@ -14,18 +14,15 @@
 #include "user.h"
 #include "server_functions.h"
 
-#define PORT 8889
 #define MAX 2048
-#define SA struct sockaddr
 
 #include <unistd.h>
 
-char commands[5][13] = {"upload", "download", "list", "get_sync_dir", "exit"};
-
-//TODO change to relative path
 
 
 
+void connectUser(int socket);
+int connectSyncDir(int socket, char* username);
 void* clientConnThread(void* voidArg)
 {
     client_thread_argument* argument = voidArg;
@@ -55,7 +52,7 @@ void* clientConnThread(void* voidArg)
         } else if(strcmp(currentCommand, commands[LIST]) ==0 ) {
             list();
         } else if(strcmp(currentCommand, commands[SYNC]) ==0 ) {
-            sync();
+            sync_dir(socket);
         }
 
 
@@ -74,9 +71,37 @@ void* clientConnThread(void* voidArg)
 void writeMessageToSocket(int socket, char* message) {
     write(socket, message, strlen(message)+1);
 }
-
-void* connectUser(void* arg) {
+void* newConnection(void* arg) {
     int socket = * (int*) arg;
+    free(arg);
+    char newSocketType[USERNAMESIZE];
+    bzero(newSocketType, sizeof(newSocketType));
+    recv(socket, newSocketType, sizeof(newSocketType), 0);
+    if(strcmp(newSocketType, socketTypes[CLIENTSOCKET]) == 0) {
+        connectUser(socket);
+    }
+    if(strcmp(newSocketType, socketTypes[SYNCSOCKET]) == 0) {
+        bzero(newSocketType, USERNAMESIZE);
+        // get username to find in connected usersList
+        recv(socket, newSocketType, USERNAMESIZE, 0);
+        connectSyncDir(socket, newSocketType);
+
+
+    }
+
+}
+
+int connectSyncDir(int socket, char* username) {
+    user_list* user = findUser(username);
+    if(user == NULL) {
+        // sync dir connection of user logged out
+        close(socket);
+        return -1;
+    }
+
+}
+
+void connectUser(int socket) {
     char username[USERNAMESIZE];
     bzero(username, USERNAMESIZE);
     recv(socket, username, USERNAMESIZE, 0);
@@ -84,7 +109,6 @@ void* connectUser(void* arg) {
         writeMessageToSocket(socket, "FALSE");
         close(socket);
     }
-    free(arg);
 }
 
 void* userDisconnectedEvent(void *arg) {
@@ -93,9 +117,8 @@ void* userDisconnectedEvent(void *arg) {
 
         pthread_cond_wait(&closedUserConnection, &connectedUsersMutex);
         DL_FOREACH_SAFE(connectedUserListHead, currentUser, userTmp) {
-            if(!hasSessionOpen(currentUser->user) && currentUser->canDie) {
+            if(!hasSessionOpen(currentUser->user)) {
                 sem_wait(&currentUser->user.userAccessSem);
-                currentUser->canDie = false;
                 DL_DELETE(connectedUserListHead, currentUser);
 
                 freeUserList(currentUser);
@@ -131,10 +154,10 @@ int main()
     // assign IP, PORT
     servaddr.sin_family = AF_INET;
     servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
-    servaddr.sin_port = htons(PORT);
+    servaddr.sin_port = htons(SERVERPORT);
 
     // Binding newly created socket to given IP and verification
-    if ((bind(sockfd, (SA*)&servaddr, sizeof(servaddr))) != 0) {
+    if ((bind(sockfd, (struct sockaddr *)&servaddr, sizeof(servaddr))) != 0) {
         printf("socket bind failed...\n");
         exit(0);
     }
@@ -159,7 +182,7 @@ int main()
         *newSocket = connfd;
 
 
-        pthread_create(&newUserThread, NULL, connectUser, newSocket);
+        pthread_create(&newUserThread, NULL, newConnection, newSocket);
 
         pthread_detach(newUserThread);
         //Reply to the client

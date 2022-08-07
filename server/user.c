@@ -13,7 +13,6 @@ void freeUserList(user_list* userList);
 
 int  userCompare(user_list* a, user_list* b) {
     return strcmp(a->user.username,b->user.username);
-
 }
 
 bool isSessionAvailable(user_t user, int sessionNumber) {
@@ -47,6 +46,7 @@ bool hasAvailableSession(user_t user) {
 }
 
 void freeUser(user_t* user) {
+    pthread_cancel(user->watchDirThread);
     free(user->username);
     user->username = NULL;
     for(int i = 0; i < USERSESSIONNUMBER; i++ ) {
@@ -57,6 +57,7 @@ void freeUser(user_t* user) {
 
 void freeUserList(user_list* userList){
     freeUser(&userList->user);
+
     free(userList);
     userList = NULL;
 }
@@ -118,7 +119,6 @@ user_list* createUser(char* username) {
     user_list* newUser = calloc(1, sizeof(user_list));
     newUser->prev = NULL;
     newUser->next = NULL;
-    newUser->canDie = true;
     newUser->user.clientThread[0] = NULL;
     newUser->user.clientThread[1] = NULL;
     newUser->user.username = (char*) calloc(strlen(username) + 1, sizeof(char));
@@ -135,24 +135,15 @@ int startUserSession( char* username, int socket) {
     char* dirPath = getuserDirPath(username);
 
     etmp.user.username = username;
-
+    user_list* newUser = createUser(username);
     pthread_mutex_lock( &connectedUsersMutex);
     DL_SEARCH(connectedUserListHead, user, &etmp, userCompare);
-    if(user){
-        user->canDie = true;
-        pthread_mutex_unlock( &connectedUsersMutex);
-
-    }
-    else{
-
-        user_list* newUser = createUser(username);
+    if(!user){
         DL_APPEND(connectedUserListHead, newUser);
-        pthread_mutex_unlock(&connectedUsersMutex);
-
-        startWatchDir(&(newUser->user), dirPath);
         user = newUser;
-
     }
+
+    pthread_mutex_unlock(&connectedUsersMutex);
     int result = startNewSession(user, socket, dirPath);
     free(dirPath);
     return result;
@@ -165,4 +156,15 @@ void startWatchDir(user_t* user, char* dirPath) {
     sem_wait( &(user->userAccessSem));
     pthread_create(&user->watchDirThread, NULL, watchDir, dirPathArgument);
     sem_post(&(user->userAccessSem));
+}
+
+user_list* findUser(char* username){
+    user_list* user = NULL;
+    user_list etmp;
+    etmp.user.username = username;
+
+    pthread_mutex_lock( &connectedUsersMutex);
+    DL_SEARCH(connectedUserListHead, user, &etmp, userCompare);
+    pthread_mutex_unlock( &connectedUsersMutex);
+    return user;
 }
