@@ -98,6 +98,7 @@ int connectSyncDir(int socket, char* username) {
         close(socket);
         return -1;
     }
+    addSyncDir(socket, user);
 
 }
 

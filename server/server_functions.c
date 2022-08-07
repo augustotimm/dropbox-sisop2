@@ -7,6 +7,8 @@
 #include <string.h>
 #include <stdio.h>
 #include <sys/socket.h>
+#include <netdb.h>
+
 
 
 void upload(int socket, char* path) {
@@ -39,6 +41,6 @@ void list() {
     printf("list function");
 }
 
-void sync() {
-    printf("sync function");
+int sync_dir(int clientSocket) {
+
 }

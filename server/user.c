@@ -8,7 +8,7 @@
 #include "../file-control/file-handler.h"
 #define OUTOFSESSION -90
 
-void startWatchDir(user_t* user, char* dirPath);
+void createWatchDir(user_t* user);
 void freeUserList(user_list* userList);
 
 int  userCompare(user_list* a, user_list* b) {
@@ -46,7 +46,7 @@ bool hasAvailableSession(user_t user) {
 }
 
 void freeUser(user_t* user) {
-    pthread_cancel(user->watchDirThread);
+    pthread_cancel(user->watchDirThread.thread);
     free(user->username);
     user->username = NULL;
     for(int i = 0; i < USERSESSIONNUMBER; i++ ) {
@@ -121,6 +121,9 @@ user_list* createUser(char* username) {
     newUser->next = NULL;
     newUser->user.clientThread[0] = NULL;
     newUser->user.clientThread[1] = NULL;
+    newUser->user.dirSocketList = NULL;
+    newUser->user.watchDirThread.isThreadComplete = true;
+
     newUser->user.username = (char*) calloc(strlen(username) + 1, sizeof(char));
 
     strcpy(newUser->user.username, username);
@@ -149,13 +152,24 @@ int startUserSession( char* username, int socket) {
     return result;
 }
 
-void startWatchDir(user_t* user, char* dirPath) {
-    char* dirPathArgument = calloc(strlen(dirPath) +1, sizeof(char ));
-    strcpy(dirPathArgument, dirPath);
+void addSyncDir(int dirSocket, user_t* user) {
+    sem_wait(&user->userAccessSem);
+    socket_conn_list* newElement = initSocketConnList(dirSocket);
+    DL_APPEND(user->dirSocketList, newElement);
+    if(user->watchDirThread.isThreadComplete) {
+        createWatchDir(user);
+    }
+    sem_post(&user->userAccessSem);
+}
 
-    sem_wait( &(user->userAccessSem));
-    pthread_create(&user->watchDirThread, NULL, watchDir, dirPathArgument);
-    sem_post(&(user->userAccessSem));
+void createWatchDir(user_t* user) {
+    char* dirPath = getuserDirPath(user->username);
+    watch_dir_argument* argument = calloc(1, sizeof(watch_dir_argument));
+    argument->dirPath = dirPath;
+    argument->socketConnList = user->dirSocketList;
+    user->watchDirThread.isThreadComplete = false;
+
+    pthread_create(&user->watchDirThread.thread, NULL, watchDir, dirPath);
 }
 
 user_list* findUser(char* username){

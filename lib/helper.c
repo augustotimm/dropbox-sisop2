@@ -22,6 +22,15 @@ thread_list* initThreadListElement() {
     return newElement;
 }
 
+socket_conn_list* initSocketConnList(int socket) {
+    socket_conn_list* newElement = calloc(1, sizeof(socket_conn_list));
+    newElement->socket = socket;
+    newElement->next = NULL;
+    newElement->prev = NULL;
+
+    return newElement;
+}
+
 int sendFile(int socket, char* filepath) {
     int fileSize, byteCount;
     FILE* file;

@@ -51,8 +51,34 @@ void list_local(char * pathname) {
     printFileInfoList(infoList);
 }
 
-void sync() {
+void sync(int serverSocket) {
     printf("sync function");
+    write(serverSocket, &commands[SYNC], sizeof(commands[SYNC]));
+    int sockfd, connfd;
+    struct sockaddr_in servaddr;
+
+    // socket create and verification
+    sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    if (sockfd == -1) {
+        printf("socket creation failed...\n");
+        exit(0);
+    }
+    else
+        printf("Socket successfully created..\n");
+    bzero(&servaddr, sizeof(servaddr));
+
+    // assign IP, PORT
+    servaddr.sin_family = AF_INET;
+    servaddr.sin_addr.s_addr = inet_addr("127.0.0.1");
+    servaddr.sin_port = htons(SERVERPORT);
+
+    // connect the client socket to server socket
+    if (connect(sockfd, (SA*)&servaddr, sizeof(servaddr)) != 0) {
+        printf("connection with the server failed...\n");
+        exit(0);
+    }
+    else
+        printf("connected to the server..\n");
 }
 
 
@@ -64,6 +90,9 @@ void clientThread(int connfd)
     bzero(username, sizeof(username));
     bzero(buff, sizeof(buff));
     int n;
+
+    write(connfd, &socketTypes[CLIENTSOCKET], sizeof(socketTypes[CLIENTSOCKET]));
+
 
     printf("Enter username: ");
     fgets(username, USERNAMESIZE, stdin);
@@ -88,7 +117,7 @@ void clientThread(int connfd)
         } else if(strcmp(userInput, commands[LIST]) ==0 ) {
             list_local(path);
         } else if(strcmp(userInput, commands[SYNC]) ==0 ) {
-            sync();
+            sync(connfd);
         }
 
         if ((strncmp(userInput, "exit", 4)) == 0) {
@@ -102,7 +131,7 @@ void clientThread(int connfd)
 int main()
 {
     int sockfd, connfd;
-    struct sockaddr_in servaddr, cli;
+    struct sockaddr_in servaddr;
 
     // socket create and verification
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -117,7 +146,7 @@ int main()
     // assign IP, PORT
     servaddr.sin_family = AF_INET;
     servaddr.sin_addr.s_addr = inet_addr("127.0.0.1");
-    servaddr.sin_port = htons(PORT);
+    servaddr.sin_port = htons(SERVERPORT);
 
     // connect the client socket to server socket
     if (connect(sockfd, (SA*)&servaddr, sizeof(servaddr)) != 0) {

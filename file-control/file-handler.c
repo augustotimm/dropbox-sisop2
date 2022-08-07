@@ -11,6 +11,7 @@ struct stat info;
 struct tm* tm_info;
 time_t  epoch_time;
 
+//TODO change to relative path
 char rootPath[KBYTE] = "/home/augusto/repositorios/ufrgs/dropbox-sisop2/watch_folder/";
 
 time_t getFileLastModifiedEpoch(char* pathname) {

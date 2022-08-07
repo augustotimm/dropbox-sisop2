@@ -8,5 +8,6 @@
 void upload(int socket, char* path);
 void download(int socket, char* path);
 void list();
-void sync();
+int sync_dir(int socket);
+
 #endif //DROPBOX_SISOP2_SERVER_FUNCTIONS_H

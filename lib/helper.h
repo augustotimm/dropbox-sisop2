@@ -20,11 +20,21 @@
 #define DOWNLOAD 1
 #define UPLOAD 0
 #define USERSESSIONNUMBER 2
+#define SERVERPORT 8888
+
 
 #define USERNAMESIZE 64
 
 #define OUTFOSYNCERROR -99
+
+#define CLIENTSOCKET 0
+#define SYNCSOCKET 1
+
 static const char endCommand[] = "\nend\n";
+static const char commands[5][10] = {"upload", "download", "list", "sync", "exit"};
+static const char socketTypes[2][8] = {"client", "syncdir"};
+
+
 
 
 
@@ -39,16 +49,21 @@ typedef struct d_thread {
     bool isThreadComplete;
 } d_thread;
 
+typedef struct socket_conn_list {
+    int socket;
+    struct socket_conn_list *prev, *next;
+} socket_conn_list;
+
 typedef struct user_t {
     d_thread* clientThread[USERSESSIONNUMBER];
-    pthread_t watchDirThread;
+    d_thread watchDirThread;
     sem_t userAccessSem;
+    socket_conn_list* dirSocketList;
     char* username;
 } user_t;
 
 typedef struct user_list {
     user_t user;
-    bool canDie;
     struct user_list *next, *prev;
 } user_list;
 
@@ -77,10 +92,13 @@ typedef struct file_info_list {
 
 thread_list* initThreadListElement();
 char* strcatSafe(char* head, char* tail);
+socket_conn_list* initSocketConnList(int socket);
 
 //server comunication functions
 int sendFile(int socket, char* filepath);
 int receiveFile(int socket, char* fileName);
+
+
 
 //file information functions
 file_info_list* getListOfFiles(char* pathname);
