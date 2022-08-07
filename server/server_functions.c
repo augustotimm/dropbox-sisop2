@@ -34,7 +34,6 @@ void upload(int socket, char* filePath, char* fileName) {
 
 void download(int socket, char* path) {
     write(socket, &endCommand, sizeof(endCommand));
-    printf("clientDownload function");
     char fileName[FILENAMESIZE];
     bzero(fileName, sizeof(fileName));
     recv(socket, fileName, sizeof(fileName), 0);

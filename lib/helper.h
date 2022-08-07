@@ -15,14 +15,15 @@
 #define FILENAMESIZE 64
 #define KBYTE 1024
 #define BUFFERSIZE 30
+#define DELETE 5
 #define EXIT 4
 #define SYNC 3
 #define LIST 2
 #define DOWNLOAD 1
 #define UPLOAD 0
 #define USERSESSIONNUMBER 2
-#define SERVERPORT 8888
-#define SYNCPORT 9999
+#define SERVERPORT 8889
+#define SYNCPORT 9998
 
 
 #define USERNAMESIZE 64
@@ -36,7 +37,7 @@
 static const char endCommand[] = "\nend\n";
 static const char continueCommand[] = "\ncontinue\n";
 
-static const char commands[5][13] = {"upload", "download", "list local", "sync", "exit"};
+static const char commands[6][13] = {"upload", "download", "list local", "sync", "exit", "delete"};
 static const char socketTypes[2][8] = {"client", "syncdir"};
 
 

@@ -126,8 +126,6 @@ int listenForSocketMessage(int socket, char* clientDirPath, sem_t* dirSem) {
 
         // read the message from client and copy it in buffer
         recv(socket, currentCommand, sizeof(currentCommand), 0);
-        printf("COMMAND: %s\n", currentCommand);
-
         if(strcmp(currentCommand, commands[UPLOAD]) ==0 ) {
             sem_wait(dirSem);
             download(socket, clientDirPath );
@@ -140,9 +138,15 @@ int listenForSocketMessage(int socket, char* clientDirPath, sem_t* dirSem) {
             sem_post(dirSem);
         } else if(strcmp(currentCommand, commands[LIST]) ==0 ) {
             list();
+        } else if(strcmp(currentCommand, commands[DELETE]) ==0 ) {
+            recv(socket, fileName, sizeof(fileName), 0);
+            sem_wait(dirSem);
+            deleteFile(fileName, clientDirPath);
+            write(socket, &endCommand, sizeof(endCommand));
+            sem_post(dirSem);
         }
 
-        if (strcmp(currentCommand, commands[EXIT]) == 0) {
+        if (strcmp(currentCommand, commands[EXIT]) == 0 || *currentCommand == "\0") {
 
             return 0;
         }

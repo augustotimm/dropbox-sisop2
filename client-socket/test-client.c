@@ -35,15 +35,33 @@ void clientUpload(int socket) {
 }
 
 int clientDownload(int socket) {
-    printf("clientDownload function");
+    write(socket, &commands[DOWNLOAD], sizeof(commands[DOWNLOAD]));
+
+    printf("File name to download:\n");
     char fileName[FILENAMESIZE];
     fgets(fileName, sizeof(fileName), stdin);
     fileName[strcspn(fileName, "\n")] = 0;
-
-
+    write(socket, fileName, strlen(fileName));
     char* filePath = strcatSafe(path, fileName);
-    receiveFile(socket, filePath);
+    download(socket, filePath);
     free(filePath);
+}
+
+int clientDelete(int socket) {
+    write(socket, &commands[DELETE], sizeof(commands[DELETE]));
+
+    printf("File name to delete:\n");
+    char fileName[FILENAMESIZE];
+    fgets(fileName, sizeof(fileName), stdin);
+    fileName[strcspn(fileName, "\n")] = 0;
+    write(socket, fileName, strlen(fileName));
+    char buff[BUFFERSIZE];
+    bzero(buff, sizeof(buff));
+    recv(socket, buff, sizeof(buff), 0);
+    if(strcmp(buff, endCommand) != 0) return OUTOFSYNCERROR;
+
+    return 0;
+
 }
 
 void list_local(char * pathname) {
@@ -126,7 +144,7 @@ void clientThread(int connfd)
     for (;;) {
         bzero(userInput, sizeof(userInput));
         bzero(buff, sizeof(buff));
-        printf("Enter the string: ");
+        printf("Enter the command:");
         n = 0;
         fgets(userInput, sizeof(userInput), stdin);
         userInput[strcspn(userInput, "\n")] = 0;
@@ -140,6 +158,8 @@ void clientThread(int connfd)
             sem_post(&syncDirSem);
         } else if(strcmp(userInput, commands[LIST]) ==0 ) {
             list_local(path);
+        } else if(strcmp(userInput, commands[DELETE]) ==0 ) {
+            clientDelete(connfd);
         }
 
         if ((strncmp(userInput, "exit", 4)) == 0) {

@@ -230,8 +230,6 @@ int main()
 {
     connectedUserListHead = NULL;
 
-    iso8601ToTM("2014-11-12T19:12:14.505Z");
-
     pthread_t userDisconnectedThread;
     pthread_create(&userDisconnectedThread, NULL, userDisconnectedEvent, NULL);
     pthread_detach(userDisconnectedThread);
