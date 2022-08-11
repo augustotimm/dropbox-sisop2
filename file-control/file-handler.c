@@ -21,6 +21,7 @@ time_t  epoch_time;
 extern char rootPath[KBYTE];
 
 int getSocketFromReceivedFile(received_file_list* head, char* fileName);
+int findSyncDirSocket(socket_conn_list* head, int clientSocket);
 
 int fd,wd;
 
@@ -85,37 +86,39 @@ void* watchDir(void* args){
             struct inotify_event *event = (struct inotify_event *) &buffer[i];
 
             if(event->len){
+                sem_wait(argument->userSem);
                 socket_conn_list* elt = NULL;
                 int receiverSocket = getSocketFromReceivedFile(argument->filesReceived, event->name);
+                int forbiddenSocket = findSyncDirSocket(argument->socketConnList, receiverSocket);
                 if ( event->mask & IN_CLOSE_WRITE || event->mask & IN_CREATE || event->mask & IN_MOVED_TO) {
                     printf( "The file %s was created.\n", event->name );
 
-                    sem_wait(argument->userSem);
                     DL_FOREACH(argument->socketConnList, elt) {
-                        if(elt->socket != receiverSocket) {
+                        if(elt->socket != forbiddenSocket) {
                             write(elt->socket, &commands[UPLOAD], sizeof(commands[UPLOAD]));
                             char* filePath = strcatSafe(pathToDir, event->name);
                             upload(elt->socket, filePath, event->name);
                             free(filePath);
                         }
                     }
-                    sem_post(argument->userSem);
                     printf( "The file %s was created.\n", event->name );
                 } else if (event->mask & IN_DELETE || event->mask & IN_MOVED_FROM) {
 
-                    sem_wait(argument->userSem);
+
                     DL_FOREACH(argument->socketConnList, elt) {
-                        write(elt->socket, &commands[DELETE], sizeof(commands[DELETE]));
-                        write(elt->socket, event->name, strlen(event->name));
-                        char buff[BUFFERSIZE];
-                        bzero(buff, sizeof(buff));
-                        recv(elt->socket, buff, sizeof(buff), 0);
+                        if(elt->socket != forbiddenSocket) {
+                            write(elt->socket, &commands[DELETE], sizeof(commands[DELETE]));
+                            write(elt->socket, event->name, strlen(event->name));
+                            char buff[BUFFERSIZE];
+                            bzero(buff, sizeof(buff));
+                            recv(elt->socket, buff, sizeof(buff), 0);
+                        }
                     }
-                    sem_post(argument->userSem);
                     printf( "The file %s was removed.\n", event->name );
                 }
 
-                }
+                sem_post(argument->userSem);
+            }
             i += EVENT_SIZE + event->len;
         }
     }
@@ -136,5 +139,22 @@ int getSocketFromReceivedFile(received_file_list* head, char* fileName) {
     }
 
     return -1;
+}
+
+int compareClientSocket(socket_conn_list* a, socket_conn_list* b) {
+    if(a->clientSocket == b->clientSocket)
+        return 0;
+    else
+        return false;
+}
+
+int findSyncDirSocket(socket_conn_list* head, int clientSocket) {
+    socket_conn_list *conn = NULL;
+    socket_conn_list etmp;
+    etmp.clientSocket = clientSocket;
+    DL_SEARCH(head, conn, &etmp, compareClientSocket);
+    if(conn == NULL)
+        return -1;
+    return conn->socket;
 }
 
