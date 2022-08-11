@@ -1,7 +1,6 @@
 //
 // Created by augusto on 06/08/2022.
 //
-#include "../lib/helper.h"
 #include "server.h"
 #include "server_functions.h"
 #include <string.h>
@@ -32,7 +31,7 @@ void upload(int socket, char* filePath, char* fileName) {
     sendFile(socket, filePath);
 }
 
-void download(int socket, char* path) {
+void download(int socket, char* path, received_file_list* list) {
     write(socket, &endCommand, sizeof(endCommand));
     char fileName[FILENAMESIZE];
     bzero(fileName, sizeof(fileName));
@@ -40,7 +39,10 @@ void download(int socket, char* path) {
 
 
     char* filePath = strcatSafe(path, fileName);
-    receiveFile(socket, filePath);
+    if(receiveFile(socket, filePath) == 0) {
+        received_file_list* newFile = createReceivedFile(fileName, socket);
+        DL_APPEND(list, newFile);
+    }
     free(filePath);
 
 }

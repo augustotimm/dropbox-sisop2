@@ -12,12 +12,13 @@
 #include<signal.h>
 #include<fcntl.h>
 #include "../server/server_functions.h"
-#include "../server/server.h"
+#include "../server/server_globals.h"
 struct stat info;
 time_t  epoch_time;
 // /home/augusto/repositorios/ufrgs/dropbox-sisop2/watch_folder/
 // /home/augusto/repositorios/ufrgs/dropbox-sisop2/client-socket/sync/
 //TODO change to relative path
+extern char rootPath[KBYTE];
 
 time_t getFileLastModifiedEpoch(char* pathname) {
     char buffer[16];

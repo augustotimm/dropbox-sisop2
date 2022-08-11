@@ -10,7 +10,6 @@
 #include <stdbool.h>
 #include <stdint-gcc.h>
 #include <semaphore.h>
-#include "../server/server_functions.h"
 
 #define FILENAMESIZE 64
 #define KBYTE 1024
@@ -40,6 +39,11 @@ static const char continueCommand[] = "\ncontinue\n";
 static const char commands[6][13] = {"upload", "download", "list local", "sync", "exit", "delete"};
 static const char socketTypes[2][8] = {"client", "syncdir"};
 
+typedef struct received_file_list {
+    int socketReceiver;
+    char* fileName;
+    struct received_file_list *next, *prev;
+} received_file_list;
 
 typedef struct d_thread {
     pthread_t thread;
@@ -57,6 +61,8 @@ typedef struct user_t {
     sem_t userAccessSem;
     socket_conn_list* syncSocketList;
     char* username;
+    // first element can never be null
+    received_file_list *filesReceived;
 } user_t;
 
 typedef struct user_list {
@@ -74,6 +80,7 @@ typedef struct client_thread_argument {
     int socket;
     char* clientDirPath;
     sem_t* userAccessSem;
+    received_file_list *filesReceived;
 } client_thread_argument;
 
 typedef struct file_info {
@@ -92,7 +99,7 @@ char* strcatSafe(char* head, char* tail);
 socket_conn_list* initSocketConnList(int socket);
 
 //server comunication functions
-int listenForSocketMessage(int socket, char* clientDirPath, sem_t* dirSem);
+int listenForSocketMessage(int socket, char* clientDirPath, sem_t* dirSem, received_file_list* list);
 
 
 //file information functions
@@ -100,6 +107,7 @@ file_info_list* getListOfFiles(char* pathname);
 void printFileInfos(file_info fileInfo);
 void printFileInfoList(file_info_list* fileInfoList);
 struct tm iso8601ToTM(char* timestamp);
+received_file_list* createReceivedFile(char* name, int socket);
 
 void deleteFile(char* filename, char* path);
 void freeFileInfo(file_info info);

@@ -8,6 +8,8 @@
 #include <sys/stat.h>
 #include <dirent.h>
 #include <unistd.h>
+#include "../server/server_functions.h"
+
 
 int getFileSize(FILE *ptrfile);
 time_t  modification;
@@ -115,7 +117,7 @@ void deleteFile(char* filename, char* path) {
     }
 }
 
-int listenForSocketMessage(int socket, char* clientDirPath, sem_t* dirSem) {
+int listenForSocketMessage(int socket, char* clientDirPath, sem_t* dirSem, received_file_list* filesList) {
     char currentCommand[13];
     char fileName[FILENAMESIZE];
 
@@ -128,7 +130,7 @@ int listenForSocketMessage(int socket, char* clientDirPath, sem_t* dirSem) {
         recv(socket, currentCommand, sizeof(currentCommand), 0);
         if(strcmp(currentCommand, commands[UPLOAD]) ==0 ) {
             sem_wait(dirSem);
-            download(socket, clientDirPath );
+            download(socket, clientDirPath, filesList);
             sem_post(dirSem);
         } else if(strcmp(currentCommand, commands[DOWNLOAD]) ==0 ) {
             recv(socket, fileName, sizeof(fileName), 0);
@@ -169,14 +171,15 @@ struct tm  iso8601ToTM(char* timestamp) {
     return time;
 }
 
-bool checkUpdateFile(char* path, char*filename, char* timestamp) {
-    file_info info = getFileInfo(path, filename);
-    struct tm remoteTime = iso8601ToTM(timestamp);
-    time_t t2 = mktime(info.lastModificationDate);
-    time_t t1 = mktime(&remoteTime);
-    double diffSecs = difftime(t1, t2);
+received_file_list* createReceivedFile(char* name, int socket){
+    received_file_list* newFile = (received_file_list*) calloc(1, sizeof(received_file_list));
+    newFile->fileName = (char*) calloc(strlen(name), sizeof(char));
+    strcpy(newFile->fileName, name);
+    newFile->socketReceiver = socket;
+    newFile->prev = NULL;
+    newFile->next = NULL;
 
-    return diffSecs > 0;
+    return newFile;
 }
 
 void freeFileInfo(file_info info) {

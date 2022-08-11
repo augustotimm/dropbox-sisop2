@@ -6,6 +6,7 @@
 #include "server.h"
 #include <string.h>
 #include "../file-control/file-handler.h"
+#include "server_globals.h"
 #define OUTOFSESSION -90
 
 void createWatchDir(user_t* user);
@@ -127,6 +128,7 @@ user_list* createUser(char* username) {
     newUser->user.clientThread[1] = NULL;
     newUser->user.syncSocketList = NULL;
     newUser->user.watchDirThread.isThreadComplete = true;
+    newUser->user.filesReceived = createReceivedFile("\n", -1);
 
     newUser->user.username = (char*) calloc(strlen(username) + 1, sizeof(char));
 

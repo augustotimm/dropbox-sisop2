@@ -17,9 +17,14 @@
 #define MAX 2048
 
 #include <unistd.h>
+#include "server_globals.h"
 
 
+user_list* connectedUserListHead = NULL;
+char rootPath[KBYTE] = "/home/timm/repos/ufrgs/dropbox-sisop2/watch/";
 
+pthread_cond_t closedUserConnection;
+pthread_mutex_t connectedUsersMutex;
 
 void connectUser(int socket);
 int connectSyncDir(int socket, char* username);
@@ -44,7 +49,7 @@ void* clientListen(void* voidArg)
         return NULL;
     }
 
-    listenForSocketMessage(socket, path, argument->userAccessSem);
+    listenForSocketMessage(socket, path, argument->userAccessSem, argument->filesReceived);
 
     printf("Server Exiting socket: %d\n", socket);
     close(socket);
@@ -229,21 +234,22 @@ void* syncDirConn(void* args) {
 int main()
 {
     printf("Insira o caminho para a pasta raiz onde ficarão as pastas de usuários\n");
-    fgets(rootPath, sizeof(rootPath), stdin);
-    rootPath[strcspn(rootPath, "\n")] = 0;
+    //fgets(rootPath, sizeof(rootPath), stdin);
+    //rootPath[strcspn(rootPath, "\n")] = 0;
+
     connectedUserListHead = NULL;
 
     pthread_t userDisconnectedThread;
     pthread_create(&userDisconnectedThread, NULL, userDisconnectedEvent, NULL);
     pthread_detach(userDisconnectedThread);
-    pthread_t clientConnThread;
-    pthread_create(&clientConnThread, NULL, clientConn, NULL);
 
     pthread_t syncDirConnThread;
     pthread_create(&syncDirConnThread, NULL, syncDirConn, NULL);
+    pthread_detach(syncDirConnThread);
+
     void** args;
-    pthread_join(clientConnThread, args);
     pthread_join(syncDirConnThread, args);
+    clientConn(NULL);
 
 }
 

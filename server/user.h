@@ -4,6 +4,7 @@
 
 #ifndef DROPBOX_SISOP2_USER_H
 #define DROPBOX_SISOP2_USER_H
+#include "../lib/helper.h"
 
 int startUserSession( char* username, int socket) ;
 bool hasAvailableSession(user_t user);

@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <libgen.h>
 #include "../lib/helper.h"
 #include "../file-control/file-handler.h"
 
@@ -10,7 +11,8 @@
 char username[USERNAMESIZE];
 
 void startWatchDir(int socket);
-char path[KBYTE];
+char path[KBYTE] = "/home/timm/repos/ufrgs/dropbox-sisop2/LICENSE";
+char rootPath[KBYTE] = "/home/timm/repos/ufrgs/dropbox-sisop2/sync/";
 
 sem_t syncDirSem;
 
@@ -21,14 +23,14 @@ void clientUpload(int socket) {
 
     write(socket, &commands[UPLOAD], sizeof(commands[UPLOAD]));
 
-    char fileName[FILENAMESIZE];
-    bzero(fileName, sizeof(fileName));
+    char filePath[KBYTE];
+    char* fileName;
+    bzero(filePath, sizeof(filePath));
 
     printf("Insert name of file:\n");
-    fgets(fileName, sizeof(fileName), stdin);
-    fileName[strcspn(fileName, "\n")] = 0;
-    char* filePath = strcatSafe(path, fileName);
-
+    fgets(filePath, sizeof(filePath), stdin);
+    filePath[strcspn(filePath, "\n")] = 0;
+    fileName = basename(filePath);
     upload(socket, filePath, fileName);
 
     free(filePath);
@@ -72,7 +74,7 @@ void list_local(char * pathname) {
 void* listenSyncDir(void* args) {
     int socket = *(int*)args;
     free(args);
-    listenForSocketMessage(socket, path, &syncDirSem);
+    listenForSocketMessage(socket, path, &syncDirSem, NULL);
     close(socket);
 }
 
@@ -175,12 +177,11 @@ int main()
     int sockfd;
     struct sockaddr_in servaddr;
 
-
     sem_init(&syncDirSem, 0, 1);
 
-    printf("Insira o caminho para a pasta sync_dir\n");
-    fgets(path, sizeof(path), stdin);
-    path[strcspn(path, "\n")] = 0;
+    //printf("Insira o caminho para a pasta sync_dir\n");
+    //fgets(path, sizeof(path), stdin);
+    //path[strcspn(path, "\n")] = 0;
 
     // socket create and verification
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
