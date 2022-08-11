@@ -14,11 +14,16 @@
 int getFileSize(FILE *ptrfile);
 time_t  modification;
 
-socket_conn_list* initSocketConnList(int socket) {
+socket_conn_list* initSocketConnList(int socket, struct in_addr ipaddr, bool isClient) {
     socket_conn_list* newElement = calloc(1, sizeof(socket_conn_list));
-    newElement->socket = socket;
+    if(isClient)
+        newElement->clientSocket = socket;
+    else
+        newElement->socket = socket;
+
     newElement->next = NULL;
     newElement->prev = NULL;
+    newElement->ipAddr = ipaddr;
 
     return newElement;
 }
@@ -180,6 +185,10 @@ received_file_list* createReceivedFile(char* name, int socket){
     newFile->next = NULL;
 
     return newFile;
+}
+
+void freeReceivedFile(received_file_list* file) {
+    free(file->fileName);
 }
 
 void freeFileInfo(file_info info) {

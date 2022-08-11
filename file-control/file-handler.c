@@ -20,20 +20,9 @@ time_t  epoch_time;
 //TODO change to relative path
 extern char rootPath[KBYTE];
 
-time_t getFileLastModifiedEpoch(char* pathname) {
-    char buffer[16];
-
-    stat(pathname, &info);
-    epoch_time = time(&info.st_mtime);
-
-    return epoch_time;
-}
+int getSocketFromReceivedFile(received_file_list* head, char* fileName);
 
 int fd,wd;
-
-time_t getFileLastModifiedEpoch(char* pathname);
-
-char* getFilePath(char* path, char* fileName);
 
 void sig_handler(int sig){
 
@@ -97,16 +86,18 @@ void* watchDir(void* args){
 
             if(event->len){
                 socket_conn_list* elt = NULL;
-                // TODO Create event threads
+                int receiverSocket = getSocketFromReceivedFile(argument->filesReceived, event->name);
                 if ( event->mask & IN_CLOSE_WRITE || event->mask & IN_CREATE || event->mask & IN_MOVED_TO) {
                     printf( "The file %s was created.\n", event->name );
 
                     sem_wait(argument->userSem);
                     DL_FOREACH(argument->socketConnList, elt) {
-                        write(elt->socket, &commands[UPLOAD], sizeof(commands[UPLOAD]));
-                        char* filePath = strcatSafe(pathToDir, event->name);
-                        upload(elt->socket, filePath, event->name);
-                        free(filePath);
+                        if(elt->socket != receiverSocket) {
+                            write(elt->socket, &commands[UPLOAD], sizeof(commands[UPLOAD]));
+                            char* filePath = strcatSafe(pathToDir, event->name);
+                            upload(elt->socket, filePath, event->name);
+                            free(filePath);
+                        }
                     }
                     sem_post(argument->userSem);
                     printf( "The file %s was created.\n", event->name );
@@ -130,10 +121,20 @@ void* watchDir(void* args){
     }
 }
 
-char* getFilePath(char* path, char* fileName) {
-    char* filePath = calloc(strlen(fileName) + strlen(path), sizeof(char));
-    strcpy(filePath, path);
-    strcat(filePath, fileName);
 
-    return filePath;
+int fileNameCompare(received_file_list* a, received_file_list* b) {
+    return strcmp(a->fileName,b->fileName);
 }
+
+
+int getSocketFromReceivedFile(received_file_list* head, char* fileName) {
+    received_file_list *etmp = createReceivedFile(fileName, -1);
+    received_file_list *file;
+    DL_SEARCH(head, file, etmp, fileNameCompare);
+    if(file != NULL) {
+        return file->socketReceiver;
+    }
+
+    return -1;
+}
+

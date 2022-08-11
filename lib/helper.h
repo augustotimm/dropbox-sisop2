@@ -10,6 +10,8 @@
 #include <stdbool.h>
 #include <stdint-gcc.h>
 #include <semaphore.h>
+#include <netinet/in.h>
+
 
 #define FILENAMESIZE 64
 #define KBYTE 1024
@@ -52,6 +54,8 @@ typedef struct d_thread {
 
 typedef struct socket_conn_list {
     int socket;
+    int clientSocket;
+    struct in_addr ipAddr;
     struct socket_conn_list *prev, *next;
 } socket_conn_list;
 
@@ -96,7 +100,7 @@ typedef struct file_info_list {
 } file_info_list;
 
 char* strcatSafe(char* head, char* tail);
-socket_conn_list* initSocketConnList(int socket);
+socket_conn_list* initSocketConnList(int socket, struct in_addr ipaddr, bool isClient);
 
 //server comunication functions
 int listenForSocketMessage(int socket, char* clientDirPath, sem_t* dirSem, received_file_list* list);
@@ -108,6 +112,7 @@ void printFileInfos(file_info fileInfo);
 void printFileInfoList(file_info_list* fileInfoList);
 struct tm iso8601ToTM(char* timestamp);
 received_file_list* createReceivedFile(char* name, int socket);
+void freeReceivedFile(received_file_list* file);
 
 void deleteFile(char* filename, char* path);
 void freeFileInfo(file_info info);

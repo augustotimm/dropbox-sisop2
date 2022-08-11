@@ -10,7 +10,7 @@
 #define SA struct sockaddr
 char username[USERNAMESIZE];
 
-void startWatchDir(int socket);
+void startWatchDir(int socket, struct in_addr ipAddr);
 char path[KBYTE] = "/home/timm/repos/ufrgs/dropbox-sisop2/LICENSE";
 char rootPath[KBYTE] = "/home/timm/repos/ufrgs/dropbox-sisop2/sync/";
 
@@ -32,8 +32,8 @@ void clientUpload(int socket) {
     filePath[strcspn(filePath, "\n")] = 0;
     fileName = basename(filePath);
     upload(socket, filePath, fileName);
+    free(fileName);
 
-    free(filePath);
 }
 
 int clientDownload(int socket) {
@@ -123,11 +123,11 @@ void startListenSyncDir() {
    }
 }
 
-void startWatchDir(int socket) {
+void startWatchDir(int socket, struct in_addr ipAddr) {
     pthread_t syncDirThread;
     watch_dir_argument* argument = calloc(1, sizeof(watch_dir_argument));
     argument->dirPath = path;
-    argument->socketConnList = initSocketConnList(socket);
+    argument->socketConnList = initSocketConnList(socket, ipAddr, false);
     argument->userSem = &syncDirSem;
 
     pthread_create(&syncDirThread, NULL, watchDir, argument);

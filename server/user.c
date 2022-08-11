@@ -11,6 +11,7 @@
 
 void createWatchDir(user_t* user);
 void freeUserList(user_list* userList);
+socket_conn_list* addSocket(socket_conn_list* head, int socket, struct in_addr ipAddr, bool isClient);
 
 int  userCompare(user_list* a, user_list* b) {
     return strcmp(a->user.username,b->user.username);
@@ -90,7 +91,6 @@ client_thread_argument* createClientThreadArgument(bool* isThreadComplete, char*
 
 int startNewSession(user_list* user, int sessionSocket, char* userDirPath) {
     if(hasAvailableSession(user->user)) {
-        sem_wait( &(user->user.userAccessSem));
         if(hasAvailableSession(user->user)) {
             d_thread* newClientThread = (d_thread*) calloc(1, sizeof(d_thread));
             client_thread_argument* argument =
@@ -106,15 +106,12 @@ int startNewSession(user_list* user, int sessionSocket, char* userDirPath) {
             pthread_detach(newClientThread->thread);
 
             if(!addSession(&user->user, newClientThread)) {
-                sem_post(&(user->user.userAccessSem));
                 return OUTOFSESSION;
             }
-            sem_post(&(user->user.userAccessSem));
             return 0;
 
         }
         else {
-            sem_post(&(user->user.userAccessSem));
             return OUTOFSESSION;
         }
     }
@@ -143,7 +140,7 @@ user_list* createUser(char* username) {
     return newUser;
 }
 
-int startUserSession( char* username, int socket) {
+int startUserSession( char* username, int socket, struct in_addr ipAddr) {
     user_list* user = NULL;
     user_list etmp;
     char* userSafe = strcatSafe(username, "\0");
@@ -157,18 +154,57 @@ int startUserSession( char* username, int socket) {
         DL_APPEND(connectedUserListHead, newUser);
         user = newUser;
     }
-
     pthread_mutex_unlock(&connectedUsersMutex);
+    sem_wait(&user->user.userAccessSem);
+
+
     int result = startNewSession(user, socket, dirPath);
+    if (result == 0) {
+        socket_conn_list* newSocket = addSocket(user->user.syncSocketList, socket, ipAddr, true);
+        if (user->user.syncSocketList == NULL) {
+            user->user.syncSocketList = newSocket;
+        }
+    }
     free(dirPath);
     free(userSafe);
+    sem_post(&newUser->user.userAccessSem);
     return result;
 }
 
-void addSyncDir(int dirSocket, user_t* user) {
+int compareSocketConn(socket_conn_list* a, socket_conn_list* b) {
+    if(a->ipAddr.s_addr == b->ipAddr.s_addr)
+        return 0;
+    else
+        return false;
+}
+
+socket_conn_list* addSocket(socket_conn_list* head, int socket, struct in_addr ipAddr, bool isClient) {
+    socket_conn_list *conn = NULL;
+    socket_conn_list etmp;
+    etmp.ipAddr = ipAddr;
+    DL_SEARCH(head, conn, &etmp, compareSocketConn);
+
+    if(conn == NULL) {
+        socket_conn_list *newElement = initSocketConnList(socket, ipAddr, isClient);
+        DL_APPEND(head, newElement);
+    }
+    else {
+        if(isClient) {
+            conn->clientSocket = socket;
+        }
+        else {
+            conn->socket = socket;
+        }
+    }
+    return head;
+
+}
+
+void addSyncDir(int dirSocket, user_t* user, struct in_addr ipAddr) {
     sem_wait(&user->userAccessSem);
-    socket_conn_list* newElement = initSocketConnList(dirSocket);
-    DL_APPEND(user->syncSocketList, newElement);
+
+    addSocket(user->syncSocketList, dirSocket, ipAddr, false);
+
     if(user->watchDirThread.isThreadComplete) {
         createWatchDir(user);
     }

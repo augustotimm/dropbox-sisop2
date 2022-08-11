@@ -26,8 +26,13 @@ char rootPath[KBYTE] = "/home/timm/repos/ufrgs/dropbox-sisop2/watch/";
 pthread_cond_t closedUserConnection;
 pthread_mutex_t connectedUsersMutex;
 
-void connectUser(int socket);
-int connectSyncDir(int socket, char* username);
+struct new_connection_argument {
+    int socket;
+    struct in_addr ipAddr;
+};
+
+void connectUser(int socket, struct in_addr ipAddr);
+int connectSyncDir(int socket, char* username, struct in_addr ipAddr);
 void* clientListen(void* voidArg)
 {
     client_thread_argument* argument = (client_thread_argument*) voidArg;
@@ -62,13 +67,13 @@ void writeMessageToSocket(int socket, char* message) {
     write(socket, message, strlen(message)+1);
 }
 void* newConnection(void* arg) {
-    int socket = * (int*) arg;
-    free(arg);
+    struct new_connection_argument *argument = (struct new_connection_argument*) arg;
+    int socket = argument->socket;
     char newSocketType[USERNAMESIZE];
     bzero(newSocketType, sizeof(newSocketType));
     recv(socket, newSocketType, sizeof(newSocketType), 0);
     if(strcmp(newSocketType, socketTypes[CLIENTSOCKET]) == 0) {
-        connectUser(socket);
+        connectUser(socket, argument->ipAddr);
     }
     if(strcmp(newSocketType, socketTypes[SYNCSOCKET]) == 0) {
         bzero(newSocketType, USERNAMESIZE);
@@ -76,28 +81,28 @@ void* newConnection(void* arg) {
 
         // get username to find in connected usersList
         recv(socket, newSocketType, USERNAMESIZE, 0);
-        connectSyncDir(socket, newSocketType);
+        connectSyncDir(socket, newSocketType, argument->ipAddr);
 
     }
 
 }
 
-int connectSyncDir(int socket, char* username) {
+int connectSyncDir(int socket, char* username, struct in_addr ipAddr) {
     user_list* user = findUser(username);
     if(user == NULL) {
         // sync dir connection of user logged out
         close(socket);
         return -1;
     }
-    addSyncDir(socket, &user->user);
+    addSyncDir(socket, &user->user, ipAddr);
 
 }
 
-void connectUser(int socket) {
+void connectUser(int socket, struct in_addr ipAddr) {
     char username[USERNAMESIZE];
     bzero(username, USERNAMESIZE);
     recv(socket, username, USERNAMESIZE, 0);
-    if(startUserSession(username, socket) != 0) {
+    if(startUserSession(username, socket, ipAddr) != 0) {
         writeMessageToSocket(socket, "FALSE");
         close(socket);
     }
@@ -161,13 +166,16 @@ void* clientConn(void* args) {
     int i = 0;
     while( (connfd = accept(sockfd, (struct sockaddr *)&cli, (socklen_t*)&len))  || i < 5)
     {
+        struct in_addr ipAddr = cli.sin_addr;
+
         puts("Connection accepted");
         pthread_t newUserThread;
-        int* newSocket = calloc(1, sizeof(int ));
-        *newSocket = connfd;
+        struct new_connection_argument *arg = calloc(1, sizeof(struct new_connection_argument));
+        arg->socket = connfd;
+        arg->ipAddr = ipAddr;
 
 
-        pthread_create(&newUserThread, NULL, newConnection, newSocket);
+        pthread_create(&newUserThread, NULL, newConnection, arg);
 
         pthread_detach(newUserThread);
         //Reply to the client
@@ -215,13 +223,17 @@ void* syncDirConn(void* args) {
     int i = 0;
     while( (connfd = accept(sockfd, (struct sockaddr *)&cli, (socklen_t*)&len))  || i < 5)
     {
+        struct in_addr ipAddr = cli.sin_addr;
+
         puts("Connection accepted");
         pthread_t newUserThread;
-        int* newSocket = calloc(1, sizeof(int ));
-        *newSocket = connfd;
 
 
-        pthread_create(&newUserThread, NULL, newConnection, newSocket);
+        struct new_connection_argument *arg = calloc(1, sizeof(struct new_connection_argument));
+        arg->socket = connfd;
+        arg->ipAddr = ipAddr;
+
+        pthread_create(&newUserThread, NULL, newConnection, arg);
 
         pthread_detach(newUserThread);
         //Reply to the client
