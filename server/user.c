@@ -75,11 +75,12 @@ bool addSession(user_t* user, d_thread* clientThread){
     return false;
 }
 
-client_thread_argument* createClientThreadArgument(bool* isThreadComplete, char* dirPath, int sessionSocket, sem_t* sem) {
-    client_thread_argument* argument = (client_thread_argument*) calloc(1, sizeof(thread_argument));
+client_thread_argument* createClientThreadArgument(bool* isThreadComplete, char* dirPath, int sessionSocket, sem_t* sem, received_file_list *filesReceived) {
+    client_thread_argument* argument = (client_thread_argument*) calloc(1, sizeof(client_thread_argument));
 
     argument->isThreadComplete = isThreadComplete;
     argument->clientDirPath = calloc(strlen(dirPath)+1, sizeof(char));
+    argument->filesReceived = filesReceived;
     strcpy(argument->clientDirPath, dirPath);
     argument->socket = sessionSocket;
     argument->userAccessSem = sem;
@@ -97,7 +98,8 @@ int startNewSession(user_list* user, int sessionSocket, char* userDirPath) {
                                 &newClientThread->isThreadComplete,
                                 userDirPath,
                                 sessionSocket,
-                                &user->user.userAccessSem
+                                &user->user.userAccessSem,
+                                user->user.filesReceived
                             );
 
             pthread_create(&newClientThread->thread, NULL, clientListen, argument);
@@ -128,7 +130,10 @@ user_list* createUser(char* username) {
     newUser->user.clientThread[1] = NULL;
     newUser->user.syncSocketList = NULL;
     newUser->user.watchDirThread.isThreadComplete = true;
-    newUser->user.filesReceived = createReceivedFile("\n", -1);
+    newUser->user.filesReceived = NULL;
+
+    DL_APPEND(newUser->user.filesReceived, createReceivedFile("\n", -1));
+
 
     newUser->user.username = (char*) calloc(strlen(username) + 1, sizeof(char));
 

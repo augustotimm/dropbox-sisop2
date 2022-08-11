@@ -30,7 +30,7 @@ void connectUser(int socket);
 int connectSyncDir(int socket, char* username);
 void* clientListen(void* voidArg)
 {
-    client_thread_argument* argument = voidArg;
+    client_thread_argument* argument = (client_thread_argument*) voidArg;
     char* path = argument->clientDirPath;
     int socket = argument->socket;
 

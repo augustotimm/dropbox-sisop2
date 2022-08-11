@@ -14,3 +14,5 @@ extern char rootPath[KBYTE];
 
 void* clientListen(void* conf);
 #endif //DROPBOX_SISOP2_SERVER_H
+
+// /home/timm/repos/ufrgs/dropbox-sisop2/LICENSE
