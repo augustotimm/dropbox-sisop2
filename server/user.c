@@ -55,6 +55,22 @@ void freeUser(user_t* user) {
         free(user->clientThread[i]);
         user->clientThread[i] = NULL;
     }
+
+    socket_conn_list *currentConn = NULL, *connTmp = NULL;
+    DL_FOREACH_SAFE(user->syncSocketList, currentConn, connTmp) {
+        close(currentConn->socket);
+
+        DL_DELETE(user->syncSocketList, currentConn);
+        free(currentConn);
+    }
+
+    received_file_list *currentFile = NULL, *fileTmp = NULL;
+    DL_FOREACH_SAFE(user->filesReceived, currentFile, fileTmp) {
+        free(currentFile->fileName);
+
+        DL_DELETE(user->filesReceived, currentFile);
+        free(currentFile);
+    }
 }
 
 void freeUserList(user_list* userList){
