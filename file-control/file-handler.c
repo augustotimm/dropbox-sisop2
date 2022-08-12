@@ -145,7 +145,7 @@ int compareClientSocket(socket_conn_list* a, socket_conn_list* b) {
     if(a->listenerSocket == b->listenerSocket)
         return 0;
     else
-        return false;
+        return -1;
 }
 
 int findSyncDirSocket(socket_conn_list* head, int clientSocket) {

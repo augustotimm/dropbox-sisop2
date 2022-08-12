@@ -185,7 +185,7 @@ int compareSocketConn(socket_conn_list* a, socket_conn_list* b) {
     if(a->ipAddr.s_addr == b->ipAddr.s_addr)
         return 0;
     else
-        return false;
+        return -1;
 }
 
 socket_conn_list* addSocket(socket_conn_list* head, int socket, struct in_addr ipAddr, bool isListener) {
@@ -211,14 +211,13 @@ socket_conn_list* addSocket(socket_conn_list* head, int socket, struct in_addr i
 }
 
 void addSyncDir(int dirSocket, user_t* user, struct in_addr ipAddr) {
-    sem_wait(&user->userAccessSem);
-
-    addSocket(user->syncSocketList, dirSocket, ipAddr, false);
+    addNewSocketConn(user, dirSocket, ipAddr, false);
 
     if(user->watchDirThread.isThreadComplete) {
+        sem_wait(&user->userAccessSem);
         createWatchDir(user);
+        sem_post(&user->userAccessSem);
     }
-    sem_post(&user->userAccessSem);
 }
 
 void createWatchDir(user_t* user) {
@@ -243,10 +242,10 @@ user_list* findUser(char* username){
     return user;
 }
 
-void addNewSocketConn(user_t* user, int socket, struct in_addr ipAddr) {
+void addNewSocketConn(user_t* user, int socket, struct in_addr ipAddr, bool isListener) {
 
     sem_wait(&user->userAccessSem);
-    socket_conn_list* newSocket = addSocket(user->syncSocketList, socket, ipAddr, true);
+    socket_conn_list* newSocket = addSocket(user->syncSocketList, socket, ipAddr, isListener);
     if (user->syncSocketList == NULL) {
         user->syncSocketList = newSocket;
     }

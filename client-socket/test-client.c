@@ -11,12 +11,16 @@
 char username[USERNAMESIZE];
 
 void startWatchDir(struct in_addr ipAddr);
+void addSocketConn(int socket, struct in_addr ipAddr, bool isListener);
+
 char path[KBYTE] = "/home/timm/repos/ufrgs/dropbox-sisop2/sync/";
 char rootPath[KBYTE];
 
 sem_t syncDirSem;
 
 pthread_t listenSyncThread;
+
+socket_conn_list* socketConn = NULL;
 
 void clientUpload(int socket) {
     printf("Upload\n");
@@ -113,6 +117,7 @@ void startListenSyncDir(struct in_addr ipAddr) {
         printf("connected to the server..\n");
 
     newConnection(sockfd, SYNCSOCKET);
+    addSocketConn(sockfd, ipAddr, true);
 
     int* newSocket = calloc(1, sizeof(int ));
     *newSocket = sockfd;
@@ -154,12 +159,13 @@ void startWatchDir(struct in_addr ipAddr) {
         printf("connected to the server..\n");
 
     newConnection(sockfd, SYNCLISTENSOCKET);
+    addSocketConn(sockfd, ipAddr, false);
 
 
     pthread_t syncDirThread;
     watch_dir_argument* argument = calloc(1, sizeof(watch_dir_argument));
     argument->dirPath = path;
-    argument->socketConnList = initSocketConnList(sockfd, ipAddr, false);
+    argument->socketConnList = socketConn;
     argument->userSem = &syncDirSem;
 
     pthread_create(&syncDirThread, NULL, watchDir, argument);
@@ -258,11 +264,27 @@ int main()
     write(sockfd, &endCommand, sizeof(endCommand));
 
     startListenSyncDir(servaddr.sin_addr);
-    startWatchDir(servaddr.sin_addr);
+    //startWatchDir(servaddr.sin_addr);
 
     // function for user commands
     clientThread(sockfd);
 
     // close the socket
     close(sockfd);
+}
+
+void addSocketConn(int socket, struct in_addr ipAddr, bool isListener) {
+    sem_wait(&syncDirSem);
+    if(socketConn == NULL) {
+        socketConn = initSocketConnList(socket, ipAddr, isListener);
+    }
+    else {
+        if(isListener) {
+            socketConn->listenerSocket = socket;
+        }
+        else {
+            socketConn->socket = socket;
+        }
+    }
+    sem_post(&syncDirSem);
 }

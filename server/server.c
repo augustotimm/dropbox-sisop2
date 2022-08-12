@@ -102,7 +102,7 @@ int connectSyncListener(int socket, char*username, struct in_addr ipAddr) {
     user_list *user = findUser(username);
     syncDirSem = &user->user.userAccessSem;
 
-    addNewSocketConn(&user->user, socket, ipAddr);
+    addNewSocketConn(&user->user, socket, ipAddr, true);
 
 
     listenForSocketMessage(socket, path, syncDirSem, NULL);
