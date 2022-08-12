@@ -142,7 +142,7 @@ int getSocketFromReceivedFile(received_file_list* head, char* fileName) {
 }
 
 int compareClientSocket(socket_conn_list* a, socket_conn_list* b) {
-    if(a->clientSocket == b->clientSocket)
+    if(a->listenerSocket == b->listenerSocket)
         return 0;
     else
         return false;
@@ -151,7 +151,7 @@ int compareClientSocket(socket_conn_list* a, socket_conn_list* b) {
 int findSyncDirSocket(socket_conn_list* head, int clientSocket) {
     socket_conn_list *conn = NULL;
     socket_conn_list etmp;
-    etmp.clientSocket = clientSocket;
+    etmp.listenerSocket = clientSocket;
     DL_SEARCH(head, conn, &etmp, compareClientSocket);
     if(conn == NULL)
         return -1;

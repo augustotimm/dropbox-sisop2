@@ -33,6 +33,8 @@ struct new_connection_argument {
 
 void connectUser(int socket, struct in_addr ipAddr);
 int connectSyncDir(int socket, char* username, struct in_addr ipAddr);
+int connectSyncListener(int socket, char*username, struct in_addr ipAddr);
+
 void* clientListen(void* voidArg)
 {
     client_thread_argument* argument = (client_thread_argument*) voidArg;
@@ -84,7 +86,27 @@ void* newConnection(void* arg) {
         connectSyncDir(socket, newSocketType, argument->ipAddr);
 
     }
+    if(strcmp(newSocketType, socketTypes[SYNCLISTENSOCKET]) == 0) {
+        bzero(newSocketType, USERNAMESIZE);
+        write(socket, &endCommand, sizeof(endCommand));
 
+        recv(socket, newSocketType, USERNAMESIZE, 0);
+        connectSyncListener(socket, newSocketType, argument->ipAddr);
+    }
+}
+
+int connectSyncListener(int socket, char*username, struct in_addr ipAddr) {
+    sem_t *syncDirSem;
+    char* path = strcatSafe(rootPath, username);
+
+    user_list *user = findUser(username);
+    syncDirSem = &user->user.userAccessSem;
+
+    addNewSocketConn(&user->user, socket, ipAddr);
+
+
+    listenForSocketMessage(socket, path, syncDirSem, NULL);
+    close(socket);
 }
 
 int connectSyncDir(int socket, char* username, struct in_addr ipAddr) {
@@ -124,7 +146,6 @@ void* userDisconnectedEvent(void *arg) {
         pthread_mutex_unlock(&connectedUsersMutex);
     }
 }
-
 
 void* clientConn(void* args) {
 
@@ -202,6 +223,64 @@ void* syncDirConn(void* args) {
     servaddr.sin_family = AF_INET;
     servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
     servaddr.sin_port = htons(SYNCPORT);
+
+    // Binding newly created socket to given IP and verification
+    if ((bind(sockfd, (struct sockaddr *)&servaddr, sizeof(servaddr))) != 0) {
+        printf("SYNCDIR socket bind failed...\n");
+        exit(0);
+    }
+    else
+        printf("SYNCDIR Socket successfully binded..\n");
+
+    // Now server is ready to listen and verification
+    if ((listen(sockfd, 5)) != 0) {
+        printf("SYNCDIR Listen failed...\n");
+        exit(0);
+    }
+    else
+        printf("SYNCDIR Server listening..\n");
+    len = sizeof(cli);
+
+    int i = 0;
+    while( (connfd = accept(sockfd, (struct sockaddr *)&cli, (socklen_t*)&len))  || i < 5)
+    {
+        struct in_addr ipAddr = cli.sin_addr;
+
+        puts("Connection accepted");
+        pthread_t newUserThread;
+
+
+        struct new_connection_argument *arg = calloc(1, sizeof(struct new_connection_argument));
+        arg->socket = connfd;
+        arg->ipAddr = ipAddr;
+
+        pthread_create(&newUserThread, NULL, newConnection, arg);
+
+        pthread_detach(newUserThread);
+        //Reply to the client
+
+    }
+}
+
+void* syncDirListenerConn(void* args) {
+
+    int sockfd, connfd, len;
+    struct sockaddr_in servaddr, cli;
+
+    // socket create and verification
+    sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    if (sockfd == -1) {
+        printf("socket creation failed...\n");
+        exit(0);
+    }
+    else
+        printf("Socket successfully created..\n");
+    bzero(&servaddr, sizeof(servaddr));
+
+    // assign IP, PORT
+    servaddr.sin_family = AF_INET;
+    servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+    servaddr.sin_port = htons(SYNCLISTENERPORT);
 
     // Binding newly created socket to given IP and verification
     if ((bind(sockfd, (struct sockaddr *)&servaddr, sizeof(servaddr))) != 0) {

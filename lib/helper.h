@@ -23,8 +23,9 @@
 #define DOWNLOAD 1
 #define UPLOAD 0
 #define USERSESSIONNUMBER 2
-#define SERVERPORT 8880
-#define SYNCPORT 9990
+#define SYNCLISTENERPORT 7777
+#define SERVERPORT 8888
+#define SYNCPORT 9999
 
 
 #define USERNAMESIZE 64
@@ -33,13 +34,14 @@
 
 #define CLIENTSOCKET 0
 #define SYNCSOCKET 1
+#define SYNCLISTENSOCKET 2
 
 
 static const char endCommand[] = "\nend\n";
 static const char continueCommand[] = "\ncontinue\n";
 
 static const char commands[6][13] = {"upload", "download", "list local", "sync", "exit", "delete"};
-static const char socketTypes[2][8] = {"client", "syncdir"};
+static const char socketTypes[3][13] = {"client", "syncdir", "synclisten"};
 
 typedef struct received_file_list {
     int socketReceiver;
@@ -54,7 +56,7 @@ typedef struct d_thread {
 
 typedef struct socket_conn_list {
     int socket;
-    int clientSocket;
+    int listenerSocket;
     struct in_addr ipAddr;
     struct socket_conn_list *prev, *next;
 } socket_conn_list;

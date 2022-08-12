@@ -11,7 +11,7 @@
 
 void createWatchDir(user_t* user);
 void freeUserList(user_list* userList);
-socket_conn_list* addSocket(socket_conn_list* head, int socket, struct in_addr ipAddr, bool isClient);
+socket_conn_list* addSocket(socket_conn_list* head, int socket, struct in_addr ipAddr, bool isListener);
 
 int  userCompare(user_list* a, user_list* b) {
     return strcmp(a->user.username,b->user.username);
@@ -175,12 +175,6 @@ int startUserSession( char* username, int socket, struct in_addr ipAddr) {
 
 
     int result = startNewSession(user, socket, dirPath);
-    if (result == 0) {
-        socket_conn_list* newSocket = addSocket(user->user.syncSocketList, socket, ipAddr, true);
-        if (user->user.syncSocketList == NULL) {
-            user->user.syncSocketList = newSocket;
-        }
-    }
     free(dirPath);
     free(userSafe);
     sem_post(&newUser->user.userAccessSem);
@@ -194,19 +188,19 @@ int compareSocketConn(socket_conn_list* a, socket_conn_list* b) {
         return false;
 }
 
-socket_conn_list* addSocket(socket_conn_list* head, int socket, struct in_addr ipAddr, bool isClient) {
+socket_conn_list* addSocket(socket_conn_list* head, int socket, struct in_addr ipAddr, bool isListener) {
     socket_conn_list *conn = NULL;
     socket_conn_list etmp;
     etmp.ipAddr = ipAddr;
     DL_SEARCH(head, conn, &etmp, compareSocketConn);
 
     if(conn == NULL) {
-        socket_conn_list *newElement = initSocketConnList(socket, ipAddr, isClient);
+        socket_conn_list *newElement = initSocketConnList(socket, ipAddr, isListener);
         DL_APPEND(head, newElement);
     }
     else {
-        if(isClient) {
-            conn->clientSocket = socket;
+        if(isListener) {
+            conn->listenerSocket = socket;
         }
         else {
             conn->socket = socket;
@@ -247,4 +241,14 @@ user_list* findUser(char* username){
     DL_SEARCH(connectedUserListHead, user, &etmp, userCompare);
     pthread_mutex_unlock( &connectedUsersMutex);
     return user;
+}
+
+void addNewSocketConn(user_t* user, int socket, struct in_addr ipAddr) {
+
+    sem_wait(&user->userAccessSem);
+    socket_conn_list* newSocket = addSocket(user->syncSocketList, socket, ipAddr, true);
+    if (user->syncSocketList == NULL) {
+        user->syncSocketList = newSocket;
+    }
+    sem_post(&user->userAccessSem);
 }

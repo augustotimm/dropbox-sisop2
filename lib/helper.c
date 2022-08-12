@@ -17,7 +17,7 @@ time_t  modification;
 socket_conn_list* initSocketConnList(int socket, struct in_addr ipaddr, bool isClient) {
     socket_conn_list* newElement = calloc(1, sizeof(socket_conn_list));
     if(isClient)
-        newElement->clientSocket = socket;
+        newElement->listenerSocket = socket;
     else
         newElement->socket = socket;
 

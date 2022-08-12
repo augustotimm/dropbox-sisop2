@@ -10,9 +10,9 @@
 #define SA struct sockaddr
 char username[USERNAMESIZE];
 
-void startWatchDir(int socket, struct in_addr ipAddr);
-char path[KBYTE] = "/home/timm/repos/ufrgs/dropbox-sisop2/LICENSE";
-char rootPath[KBYTE] = "/home/timm/repos/ufrgs/dropbox-sisop2/sync/";
+void startWatchDir(struct in_addr ipAddr);
+char path[KBYTE] = "/home/timm/repos/ufrgs/dropbox-sisop2/sync/";
+char rootPath[KBYTE];
 
 sem_t syncDirSem;
 
@@ -32,8 +32,15 @@ void clientUpload(int socket) {
     filePath[strcspn(filePath, "\n")] = 0;
     fileName = basename(filePath);
     upload(socket, filePath, fileName);
-    free(fileName);
 
+}
+
+void newConnection(int sockfd, int socketType){
+    write(sockfd, &socketTypes[socketType], sizeof(socketTypes[socketType]));
+    printf("username: %s", username);
+    char endCommand[6];
+    recv(sockfd, &endCommand, sizeof(endCommand), 0);
+    write(sockfd, &username, sizeof(username));
 }
 
 int clientDownload(int socket) {
@@ -78,7 +85,7 @@ void* listenSyncDir(void* args) {
     close(socket);
 }
 
-void startListenSyncDir() {
+void startListenSyncDir(struct in_addr ipAddr) {
     int sockfd;
     struct sockaddr_in servaddr;
 
@@ -104,13 +111,9 @@ void startListenSyncDir() {
     }
     else
         printf("connected to the server..\n");
-    write(sockfd, &socketTypes[SYNCSOCKET], sizeof(socketTypes[SYNCSOCKET]));
-    printf("username: %s", username);
-    char endCommand[6];
-    recv(sockfd, &endCommand, sizeof(endCommand), 0);
 
-    write(sockfd, &username, sizeof(username));
-    // startWatchDir(sockfd);
+    newConnection(sockfd, SYNCSOCKET);
+
     int* newSocket = calloc(1, sizeof(int ));
     *newSocket = sockfd;
    int created = pthread_create(&listenSyncThread, NULL, listenSyncDir, newSocket);
@@ -123,11 +126,40 @@ void startListenSyncDir() {
    }
 }
 
-void startWatchDir(int socket, struct in_addr ipAddr) {
+void startWatchDir(struct in_addr ipAddr) {
+    int sockfd;
+    struct sockaddr_in servaddr;
+
+    // socket create and verification
+    sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    if (sockfd == -1) {
+        printf("socket creation failed...\n");
+        exit(0);
+    }
+    else
+        printf("Socket successfully created..\n");
+    bzero(&servaddr, sizeof(servaddr));
+
+    // assign IP, PORT
+    servaddr.sin_family = AF_INET;
+    servaddr.sin_addr = ipAddr;
+    servaddr.sin_port = htons(SYNCPORT);
+
+    // connect the client socket to server socket
+    if (connect(sockfd, (SA*)&servaddr, sizeof(servaddr)) != 0) {
+        printf("connection with the server failed...\n");
+        exit(0);
+    }
+    else
+        printf("connected to the server..\n");
+
+    newConnection(sockfd, SYNCLISTENSOCKET);
+
+
     pthread_t syncDirThread;
     watch_dir_argument* argument = calloc(1, sizeof(watch_dir_argument));
     argument->dirPath = path;
-    argument->socketConnList = initSocketConnList(socket, ipAddr, false);
+    argument->socketConnList = initSocketConnList(sockfd, ipAddr, false);
     argument->userSem = &syncDirSem;
 
     pthread_create(&syncDirThread, NULL, watchDir, argument);
@@ -225,9 +257,10 @@ int main()
 
     write(sockfd, &endCommand, sizeof(endCommand));
 
-    startListenSyncDir();
+    startListenSyncDir(servaddr.sin_addr);
+    startWatchDir(servaddr.sin_addr);
 
-    // function for chat
+    // function for user commands
     clientThread(sockfd);
 
     // close the socket

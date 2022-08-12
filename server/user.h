@@ -13,4 +13,6 @@ bool hasSessionOpen(user_t user);
 user_list* findUser(char* username);
 
 void addSyncDir(int dirSocket, user_t* user, struct in_addr ipAddr);
+void addNewSocketConn(user_t* user, int socket, struct in_addr ipAddr);
+
 #endif //DROPBOX_SISOP2_USER_H
