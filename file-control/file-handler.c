@@ -131,13 +131,15 @@ int fileNameCompare(received_file_list* a, received_file_list* b) {
 
 
 int getSocketFromReceivedFile(received_file_list* head, char* fileName) {
-    received_file_list *etmp = createReceivedFile(fileName, -1);
-    received_file_list *file;
-    DL_SEARCH(head, file, etmp, fileNameCompare);
-    if(file != NULL) {
-        return file->socketReceiver;
+    received_file_list *tmp, *currentFile;
+    DL_FOREACH_SAFE(head, currentFile, tmp ) {
+        if(strcmp(currentFile->fileName, fileName) == 0) {
+            DL_DELETE(head, currentFile);
+            int socket = currentFile->socketReceiver;
+            free(currentFile->fileName);
+            return socket;
+        }
     }
-
     return -1;
 }
 

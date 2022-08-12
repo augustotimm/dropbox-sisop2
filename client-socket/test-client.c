@@ -5,6 +5,7 @@
 #include <libgen.h>
 #include "../lib/helper.h"
 #include "../file-control/file-handler.h"
+#include "../server/server_functions.h"
 
 #define MAX 80
 #define SA struct sockaddr
@@ -18,7 +19,10 @@ char rootPath[KBYTE];
 
 sem_t syncDirSem;
 
+int listenerSocket;
+
 pthread_t listenSyncThread;
+received_file_list *filesReceived;
 
 socket_conn_list* socketConn = NULL;
 
@@ -56,7 +60,9 @@ int clientDownload(int socket) {
     fileName[strcspn(fileName, "\n")] = 0;
     write(socket, fileName, strlen(fileName));
     char* filePath = strcatSafe(path, fileName);
-    download(socket, filePath);
+    receiveFile(socket, filePath);
+
+
     free(filePath);
 }
 
@@ -85,7 +91,7 @@ void list_local(char * pathname) {
 void* listenSyncDir(void* args) {
     int socket = *(int*)args;
     free(args);
-    listenForSocketMessage(socket, path, &syncDirSem, NULL);
+    listenForSocketMessage(socket, path, &syncDirSem, filesReceived);
     close(socket);
 }
 
@@ -121,7 +127,8 @@ void startListenSyncDir(struct in_addr ipAddr) {
 
     int* newSocket = calloc(1, sizeof(int ));
     *newSocket = sockfd;
-   int created = pthread_create(&listenSyncThread, NULL, listenSyncDir, newSocket);
+    listenerSocket = sockfd;
+    int created = pthread_create(&listenSyncThread, NULL, listenSyncDir, newSocket);
     pthread_detach(listenSyncThread);
     if(created != 0) {
         printf("Listen sync dir failed\n");
@@ -167,6 +174,7 @@ void startWatchDir(struct in_addr ipAddr) {
     argument->dirPath = path;
     argument->socketConnList = socketConn;
     argument->userSem = &syncDirSem;
+    argument->filesReceived = filesReceived;
 
     pthread_create(&syncDirThread, NULL, watchDir, argument);
     pthread_detach(syncDirThread);
@@ -199,7 +207,9 @@ void clientThread(int connfd)
         } else if(strcmp(userInput, commands[LIST]) ==0 ) {
             list_local(path);
         } else if(strcmp(userInput, commands[DELETE]) ==0 ) {
+            sem_wait(&syncDirSem);
             clientDelete(connfd);
+            sem_post(&syncDirSem);
         }
 
         if ((strncmp(userInput, "exit", 4)) == 0) {
@@ -216,6 +226,8 @@ int main()
     struct sockaddr_in servaddr;
 
     sem_init(&syncDirSem, 0, 1);
+    DL_APPEND(filesReceived, createReceivedFile("\n", -1));
+
 
     //printf("Insira o caminho para a pasta sync_dir\n");
     //fgets(path, sizeof(path), stdin);
