@@ -226,6 +226,7 @@ void createWatchDir(user_t* user) {
     argument->dirPath = dirPath;
     argument->socketConnList = user->syncSocketList;
     argument->userSem = &user->userAccessSem;
+    argument->filesReceived = user->filesReceived;
     user->watchDirThread.isThreadComplete = false;
 
     pthread_create(&user->watchDirThread.thread, NULL, watchDir, argument);

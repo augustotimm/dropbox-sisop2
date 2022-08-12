@@ -98,6 +98,8 @@ void* newConnection(void* arg) {
 int connectSyncListener(int socket, char*username, struct in_addr ipAddr) {
     sem_t *syncDirSem;
     char* path = strcatSafe(rootPath, username);
+    char* dirPath = strcatSafe(path, "/");
+    free(path);
 
     user_list *user = findUser(username);
     syncDirSem = &user->user.userAccessSem;
@@ -105,7 +107,7 @@ int connectSyncListener(int socket, char*username, struct in_addr ipAddr) {
     addNewSocketConn(&user->user, socket, ipAddr, true);
 
 
-    listenForSocketMessage(socket, path, syncDirSem, NULL);
+    listenForSocketMessage(socket, dirPath, syncDirSem, user->user.filesReceived);
     close(socket);
 }
 
