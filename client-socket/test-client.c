@@ -228,10 +228,10 @@ int main()
     sem_init(&syncDirSem, 0, 1);
     DL_APPEND(filesReceived, createReceivedFile("\n", -1));
 
-
-    //printf("Insira o caminho para a pasta sync_dir\n");
-    //fgets(path, sizeof(path), stdin);
-    //path[strcspn(path, "\n")] = 0;
+//    bzero(path, sizeof(path));
+//    printf("Insira o caminho para a pasta sync_dir\n");
+//    fgets(path, sizeof(path), stdin);
+//    path[strcspn(path, "\n")] = 0;
 
     // socket create and verification
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -276,7 +276,7 @@ int main()
     write(sockfd, &endCommand, sizeof(endCommand));
 
     startListenSyncDir(servaddr.sin_addr);
-    startWatchDir(servaddr.sin_addr);
+    // startWatchDir(servaddr.sin_addr);
 
     // function for user commands
     clientThread(sockfd);

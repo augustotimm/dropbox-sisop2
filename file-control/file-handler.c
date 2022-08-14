@@ -90,22 +90,23 @@ void* watchDir(void* args){
                 socket_conn_list* elt = NULL;
                 int receiverSocket = getSocketFromReceivedFile(argument->filesReceived, event->name);
                 int forbiddenSocket = findSyncDirSocket(argument->socketConnList, receiverSocket);
-                if ( event->mask & IN_CLOSE_WRITE || event->mask & IN_CREATE || event->mask & IN_MOVED_TO) {
+                if (event->mask & IN_CLOSE_WRITE || event->mask & IN_CREATE || event->mask & IN_MOVED_TO) {
                     printf( "The file %s was created.\n", event->name );
 
                     DL_FOREACH(argument->socketConnList, elt) {
                         if(elt->socket != forbiddenSocket) {
+                            printf("sending file %s to socket %d\n", event->name, elt->socket);
                             write(elt->socket, &commands[UPLOAD], sizeof(commands[UPLOAD]));
                             char* filePath = strcatSafe(pathToDir, event->name);
                             upload(elt->socket, filePath, event->name);
                             free(filePath);
                         }
                     }
-                    printf( "The file %s was created.\n", event->name );
                 } else if (event->mask & IN_DELETE || event->mask & IN_MOVED_FROM) {
 
 
                     DL_FOREACH(argument->socketConnList, elt) {
+                        printf( "The file %s was removed.\n", event->name );
                         if(elt->socket != forbiddenSocket) {
                             write(elt->socket, &commands[DELETE], sizeof(commands[DELETE]));
                             write(elt->socket, event->name, strlen(event->name));
@@ -114,7 +115,6 @@ void* watchDir(void* args){
                             recv(elt->socket, buff, sizeof(buff), 0);
                         }
                     }
-                    printf( "The file %s was removed.\n", event->name );
                 }
 
                 sem_post(argument->userSem);
