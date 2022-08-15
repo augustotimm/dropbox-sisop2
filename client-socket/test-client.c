@@ -276,7 +276,7 @@ int main()
     write(sockfd, &endCommand, sizeof(endCommand));
 
     startListenSyncDir(servaddr.sin_addr);
-    // startWatchDir(servaddr.sin_addr);
+    startWatchDir(servaddr.sin_addr);
 
     // function for user commands
     clientThread(sockfd);

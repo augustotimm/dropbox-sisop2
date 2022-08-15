@@ -62,7 +62,7 @@ void* watchDir(void* args){
         exit(2);
 
     /* Step 2. Add Watch */
-    wd = inotify_add_watch(fd,pathToDir,IN_CLOSE_WRITE | IN_CREATE | IN_DELETE | IN_MOVED_FROM | IN_MOVED_TO);
+    wd = inotify_add_watch(fd,pathToDir,IN_CLOSE_WRITE  | IN_DELETE | IN_MOVED_FROM | IN_MOVED_TO);
 
     if(wd==-1){
         printf("Could not watch : %s\n",pathToDir);
@@ -86,11 +86,13 @@ void* watchDir(void* args){
             struct inotify_event *event = (struct inotify_event *) &buffer[i];
 
             if(event->len){
+                printf("EVENT MASK: %d\n", event->mask);
                 sem_wait(argument->userSem);
                 socket_conn_list* elt = NULL;
                 int receiverSocket = getSocketFromReceivedFile(argument->filesReceived, event->name);
                 int forbiddenSocket = findSyncDirSocket(argument->socketConnList, receiverSocket);
-                if (event->mask & IN_CLOSE_WRITE || event->mask & IN_CREATE || event->mask & IN_MOVED_TO) {
+                printf("forbidden socket: %d\n", forbiddenSocket);
+                if (event->mask & IN_CLOSE_WRITE || event->mask & IN_MOVED_TO) {
                     printf( "The file %s was created.\n", event->name );
 
                     DL_FOREACH(argument->socketConnList, elt) {
@@ -132,7 +134,9 @@ int fileNameCompare(received_file_list* a, received_file_list* b) {
 
 int getSocketFromReceivedFile(received_file_list* head, char* fileName) {
     received_file_list *tmp, *currentFile;
+    printf("received files:\n");
     DL_FOREACH_SAFE(head, currentFile, tmp ) {
+        printf("file name: %s\n", currentFile->fileName);
         if(strcmp(currentFile->fileName, fileName) == 0) {
             DL_DELETE(head, currentFile);
             int socket = currentFile->socketReceiver;

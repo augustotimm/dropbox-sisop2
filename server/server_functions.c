@@ -96,7 +96,6 @@ bzero(buff, sizeof(buff));
     {
         printf("bytes left: %d\n", bytesLeft);
         recv(socket, buff, KBYTE, 0);
-        printf("file data received: %s\n", buff);
 
         // escreve no arquivo os bytes lidos
         if(bytesLeft > KBYTE)
@@ -156,7 +155,7 @@ int sendFile(int socket, char* filepath) {
             fread(buff, sizeof(buff), 1, file);
 
             byteCount = write(socket, buff, KBYTE);
-            printf("file data sent: %s\n", buff);
+
             if(byteCount < 0)
                 printf("ERROR sending file\n");
         }
