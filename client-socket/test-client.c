@@ -246,7 +246,7 @@ int main()
     bzero(ipAddress, sizeof(ipAddress));
     printf("Insira o IP do servidor\n");
     fgets(ipAddress, sizeof(ipAddress), stdin);
-    path[strcspn(ipAddress, "\n")] = 0;
+    ipAddress[strcspn(ipAddress, "\n")] = 0;
 
     // assign IP, PORT
     servaddr.sin_family = AF_INET;
@@ -286,7 +286,7 @@ int main()
     }
 
 
-        startWatchDir(servaddr.sin_addr);
+    startWatchDir(servaddr.sin_addr);
 
     // function for user commands
     clientThread(sockfd);
