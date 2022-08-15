@@ -13,6 +13,7 @@ char username[USERNAMESIZE];
 
 void startWatchDir(struct in_addr ipAddr);
 void addSocketConn(int socket, struct in_addr ipAddr, bool isListener);
+int downloadAll(int socket);
 
 char path[KBYTE] = "/home/timm/repos/ufrgs/dropbox-sisop2/sync/";
 char rootPath[KBYTE];
@@ -276,7 +277,12 @@ int main()
     write(sockfd, &endCommand, sizeof(endCommand));
 
     startListenSyncDir(servaddr.sin_addr);
-    startWatchDir(servaddr.sin_addr);
+    if(downloadAll(sockfd) != 0) {
+        return OUTOFSYNCERROR;
+    }
+
+
+        startWatchDir(servaddr.sin_addr);
 
     // function for user commands
     clientThread(sockfd);
@@ -299,4 +305,27 @@ void addSocketConn(int socket, struct in_addr ipAddr, bool isListener) {
         }
     }
     sem_post(&syncDirSem);
+}
+
+int downloadAll(int socket) {
+    char currentCommand[13];
+    char fileName[FILENAMESIZE];
+    write(socket, &commands[DOWNLOADALL], sizeof(commands[DOWNLOADALL]));
+
+    for (;;) {
+        bzero(currentCommand, sizeof(currentCommand));
+        bzero(fileName, sizeof(fileName));
+
+
+        // read the message from client and copy it in buffer
+        recv(socket, currentCommand, sizeof(currentCommand), 0);
+        if(strcmp(currentCommand, commands[UPLOAD]) ==0 ) {
+            download(socket, path, filesReceived);
+        }else if (strcmp(currentCommand, commands[EXIT]) == 0 ) {
+
+            return 0;
+        } else{
+            return OUTOFSYNCERROR;
+        }
+    }
 }

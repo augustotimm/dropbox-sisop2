@@ -14,5 +14,6 @@ int sync_dir(int socket);
 
 int sendFile(int socket, char* filepath);
 int receiveFile(int socket, char* fileName);
+int uploadAllFiles(int socket, char* dirPath);
 
 #endif //DROPBOX_SISOP2_SERVER_FUNCTIONS_H

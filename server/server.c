@@ -118,9 +118,11 @@ int connectSyncDir(int socket, char* username, struct in_addr ipAddr) {
         close(socket);
         return -1;
     }
+    // uploadAllFiles(socket, &user->user);
     addSyncDir(socket, &user->user, ipAddr);
 
 }
+
 
 void connectUser(int socket, struct in_addr ipAddr) {
     char username[USERNAMESIZE];

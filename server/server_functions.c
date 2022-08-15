@@ -7,17 +7,17 @@
 #include <stdio.h>
 #include <sys/socket.h>
 #include <netdb.h>
+#include <sys/stat.h>
+#include <dirent.h>
 
-int getFileSize(FILE *ptrfile)
+
+int getFileSize(char* filename)
 {
-    int size;
+    struct stat sb;
 
-    fseek(ptrfile, 0L, SEEK_END);
-    size = ftell(ptrfile);
+    stat(filename, &sb);
 
-    rewind(ptrfile);
-
-    return size;
+    return sb.st_size;
 }
 
 
@@ -30,8 +30,9 @@ void upload(int socket, char* filePath, char* fileName) {
         printf("Expected end command signal but received: %s\n\n", buff);
         return;
     }
+    strcpy(buff, fileName);
 
-    write(socket, fileName, strlen(fileName));
+    write(socket, buff, strlen(buff));
 
     sendFile(socket, filePath);
     printf("FILE %s was uploaded\n", fileName);
@@ -126,8 +127,8 @@ bzero(buff, sizeof(buff));
 int sendFile(int socket, char* filepath) {
     int fileSize, byteCount;
     FILE* file;
-    char buff[KBYTE];
-    bzero(buff, sizeof(buff));
+    char* buff = calloc(KBYTE, sizeof(char));
+    bzero(buff, strlen(buff));
 
     printf("sending file: %s\n", filepath);
 
@@ -144,7 +145,7 @@ int sendFile(int socket, char* filepath) {
 
     if (file = fopen(filepath, "rb"))
     {
-        fileSize = getFileSize(file);
+        fileSize = getFileSize(filepath);
 
         // escreve estrutura do arquivo no socket
         byteCount = write(socket, &fileSize, sizeof(int));
@@ -152,7 +153,7 @@ int sendFile(int socket, char* filepath) {
 
         while(!feof(file) && fileSize > 0)
         {
-            fread(buff, sizeof(buff), 1, file);
+            fread(buff, KBYTE, 1, file);
 
             byteCount = write(socket, buff, KBYTE);
 
@@ -175,10 +176,34 @@ int sendFile(int socket, char* filepath) {
         return OUTOFSYNCERROR;
     }
     write(socket, endCommand, sizeof(endCommand));
+    free(buff);
     return 0;
 }
 
 
 void list() {
     printf("list function");
+}
+
+int uploadAllFiles(int socket, char* path) {
+
+    DIR *dirPath;
+    struct dirent *dir;
+
+    dirPath = opendir(path);
+
+    if(dirPath) {
+        while ((dir = readdir(dirPath)) != NULL) {
+            if (dir->d_type == DT_REG) { // verifica se é um arquivo
+                char* filePath = strcatSafe(path, dir->d_name);
+                write(socket, &commands[UPLOAD], sizeof(commands[UPLOAD]));
+                char* fileName = strcatSafe(dir->d_name, "");
+                upload(socket, filePath, fileName);
+                free(filePath);
+            }
+        }
+        closedir(dirPath);
+    }
+    write(socket, &commands[EXIT], sizeof(commands[EXIT]));
+
 }

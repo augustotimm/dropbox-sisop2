@@ -151,6 +151,10 @@ int listenForSocketMessage(int socket, char* clientDirPath, sem_t* dirSem, recei
             deleteFile(fileName, clientDirPath);
             write(socket, &endCommand, sizeof(endCommand));
             sem_post(dirSem);
+        } else if(strcmp(currentCommand, commands[DOWNLOADALL]) ==0 ) {
+            sem_wait(dirSem);
+            uploadAllFiles(socket, clientDirPath);
+            sem_post(dirSem);
         }
 
         if (strcmp(currentCommand, commands[EXIT]) == 0 || *currentCommand == "\0") {
