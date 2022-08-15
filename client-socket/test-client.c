@@ -28,7 +28,6 @@ received_file_list *filesReceived;
 socket_conn_list* socketConn = NULL;
 
 void clientUpload(int socket) {
-    printf("Upload\n");
 
     write(socket, &commands[UPLOAD], sizeof(commands[UPLOAD]));
 
@@ -36,7 +35,7 @@ void clientUpload(int socket) {
     char* fileName;
     bzero(filePath, sizeof(filePath));
 
-    printf("Insert name of file:\n");
+    printf("Insert file path:\n");
     fgets(filePath, sizeof(filePath), stdin);
     filePath[strcspn(filePath, "\n")] = 0;
     fileName = basename(filePath);
@@ -46,7 +45,7 @@ void clientUpload(int socket) {
 
 void newConnection(int sockfd, int socketType){
     write(sockfd, &socketTypes[socketType], sizeof(socketTypes[socketType]));
-    printf("username: %s", username);
+    printf("username: %s\n", username);
     char endCommand[6];
     recv(sockfd, &endCommand, sizeof(endCommand), 0);
     write(sockfd, &username, sizeof(username));
@@ -229,10 +228,10 @@ int main()
     sem_init(&syncDirSem, 0, 1);
     DL_APPEND(filesReceived, createReceivedFile("\n", -1));
 
-//    bzero(path, sizeof(path));
-//    printf("Insira o caminho para a pasta sync_dir\n");
-//    fgets(path, sizeof(path), stdin);
-//    path[strcspn(path, "\n")] = 0;
+    bzero(path, sizeof(path));
+    printf("Insira o caminho para a pasta sync_dir\n");
+    fgets(path, sizeof(path), stdin);
+    path[strcspn(path, "\n")] = 0;
 
     // socket create and verification
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -243,10 +242,15 @@ int main()
     else
         printf("Socket successfully created..\n");
     bzero(&servaddr, sizeof(servaddr));
+    char ipAddress[15];
+    bzero(ipAddress, sizeof(ipAddress));
+    printf("Insira o IP do servidor\n");
+    fgets(ipAddress, sizeof(ipAddress), stdin);
+    path[strcspn(ipAddress, "\n")] = 0;
 
     // assign IP, PORT
     servaddr.sin_family = AF_INET;
-    servaddr.sin_addr.s_addr = inet_addr("127.0.0.1");
+    servaddr.sin_addr.s_addr = inet_addr(ipAddress);
     servaddr.sin_port = htons(SERVERPORT);
 
     // connect the client socket to server socket
