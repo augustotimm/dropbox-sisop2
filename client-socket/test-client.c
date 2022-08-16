@@ -15,10 +15,10 @@ void startWatchDir(struct in_addr ipAddr);
 void addSocketConn(int socket, struct in_addr ipAddr, bool isListener);
 int downloadAll(int socket);
 
-char path[KBYTE] = "/home/timm/repos/ufrgs/dropbox-sisop2/sync/";
+char path[KBYTE];
 char rootPath[KBYTE];
 
-sem_t syncDirSem;
+pthread_mutex_t syncDirSem;
 
 int listenerSocket;
 
@@ -197,19 +197,19 @@ void clientThread(int connfd)
         fgets(userInput, sizeof(userInput), stdin);
         userInput[strcspn(userInput, "\n")] = 0;
         if(strcmp(userInput, commands[UPLOAD]) ==0 ) {
-            sem_wait(&syncDirSem);
+            pthread_mutex_lock(&syncDirSem);
             clientUpload(connfd);
-            sem_post(&syncDirSem);
+            pthread_mutex_unlock(&syncDirSem);
         } else if(strcmp(userInput, commands[DOWNLOAD]) ==0 ) {
-            sem_wait(&syncDirSem);
+            pthread_mutex_lock(&syncDirSem);
             clientDownload(connfd);
-            sem_post(&syncDirSem);
+            pthread_mutex_unlock(&syncDirSem);
         } else if(strcmp(userInput, commands[LIST]) ==0 ) {
             list_local(path);
         } else if(strcmp(userInput, commands[DELETE]) ==0 ) {
-            sem_wait(&syncDirSem);
+            pthread_mutex_lock(&syncDirSem);
             clientDelete(connfd);
-            sem_post(&syncDirSem);
+            pthread_mutex_unlock(&syncDirSem);
         }
 
         if ((strncmp(userInput, "exit", 4)) == 0) {
@@ -224,8 +224,8 @@ int main()
 {
     int sockfd;
     struct sockaddr_in servaddr;
+    pthread_mutex_init(&syncDirSem, NULL);
 
-    sem_init(&syncDirSem, 0, 1);
     DL_APPEND(filesReceived, createReceivedFile("\n", -1));
 
     bzero(path, sizeof(path));
@@ -275,6 +275,7 @@ int main()
     fgets(username, USERNAMESIZE, stdin);
     username[strcspn(username, "\n")] = 0;
     write(sockfd, &username, sizeof(username));
+
     recv(sockfd, buff, sizeof(buff), 0);
     printf("SERVER CONNECTION STATUS: %s\n", buff);
 
@@ -296,7 +297,7 @@ int main()
 }
 
 void addSocketConn(int socket, struct in_addr ipAddr, bool isListener) {
-    sem_wait(&syncDirSem);
+    pthread_mutex_lock(&syncDirSem);
     if(socketConn == NULL) {
         socketConn = initSocketConnList(socket, ipAddr, isListener);
     }
@@ -308,7 +309,7 @@ void addSocketConn(int socket, struct in_addr ipAddr, bool isListener) {
             socketConn->socket = socket;
         }
     }
-    sem_post(&syncDirSem);
+    pthread_mutex_unlock(&syncDirSem);
 }
 
 int downloadAll(int socket) {

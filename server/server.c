@@ -21,7 +21,7 @@
 
 
 user_list* connectedUserListHead = NULL;
-char rootPath[KBYTE] = "/home/timm/repos/ufrgs/dropbox-sisop2/watch/";
+char rootPath[KBYTE];
 
 pthread_cond_t closedUserConnection;
 pthread_mutex_t connectedUsersMutex;
@@ -141,7 +141,7 @@ void* userDisconnectedEvent(void *arg) {
         pthread_cond_wait(&closedUserConnection, &connectedUsersMutex);
         DL_FOREACH_SAFE(connectedUserListHead, currentUser, userTmp) {
             if(!hasSessionOpen(currentUser->user)) {
-                sem_wait(&currentUser->user.userAccessSem);
+                pthread_mutex_lock(&currentUser->user.userAccessSem);
                 DL_DELETE(connectedUserListHead, currentUser);
 
                 freeUserList(currentUser);
@@ -288,19 +288,19 @@ void* syncDirListenerConn(void* args) {
 
     // Binding newly created socket to given IP and verification
     if ((bind(sockfd, (struct sockaddr *)&servaddr, sizeof(servaddr))) != 0) {
-        printf("SYNCDIR socket bind failed...\n");
+        printf("SYNCLISTENER socket bind failed...\n");
         exit(0);
     }
     else
-        printf("SYNCDIR Socket successfully binded..\n");
+        printf("SYNCLISTENER Socket successfully binded..\n");
 
     // Now server is ready to listen and verification
     if ((listen(sockfd, 5)) != 0) {
-        printf("SYNCDIR Listen failed...\n");
+        printf("SYNCLISTENER Listen failed...\n");
         exit(0);
     }
     else
-        printf("SYNCDIR Server listening..\n");
+        printf("SYNCLISTENER Server listening..\n");
     len = sizeof(cli);
 
     int i = 0;
@@ -325,13 +325,12 @@ void* syncDirListenerConn(void* args) {
 }
 
 
-// Driver function
 int main()
 {
-//    bzero(rootPath, sizeof(rootPath));
-//    printf("Insira o caminho para a pasta raiz onde ficarão as pastas de usuários\n");
-//    fgets(rootPath, sizeof(rootPath), stdin);
-//    rootPath[strcspn(rootPath, "\n")] = 0;
+    bzero(rootPath, sizeof(rootPath));
+    printf("Insira o caminho para a pasta raiz onde ficarão as pastas de usuários\n");
+    fgets(rootPath, sizeof(rootPath), stdin);
+    rootPath[strcspn(rootPath, "\n")] = 0;
 
     connectedUserListHead = NULL;
 
@@ -342,6 +341,10 @@ int main()
     pthread_t syncDirConnThread;
     pthread_create(&syncDirConnThread, NULL, syncDirConn, NULL);
     pthread_detach(syncDirConnThread);
+
+    pthread_t listenSyncDirConnThread;
+    pthread_create(&listenSyncDirConnThread, NULL, syncDirListenerConn, NULL);
+    pthread_detach(listenSyncDirConnThread);
 
     void** args;
     pthread_join(syncDirConnThread, args);

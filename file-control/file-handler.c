@@ -87,7 +87,7 @@ void* watchDir(void* args){
 
             if(event->len){
                 printf("EVENT MASK: %d\n", event->mask);
-                sem_wait(argument->userSem);
+                pthread_mutex_lock(argument->userSem);
                 socket_conn_list* elt = NULL;
                 int receiverSocket = getSocketFromReceivedFile(argument->filesReceived, event->name);
                 int forbiddenSocket = findSyncDirSocket(argument->socketConnList, receiverSocket);
@@ -119,7 +119,7 @@ void* watchDir(void* args){
                     }
                 }
 
-                sem_post(argument->userSem);
+                pthread_mutex_unlock(argument->userSem);
             }
             i += EVENT_SIZE + event->len;
         }

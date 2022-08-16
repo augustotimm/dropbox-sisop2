@@ -122,7 +122,7 @@ void deleteFile(char* filename, char* path) {
     }
 }
 
-int listenForSocketMessage(int socket, char* clientDirPath, sem_t* dirSem, received_file_list* filesList) {
+int listenForSocketMessage(int socket, char* clientDirPath, pthread_mutex_t* dirSem, received_file_list* filesList) {
     char currentCommand[13];
     char fileName[FILENAMESIZE];
 
@@ -134,27 +134,27 @@ int listenForSocketMessage(int socket, char* clientDirPath, sem_t* dirSem, recei
         // read the message from client and copy it in buffer
         recv(socket, currentCommand, sizeof(currentCommand), 0);
         if(strcmp(currentCommand, commands[UPLOAD]) ==0 ) {
-            sem_wait(dirSem);
+            pthread_mutex_lock(dirSem);
             download(socket, clientDirPath, filesList);
-            sem_post(dirSem);
+            pthread_mutex_unlock(dirSem);
         } else if(strcmp(currentCommand, commands[DOWNLOAD]) ==0 ) {
             recv(socket, fileName, sizeof(fileName), 0);
-            sem_wait(dirSem);
+            pthread_mutex_lock(dirSem);
             char* filePath = strcatSafe(clientDirPath, fileName);
             upload(socket, filePath, fileName);
-            sem_post(dirSem);
+            pthread_mutex_unlock(dirSem);
         } else if(strcmp(currentCommand, commands[LIST]) ==0 ) {
             list();
         } else if(strcmp(currentCommand, commands[DELETE]) ==0 ) {
             recv(socket, fileName, sizeof(fileName), 0);
-            sem_wait(dirSem);
+            pthread_mutex_lock(dirSem);
             deleteFile(fileName, clientDirPath);
             write(socket, &endCommand, sizeof(endCommand));
-            sem_post(dirSem);
+            pthread_mutex_unlock(dirSem);
         } else if(strcmp(currentCommand, commands[DOWNLOADALL]) ==0 ) {
-            sem_wait(dirSem);
+            pthread_mutex_lock(dirSem);
             uploadAllFiles(socket, clientDirPath);
-            sem_post(dirSem);
+            pthread_mutex_unlock(dirSem);
         }
 
         if (strcmp(currentCommand, commands[EXIT]) == 0 || *currentCommand == "\0") {

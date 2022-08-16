@@ -149,9 +149,8 @@ user_list* createUser(char* username) {
 
 
     newUser->user.username = (char*) calloc(strlen(username) + 1, sizeof(char));
-
+    pthread_mutex_init(&newUser->user.userAccessSem, NULL);
     strcpy(newUser->user.username, username);
-    sem_init(&newUser->user.userAccessSem, 0, 1);
 
     return newUser;
 }
@@ -171,13 +170,13 @@ int startUserSession( char* username, int socket, struct in_addr ipAddr) {
         user = newUser;
     }
     pthread_mutex_unlock(&connectedUsersMutex);
-    sem_wait(&user->user.userAccessSem);
+    pthread_mutex_lock(&user->user.userAccessSem);
 
 
     int result = startNewSession(user, socket, dirPath);
     free(dirPath);
     free(userSafe);
-    sem_post(&newUser->user.userAccessSem);
+    pthread_mutex_unlock(&newUser->user.userAccessSem);
     return result;
 }
 
@@ -214,9 +213,9 @@ void addSyncDir(int dirSocket, user_t* user, struct in_addr ipAddr) {
     addNewSocketConn(user, dirSocket, ipAddr, false);
 
     if(user->watchDirThread.isThreadComplete) {
-        sem_wait(&user->userAccessSem);
+        pthread_mutex_lock(&user->userAccessSem);
         createWatchDir(user);
-        sem_post(&user->userAccessSem);
+        pthread_mutex_unlock(&user->userAccessSem);
     }
 }
 
@@ -245,10 +244,10 @@ user_list* findUser(char* username){
 
 void addNewSocketConn(user_t* user, int socket, struct in_addr ipAddr, bool isListener) {
 
-    sem_wait(&user->userAccessSem);
+    pthread_mutex_lock(&user->userAccessSem);
     socket_conn_list* newSocket = addSocket(user->syncSocketList, socket, ipAddr, isListener);
     if (user->syncSocketList == NULL) {
         user->syncSocketList = newSocket;
     }
-    sem_post(&user->userAccessSem);
+    pthread_mutex_unlock(&user->userAccessSem);
 }
