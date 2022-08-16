@@ -12,7 +12,6 @@
 #include<signal.h>
 #include<fcntl.h>
 #include "../server/server_functions.h"
-#include "../server/server_globals.h"
 struct stat info;
 time_t  epoch_time;
 // /home/augusto/repositorios/ufrgs/dropbox-sisop2/watch_folder/
