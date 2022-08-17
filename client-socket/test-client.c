@@ -207,6 +207,12 @@ void clientThread(int connfd)
     int n;
 
     for (;;) {
+
+        recv(connfd, buff, sizeof(buff), 0);
+        if(strcmp(buff, commands[WAITING]) != 0) {
+            printf("[clientThread] expected waiting command");
+        }
+
         bzero(userInput, sizeof(userInput));
         bzero(buff, sizeof(buff));
         printf("Enter the command:");
@@ -296,6 +302,13 @@ int main()
     write(sockfd, &endCommand, sizeof(endCommand));
 
     startListenSyncDir(servaddr.sin_addr);
+    bzero(buff, sizeof(buff));
+
+    recv(sockfd, buff, sizeof(buff), 0);
+    if(strcmp(buff, commands[WAITING]) != 0) {
+        printf("[clientThread] expected waiting command");
+    }
+
     if(downloadAll(sockfd) != 0) {
         return OUTOFSYNCERROR;
     }

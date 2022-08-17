@@ -16,6 +16,8 @@
 #define FILENAMESIZE 64
 #define KBYTE 1024
 #define BUFFERSIZE 30
+
+#define WAITING 7
 #define DOWNLOADALL 6
 #define DELETE 5
 #define EXIT 4
@@ -41,7 +43,7 @@
 static const char endCommand[] = "\nend\n";
 static const char continueCommand[] = "\ncontinue\n";
 
-static const char commands[7][13] = {"upload", "download", "list local", "sync", "exit", "delete", "download all"};
+static const char commands[8][13] = {"upload", "download", "list local", "sync", "exit", "delete", "download all", "waiting"};
 static const char socketTypes[3][13] = {"client", "syncdir", "synclisten"};
 
 typedef struct received_file_list {

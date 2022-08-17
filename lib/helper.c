@@ -132,6 +132,8 @@ int listenForSocketMessage(int socket, char* clientDirPath, user_t*  user, bool 
         bzero(currentCommand, sizeof(currentCommand));
         bzero(fileName, sizeof(fileName));
 
+        printf("\n[listenForSocketMessage] WAITING\n");
+        write(socket, &commands[WAITING], sizeof(commands[WAITING]));
 
         // read the message from client and copy it in buffer
         recv(socket, currentCommand, sizeof(currentCommand), 0);
@@ -147,6 +149,7 @@ int listenForSocketMessage(int socket, char* clientDirPath, user_t*  user, bool 
             }
             pthread_mutex_unlock(&user->userAccessSem);
             free(fileName);
+            printf("\n\b[listenForSocketMessage] finished upload\n\n");
         } else if(strcmp(currentCommand, commands[DOWNLOAD]) ==0 ) {
             recv(socket, fileName, sizeof(fileName), 0);
             pthread_mutex_lock(&user->userAccessSem);
@@ -160,11 +163,12 @@ int listenForSocketMessage(int socket, char* clientDirPath, user_t*  user, bool 
             pthread_mutex_lock(&user->userAccessSem);
             deleteFile(fileName, clientDirPath);
             write(socket, &endCommand, sizeof(endCommand));
+
             if(shouldBroadcast) {
                 broadCastDelete(user->syncSocketList, socket, fileName);
-
             }
             pthread_mutex_unlock(&user->userAccessSem);
+            printf("\n\b[listenForSocketMessage] finished delete\n\n");
         } else if(strcmp(currentCommand, commands[DOWNLOADALL]) ==0 ) {
             pthread_mutex_lock(&user->userAccessSem);
             uploadAllFiles(socket, clientDirPath);

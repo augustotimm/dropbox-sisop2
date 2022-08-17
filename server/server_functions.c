@@ -36,11 +36,13 @@ void upload(int socket, char* filePath, char* fileName) {
     write(socket, buff, strlen(buff));
 
     sendFile(socket, filePath);
-    printf("FILE %s was uploaded\n", fileName);
+    printf("FILE %s uploaded successfully\n", fileName);
 
 }
 
 char* download(int socket, char* path, received_file_list* list) {
+    printf("\ndownload start endC\n");
+
     write(socket, &endCommand, sizeof(endCommand));
     char fileName[FILENAMESIZE];
     bzero(fileName, sizeof(fileName));
@@ -84,7 +86,6 @@ int receiveFile(int socket, char* fileName) {
     if(recv(socket, &fileSize, sizeof(fileSize), 0) < 0) {
         printf("Failure receiving filesize\n");
     }
-    printf("File size: %d\n", fileSize);
 
     if (fileSize < 0)
     {
@@ -97,7 +98,6 @@ int receiveFile(int socket, char* fileName) {
 
     while(bytesLeft > 0)
     {
-        printf("bytes left: %d\n", bytesLeft);
         recv(socket, buff, KBYTE, 0);
 
         // escreve no arquivo os bytes lidos
@@ -113,6 +113,7 @@ int receiveFile(int socket, char* fileName) {
         bytesLeft -= KBYTE;
     }
     fclose(file);
+    printf("\nreceiveFile end endC\n");
     write(socket, endCommand, sizeof(endCommand));
 
     recv(socket, buff, KBYTE, 0);
@@ -122,7 +123,7 @@ int receiveFile(int socket, char* fileName) {
         return OUTOFSYNCERROR;
     }
 
-    printf("File %s has been downloaded\n\n", fileName);
+    printf("File %s downloaded successfully\n\n", fileName);
     return 0;
 }
 
@@ -212,11 +213,20 @@ int uploadAllFiles(int socket, char* path) {
 void broadCastFile(socket_conn_list* socketList, int forbiddenSocket, char* fileName, char* clientDirPath) {
     socket_conn_list *current = NULL, *tmp = NULL;
     char* filePath = strcatSafe(clientDirPath, fileName);
+    char buff[20];
+    bzero(buff, sizeof(buff));
     DL_FOREACH_SAFE(socketList, current, tmp) {
         if (socketList->listenerSocket != forbiddenSocket) {
+            recv(current->socket, buff, sizeof(buff), 0);
+            if(strcmp(buff, commands[WAITING]) != 0) {
+                printf("[clientThread] expected waiting command");
+            }
+
             write(current->socket, &commands[UPLOAD], sizeof(commands[UPLOAD]));
 
             upload(current->socket, filePath, fileName);
+
+
         }
     }
     free(filePath);
