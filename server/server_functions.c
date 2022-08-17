@@ -27,9 +27,10 @@ void upload(int socket, char* filePath, char* fileName) {
     if(strcmp(buff, endCommand) != 0) {
         write(socket, &endCommand, sizeof(endCommand));
         printf("Connection out of sync\n");
-        printf("Expected end command signal but received: %s\n\n", buff);
+        printf("[upload] Expected end command signal but received: %s\n\n", buff);
         return;
     }
+    bzero(buff, sizeof(buff));
     strcpy(buff, fileName);
 
     write(socket, buff, strlen(buff));
@@ -77,7 +78,7 @@ int receiveFile(int socket, char* fileName) {
         return OUTOFSYNCERROR;
     }
     write(socket, &commands[DOWNLOAD], sizeof(commands[DOWNLOAD]));
-bzero(buff, sizeof(buff));
+    bzero(buff, sizeof(buff));
 
 
     if(recv(socket, &fileSize, sizeof(fileSize), 0) < 0) {
@@ -117,7 +118,7 @@ bzero(buff, sizeof(buff));
     recv(socket, buff, KBYTE, 0);
     if(strcmp(buff, endCommand) != 0) {
         printf("Connection out of sync\n");
-        printf("Expected end command signal but received: %s\n\n", buff);
+        printf("[receiveFile] Expected end command signal but received: %s\n\n", buff);
         return OUTOFSYNCERROR;
     }
 
@@ -173,7 +174,7 @@ int sendFile(int socket, char* filepath) {
     recv(socket, buff, KBYTE, 0);
     if(strcmp(buff, endCommand) != 0) {
         printf("Connection out of sync\n");
-        printf("Expected end command signal but received: %s\n\n", buff);
+        printf("[sendFile] Expected end command signal but received: %s\n\n", buff);
         return OUTOFSYNCERROR;
     }
     write(socket, endCommand, sizeof(endCommand));
@@ -210,10 +211,13 @@ int uploadAllFiles(int socket, char* path) {
 
 void broadCastFile(socket_conn_list* socketList, int forbiddenSocket, char* fileName, char* path) {
     socket_conn_list *current = NULL, *tmp = NULL;
-
+    char* filePath = strcatSafe(path, fileName);
     DL_FOREACH_SAFE(socketList, current, tmp) {
         if (socketList->listenerSocket != forbiddenSocket) {
-            upload(current->socket, path, fileName);
+            write(current->socket, &commands[UPLOAD], sizeof(commands[UPLOAD]));
+
+            upload(current->socket, filePath, fileName);
         }
     }
+    free(filePath);
 }

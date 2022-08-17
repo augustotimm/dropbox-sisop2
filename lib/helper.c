@@ -146,6 +146,7 @@ int listenForSocketMessage(int socket, char* clientDirPath, user_t*  user, bool 
 
             }
             pthread_mutex_unlock(&user->userAccessSem);
+            free(fileName);
         } else if(strcmp(currentCommand, commands[DOWNLOAD]) ==0 ) {
             recv(socket, fileName, sizeof(fileName), 0);
             pthread_mutex_lock(&user->userAccessSem);

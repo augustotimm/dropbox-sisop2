@@ -52,7 +52,7 @@ void* clientListen(void* voidArg)
     recv(socket, currentCommand, sizeof(currentCommand), 0);
     if(strcmp(currentCommand, endCommand) != 0) {
         printf("Connection out of sync\n");
-        printf("Expected end command signal but received: %s\n\n", currentCommand);
+        printf("[clientListen] Expected end command signal but received: %s\n\n", currentCommand);
         return NULL;
     }
 
@@ -90,10 +90,10 @@ void* newConnection(void* arg) {
         connectUser(socket, username, sessionCode);
     }
     if(strcmp(newSocketType, socketTypes[SYNCSOCKET]) == 0) {
-        connectSyncDir(socket, newSocketType, sessionCode);
+        connectSyncDir(socket, username, sessionCode);
     }
     if(strcmp(newSocketType, socketTypes[SYNCLISTENSOCKET]) == 0) {
-        connectSyncListener(socket, newSocketType, sessionCode);
+        connectSyncListener(socket, username, sessionCode);
     }
 }
 

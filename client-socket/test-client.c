@@ -295,7 +295,7 @@ int main()
 
     write(sockfd, &endCommand, sizeof(endCommand));
 
-    //startListenSyncDir(servaddr.sin_addr);
+    startListenSyncDir(servaddr.sin_addr);
     if(downloadAll(sockfd) != 0) {
         return OUTOFSYNCERROR;
     }
