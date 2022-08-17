@@ -72,12 +72,11 @@ void* newConnection(void* arg) {
     struct new_connection_argument *argument = (struct new_connection_argument*) arg;
     int socket = argument->socket;
     char newSocketType[USERNAMESIZE];
-    char userName[USERNAMESIZE];
+    char username[USERNAMESIZE];
     bzero(newSocketType, sizeof(newSocketType));
     recv(socket, newSocketType, sizeof(newSocketType), 0);
     write(socket, &endCommand, sizeof(endCommand));
 
-    char username[USERNAMESIZE];
     bzero(username, USERNAMESIZE);
     recv(socket, username, USERNAMESIZE, 0);
     write(socket, &endCommand, sizeof(endCommand));

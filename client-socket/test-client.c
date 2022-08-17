@@ -49,12 +49,16 @@ void newConnection(int sockfd, int socketType){
     write(sockfd, &socketTypes[socketType], sizeof(socketTypes[socketType]));
     printf("username: %s\n", username);
     char endCommand[6];
+    bzero(endCommand, sizeof(endCommand));
+
     recv(sockfd, &endCommand, sizeof(endCommand), 0);
 
     write(sockfd, &username, sizeof(username));
+    bzero(endCommand, sizeof(endCommand));
     recv(sockfd, &endCommand, sizeof(endCommand), 0);
 
-    write(sockfd, &sessionCode, sizeof(sessionCode));
+    write(sockfd, sessionCode, strlen(sessionCode));
+    bzero(endCommand, sizeof(endCommand));
     recv(sockfd, &endCommand, sizeof(endCommand), 0);
 
 }
@@ -291,13 +295,13 @@ int main()
 
     write(sockfd, &endCommand, sizeof(endCommand));
 
-    startListenSyncDir(servaddr.sin_addr);
+    //startListenSyncDir(servaddr.sin_addr);
     if(downloadAll(sockfd) != 0) {
         return OUTOFSYNCERROR;
     }
 
 
-    startWatchDir(servaddr.sin_addr);
+    //startWatchDir(servaddr.sin_addr);
 
     // function for user commands
     clientThread(sockfd);
