@@ -14,7 +14,7 @@
 int getFileSize(FILE *ptrfile);
 time_t  modification;
 
-socket_conn_list* initSocketConnList(int socket, struct in_addr ipaddr, bool isClient) {
+socket_conn_list* initSocketConnList(int socket, char* sessionCode, bool isClient) {
     socket_conn_list* newElement = calloc(1, sizeof(socket_conn_list));
     if(isClient)
         newElement->listenerSocket = socket;
@@ -23,7 +23,9 @@ socket_conn_list* initSocketConnList(int socket, struct in_addr ipaddr, bool isC
 
     newElement->next = NULL;
     newElement->prev = NULL;
-    newElement->ipAddr = ipaddr;
+    newElement->sessionCode = calloc(strlen(sessionCode) + 1, sizeof(char));
+
+    strcpy(newElement->sessionCode, sessionCode);
 
     return newElement;
 }

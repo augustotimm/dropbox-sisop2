@@ -31,9 +31,9 @@ struct new_connection_argument {
     struct in_addr ipAddr;
 };
 
-void connectUser(int socket, struct in_addr ipAddr);
-int connectSyncDir(int socket, char* username, struct in_addr ipAddr);
-int connectSyncListener(int socket, char*username, struct in_addr ipAddr);
+void connectUser(int socket, char* username, char* sessionCode);
+int connectSyncDir(int socket, char* username, char* sessionCode);
+int connectSyncListener(int socket, char*username,  char* sessionCode);
 
 void* clientListen(void* voidArg)
 {
@@ -72,30 +72,33 @@ void* newConnection(void* arg) {
     struct new_connection_argument *argument = (struct new_connection_argument*) arg;
     int socket = argument->socket;
     char newSocketType[USERNAMESIZE];
+    char userName[USERNAMESIZE];
     bzero(newSocketType, sizeof(newSocketType));
     recv(socket, newSocketType, sizeof(newSocketType), 0);
+    write(socket, &endCommand, sizeof(endCommand));
+
+    char username[USERNAMESIZE];
+    bzero(username, USERNAMESIZE);
+    recv(socket, username, USERNAMESIZE, 0);
+    write(socket, &endCommand, sizeof(endCommand));
+
+    char sessionCode[USERNAMESIZE];
+    bzero(sessionCode, USERNAMESIZE);
+    recv(socket, sessionCode, USERNAMESIZE, 0);
+    write(socket, &endCommand, sizeof(endCommand));
+
     if(strcmp(newSocketType, socketTypes[CLIENTSOCKET]) == 0) {
-        connectUser(socket, argument->ipAddr);
+        connectUser(socket, username, sessionCode);
     }
     if(strcmp(newSocketType, socketTypes[SYNCSOCKET]) == 0) {
-        bzero(newSocketType, USERNAMESIZE);
-        write(socket, &endCommand, sizeof(endCommand));
-
-        // get username to find in connected usersList
-        recv(socket, newSocketType, USERNAMESIZE, 0);
-        connectSyncDir(socket, newSocketType, argument->ipAddr);
-
+        connectSyncDir(socket, newSocketType, sessionCode);
     }
     if(strcmp(newSocketType, socketTypes[SYNCLISTENSOCKET]) == 0) {
-        bzero(newSocketType, USERNAMESIZE);
-        write(socket, &endCommand, sizeof(endCommand));
-
-        recv(socket, newSocketType, USERNAMESIZE, 0);
-        connectSyncListener(socket, newSocketType, argument->ipAddr);
+        connectSyncListener(socket, newSocketType, sessionCode);
     }
 }
 
-int connectSyncListener(int socket, char*username, struct in_addr ipAddr) {
+int connectSyncListener(int socket, char*username, char* sessionCode) {
     sem_t *syncDirSem;
     char* path = strcatSafe(rootPath, username);
     char* dirPath = strcatSafe(path, "/");
@@ -104,14 +107,14 @@ int connectSyncListener(int socket, char*username, struct in_addr ipAddr) {
     user_list *user = findUser(username);
     syncDirSem = &user->user.userAccessSem;
 
-    addNewSocketConn(&user->user, socket, ipAddr, true);
+    addNewSocketConn(&user->user, socket, sessionCode, true);
 
 
     listenForSocketMessage(socket, dirPath, &user->user, true);
     close(socket);
 }
 
-int connectSyncDir(int socket, char* username, struct in_addr ipAddr) {
+int connectSyncDir(int socket, char* username, char* sessionCode) {
     user_list* user = findUser(username);
     if(user == NULL) {
         // sync dir connection of user logged out
@@ -119,16 +122,13 @@ int connectSyncDir(int socket, char* username, struct in_addr ipAddr) {
         return -1;
     }
     // uploadAllFiles(socket, &user->user);
-    addSyncDir(socket, &user->user, ipAddr);
+    addSyncDir(socket, &user->user, sessionCode);
 
 }
 
 
-void connectUser(int socket, struct in_addr ipAddr) {
-    char username[USERNAMESIZE];
-    bzero(username, USERNAMESIZE);
-    recv(socket, username, USERNAMESIZE, 0);
-    if(startUserSession(username, socket, ipAddr) != 0) {
+void connectUser(int socket, char* username, char* sessionCode) {
+    if(startUserSession(username, socket) != 0) {
         writeMessageToSocket(socket, "FALSE");
         close(socket);
     }

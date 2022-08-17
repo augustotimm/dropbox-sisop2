@@ -11,7 +11,7 @@
 
 void createWatchDir(user_t* user);
 void freeUserList(user_list* userList);
-socket_conn_list* addSocket(socket_conn_list* head, int socket, struct in_addr ipAddr, bool isListener);
+socket_conn_list* addSocket(socket_conn_list* head, int socket, char* sessionCode, bool isListener);
 
 int  userCompare(user_list* a, user_list* b) {
     return strcmp(a->user.username,b->user.username);
@@ -79,7 +79,7 @@ void freeUserList(user_list* userList){
     userList = NULL;
 }
 
-bool addSession(user_t* user, d_thread* clientThread){
+bool addSession(user_t* user, user_session_t* clientThread){
     int i = 0;
     while(i < USERSESSIONNUMBER) {
         if(isSessionAvailable(*user, i)){
@@ -105,7 +105,7 @@ client_thread_argument* createClientThreadArgument(bool* isThreadComplete, char*
 
 int startNewSession(user_list* user, int sessionSocket, char* userDirPath) {
     if(hasAvailableSession(user->user)) {
-        d_thread* newClientThread = (d_thread*) calloc(1, sizeof(d_thread));
+        user_session_t* newClientThread = (user_session_t*) calloc(1, sizeof(user_session_t));
         client_thread_argument* argument =
                 createClientThreadArgument(
                         &newClientThread->isThreadComplete,
@@ -146,7 +146,7 @@ user_list* createUser(char* username) {
     return newUser;
 }
 
-int startUserSession( char* username, int socket, struct in_addr ipAddr) {
+int startUserSession( char* username, int socket) {
     user_list* user = NULL;
     user_list etmp;
     char* userSafe = strcatSafe(username, "\0");
@@ -172,20 +172,17 @@ int startUserSession( char* username, int socket, struct in_addr ipAddr) {
 }
 
 int compareSocketConn(socket_conn_list* a, socket_conn_list* b) {
-    if(a->ipAddr.s_addr == b->ipAddr.s_addr)
-        return 0;
-    else
-        return -1;
+    return strcmp(a->sessionCode, b->sessionCode);
 }
 
-socket_conn_list* addSocket(socket_conn_list* head, int socket, struct in_addr ipAddr, bool isListener) {
+socket_conn_list* addSocket(socket_conn_list* head, int socket, char* sessionCode, bool isListener) {
     socket_conn_list *conn = NULL;
     socket_conn_list etmp;
-    etmp.ipAddr = ipAddr;
+    etmp.sessionCode = sessionCode;
     DL_SEARCH(head, conn, &etmp, compareSocketConn);
 
     if(conn == NULL) {
-        socket_conn_list *newElement = initSocketConnList(socket, ipAddr, isListener);
+        socket_conn_list *newElement = initSocketConnList(socket, sessionCode, isListener);
         DL_APPEND(head, newElement);
     }
     else {
@@ -200,8 +197,8 @@ socket_conn_list* addSocket(socket_conn_list* head, int socket, struct in_addr i
 
 }
 
-void addSyncDir(int dirSocket, user_t* user, struct in_addr ipAddr) {
-    addNewSocketConn(user, dirSocket, ipAddr, false);
+void addSyncDir(int dirSocket, user_t* user, char* sessionCode) {
+    addNewSocketConn(user, dirSocket, sessionCode, false);
 }
 
 user_list* findUser(char* username){
@@ -215,10 +212,10 @@ user_list* findUser(char* username){
     return user;
 }
 
-void addNewSocketConn(user_t* user, int socket, struct in_addr ipAddr, bool isListener) {
+void addNewSocketConn(user_t* user, int socket, char* sessionCode, bool isListener) {
 
     pthread_mutex_lock(&user->userAccessSem);
-    socket_conn_list* newSocket = addSocket(user->syncSocketList, socket, ipAddr, isListener);
+    socket_conn_list* newSocket = addSocket(user->syncSocketList, socket, sessionCode, isListener);
     if (user->syncSocketList == NULL) {
         user->syncSocketList = newSocket;
     }

@@ -12,8 +12,9 @@
 char username[USERNAMESIZE];
 
 void startWatchDir(struct in_addr ipAddr);
-void addSocketConn(int socket, struct in_addr ipAddr, bool isListener);
+void addSocketConn(int socket, bool isListener);
 int downloadAll(int socket);
+void rand_str(char *dest, size_t length);
 
 char path[KBYTE];
 char rootPath[KBYTE];
@@ -26,6 +27,7 @@ pthread_t listenSyncThread;
 received_file_list *filesReceived;
 
 socket_conn_list* socketConn = NULL;
+char* sessionCode;
 
 void clientUpload(int socket) {
 
@@ -48,7 +50,13 @@ void newConnection(int sockfd, int socketType){
     printf("username: %s\n", username);
     char endCommand[6];
     recv(sockfd, &endCommand, sizeof(endCommand), 0);
+
     write(sockfd, &username, sizeof(username));
+    recv(sockfd, &endCommand, sizeof(endCommand), 0);
+
+    write(sockfd, &sessionCode, sizeof(sessionCode));
+    recv(sockfd, &endCommand, sizeof(endCommand), 0);
+
 }
 
 int clientDownload(int socket) {
@@ -128,7 +136,7 @@ void startListenSyncDir(struct in_addr ipAddr) {
         printf("connected to the server..\n");
 
     newConnection(sockfd, SYNCSOCKET);
-    addSocketConn(sockfd, ipAddr, true);
+    addSocketConn(sockfd, true);
 
     int* newSocket = calloc(1, sizeof(int ));
     *newSocket = sockfd;
@@ -171,7 +179,7 @@ void startWatchDir(struct in_addr ipAddr) {
         printf("connected to the server..\n");
 
     newConnection(sockfd, SYNCLISTENSOCKET);
-    addSocketConn(sockfd, ipAddr, false);
+    addSocketConn(sockfd, false);
 
 
     pthread_t syncDirThread;
@@ -227,6 +235,9 @@ void clientThread(int connfd)
 
 int main()
 {
+    srand((unsigned int)(time(NULL)));
+    sessionCode = calloc(20, sizeof(char));
+    rand_str(sessionCode, 18);
     int sockfd;
     struct sockaddr_in servaddr;
     pthread_mutex_init(&syncDirSem, NULL);
@@ -237,6 +248,10 @@ int main()
     printf("Insira o caminho para a pasta sync_dir\n");
     fgets(path, sizeof(path), stdin);
     path[strcspn(path, "\n")] = 0;
+
+    printf("Enter username: ");
+    fgets(username, USERNAMESIZE, stdin);
+    username[strcspn(username, "\n")] = 0;
 
     // socket create and verification
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -266,21 +281,11 @@ int main()
     else
         printf("Connected to the server..\n");
 
-    char userInput[MAX];
-    char buff[MAX];
-    bzero(username, sizeof(username));
+    newConnection(sockfd, CLIENTSOCKET);
+
+
+    char buff[USERNAMESIZE];
     bzero(buff, sizeof(buff));
-    int n;
-
-    write(sockfd, &socketTypes[CLIENTSOCKET], sizeof(socketTypes[CLIENTSOCKET]));
-
-
-
-    printf("Enter username: ");
-    fgets(username, USERNAMESIZE, stdin);
-    username[strcspn(username, "\n")] = 0;
-    write(sockfd, &username, sizeof(username));
-
     recv(sockfd, buff, sizeof(buff), 0);
     printf("SERVER CONNECTION STATUS: %s\n", buff);
 
@@ -301,10 +306,10 @@ int main()
     close(sockfd);
 }
 
-void addSocketConn(int socket, struct in_addr ipAddr, bool isListener) {
+void addSocketConn(int socket,  bool isListener) {
     pthread_mutex_lock(&syncDirSem);
     if(socketConn == NULL) {
-        socketConn = initSocketConnList(socket, ipAddr, isListener);
+        socketConn = initSocketConnList(socket, sessionCode, isListener);
     }
     else {
         if(isListener) {
@@ -338,4 +343,16 @@ int downloadAll(int socket) {
             return OUTOFSYNCERROR;
         }
     }
+}
+
+void rand_str(char *dest, size_t length) {
+    char charset[] = "0123456789"
+                     "abcdefghijklmnopqrstuvwxyz"
+                     "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+    while (length-- > 0) {
+        size_t index = (double) rand() / RAND_MAX * (sizeof charset - 1);
+        *dest++ = charset[index];
+    }
+    *dest = '\0';
 }

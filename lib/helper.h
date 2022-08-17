@@ -50,20 +50,20 @@ typedef struct received_file_list {
     struct received_file_list *next, *prev;
 } received_file_list;
 
-typedef struct d_thread {
+typedef struct user_session_t {
     pthread_t thread;
     bool isThreadComplete;
-} d_thread;
+} user_session_t;
 
 typedef struct socket_conn_list {
     int socket;
     int listenerSocket;
-    struct in_addr ipAddr;
+    char* sessionCode;
     struct socket_conn_list *prev, *next;
 } socket_conn_list;
 
 typedef struct user_t {
-    d_thread* clientThread[USERSESSIONNUMBER];
+    user_session_t* clientThread[USERSESSIONNUMBER];
     pthread_mutex_t userAccessSem;
     socket_conn_list* syncSocketList;
     char* username;
@@ -101,7 +101,7 @@ typedef struct file_info_list {
 } file_info_list;
 
 char* strcatSafe(char* head, char* tail);
-socket_conn_list* initSocketConnList(int socket, struct in_addr ipaddr, bool isClient);
+socket_conn_list* initSocketConnList(int socket, char* sessionCode, bool isClient);
 
 //server comunication functions
 int listenForSocketMessage(int socket, char* clientDirPath, user_t*  user, bool shouldBroadcast);
