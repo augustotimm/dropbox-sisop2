@@ -15,5 +15,5 @@ int sendFile(int socket, char* filepath);
 int receiveFile(int socket, char* fileName);
 int uploadAllFiles(int socket, char* dirPath);
 void broadCastFile(socket_conn_list* socketList, int forbiddenSocket, char* fileName, char* path);
-
+void broadCastDelete(socket_conn_list* socketList, int forbiddenSocket, char* fileName);
 #endif //DROPBOX_SISOP2_SERVER_FUNCTIONS_H

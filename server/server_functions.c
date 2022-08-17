@@ -209,9 +209,9 @@ int uploadAllFiles(int socket, char* path) {
 
 }
 
-void broadCastFile(socket_conn_list* socketList, int forbiddenSocket, char* fileName, char* path) {
+void broadCastFile(socket_conn_list* socketList, int forbiddenSocket, char* fileName, char* clientDirPath) {
     socket_conn_list *current = NULL, *tmp = NULL;
-    char* filePath = strcatSafe(path, fileName);
+    char* filePath = strcatSafe(clientDirPath, fileName);
     DL_FOREACH_SAFE(socketList, current, tmp) {
         if (socketList->listenerSocket != forbiddenSocket) {
             write(current->socket, &commands[UPLOAD], sizeof(commands[UPLOAD]));
@@ -220,4 +220,15 @@ void broadCastFile(socket_conn_list* socketList, int forbiddenSocket, char* file
         }
     }
     free(filePath);
+}
+
+void broadCastDelete(socket_conn_list* socketList, int forbiddenSocket, char* fileName) {
+    socket_conn_list *current = NULL, *tmp = NULL;
+    DL_FOREACH_SAFE(socketList, current, tmp) {
+        if (current->listenerSocket != forbiddenSocket) {
+            write(current->socket, &commands[DELETE], sizeof(commands[DELETE]));
+            write(current->socket, fileName, strlen(fileName));
+
+        }
+    }
 }

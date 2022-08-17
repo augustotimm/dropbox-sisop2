@@ -160,6 +160,10 @@ int listenForSocketMessage(int socket, char* clientDirPath, user_t*  user, bool 
             pthread_mutex_lock(&user->userAccessSem);
             deleteFile(fileName, clientDirPath);
             write(socket, &endCommand, sizeof(endCommand));
+            if(shouldBroadcast) {
+                broadCastDelete(user->syncSocketList, socket, fileName);
+
+            }
             pthread_mutex_unlock(&user->userAccessSem);
         } else if(strcmp(currentCommand, commands[DOWNLOADALL]) ==0 ) {
             pthread_mutex_lock(&user->userAccessSem);

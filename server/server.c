@@ -98,13 +98,11 @@ void* newConnection(void* arg) {
 }
 
 int connectSyncListener(int socket, char*username, char* sessionCode) {
-    sem_t *syncDirSem;
     char* path = strcatSafe(rootPath, username);
     char* dirPath = strcatSafe(path, "/");
     free(path);
 
     user_list *user = findUser(username);
-    syncDirSem = &user->user.userAccessSem;
 
     addNewSocketConn(&user->user, socket, sessionCode, true);
 
