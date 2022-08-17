@@ -91,7 +91,12 @@ void list_local(char * pathname) {
 void* listenSyncDir(void* args) {
     int socket = *(int*)args;
     free(args);
-    listenForSocketMessage(socket, path, &syncDirSem, filesReceived);
+    user_t *clientUser = calloc(1, sizeof(user_t));
+    clientUser->syncSocketList = socketConn;
+    clientUser->userAccessSem = syncDirSem;
+    clientUser->filesReceived = filesReceived;
+    clientUser->username = username;
+    listenForSocketMessage(socket, path, clientUser, false);
     close(socket);
 }
 
@@ -111,7 +116,7 @@ void startListenSyncDir(struct in_addr ipAddr) {
 
     // assign IP, PORT
     servaddr.sin_family = AF_INET;
-    servaddr.sin_addr.s_addr = inet_addr("127.0.0.1");
+    servaddr.sin_addr = ipAddr;
     servaddr.sin_port = htons(SYNCPORT);
 
     // connect the client socket to server socket

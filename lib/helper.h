@@ -64,7 +64,6 @@ typedef struct socket_conn_list {
 
 typedef struct user_t {
     d_thread* clientThread[USERSESSIONNUMBER];
-    d_thread watchDirThread;
     pthread_mutex_t userAccessSem;
     socket_conn_list* syncSocketList;
     char* username;
@@ -86,8 +85,7 @@ typedef struct client_thread_argument {
     bool* isThreadComplete;
     int socket;
     char* clientDirPath;
-    pthread_mutex_t* userAccessSem;
-    received_file_list *filesReceived;
+    user_t* user;
 } client_thread_argument;
 
 typedef struct file_info {
@@ -106,7 +104,7 @@ char* strcatSafe(char* head, char* tail);
 socket_conn_list* initSocketConnList(int socket, struct in_addr ipaddr, bool isClient);
 
 //server comunication functions
-int listenForSocketMessage(int socket, char* clientDirPath, pthread_mutex_t* dirSem, received_file_list* list);
+int listenForSocketMessage(int socket, char* clientDirPath, user_t*  user, bool shouldBroadcast);
 
 
 //file information functions

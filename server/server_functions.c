@@ -39,7 +39,7 @@ void upload(int socket, char* filePath, char* fileName) {
 
 }
 
-void download(int socket, char* path, received_file_list* list) {
+char* download(int socket, char* path, received_file_list* list) {
     write(socket, &endCommand, sizeof(endCommand));
     char fileName[FILENAMESIZE];
     bzero(fileName, sizeof(fileName));
@@ -47,7 +47,7 @@ void download(int socket, char* path, received_file_list* list) {
     if(strcmp(fileName, endCommand) == 0) {
         printf("Connection out of sync\n");
         printf("Expected filename but received: endCommand\n\n");
-        return;
+        return NULL;
     }
 
 
@@ -57,10 +57,11 @@ void download(int socket, char* path, received_file_list* list) {
         DL_APPEND(list, newFile);
     }
     free(filePath);
+    char *returnFileName = calloc(strlen(fileName) + 1, sizeof(char));
+    strcpy(returnFileName, fileName);
 
+    return returnFileName;
 }
-
-
 
 int receiveFile(int socket, char* fileName) {
     int fileSize, bytesLeft;
@@ -180,7 +181,6 @@ int sendFile(int socket, char* filepath) {
     return 0;
 }
 
-
 void list() {
     printf("list function");
 }
@@ -206,4 +206,14 @@ int uploadAllFiles(int socket, char* path) {
     }
     write(socket, &commands[EXIT], sizeof(commands[EXIT]));
 
+}
+
+void broadCastFile(socket_conn_list* socketList, int forbiddenSocket, char* fileName, char* path) {
+    socket_conn_list *current = NULL, *tmp = NULL;
+
+    DL_FOREACH_SAFE(socketList, current, tmp) {
+        if (socketList->listenerSocket != forbiddenSocket) {
+            upload(current->socket, path, fileName);
+        }
+    }
 }

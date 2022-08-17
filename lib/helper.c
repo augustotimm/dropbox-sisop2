@@ -122,7 +122,7 @@ void deleteFile(char* filename, char* path) {
     }
 }
 
-int listenForSocketMessage(int socket, char* clientDirPath, pthread_mutex_t* dirSem, received_file_list* filesList) {
+int listenForSocketMessage(int socket, char* clientDirPath, user_t*  user, bool shouldBroadcast) {
     char currentCommand[13];
     char fileName[FILENAMESIZE];
 
@@ -134,27 +134,34 @@ int listenForSocketMessage(int socket, char* clientDirPath, pthread_mutex_t* dir
         // read the message from client and copy it in buffer
         recv(socket, currentCommand, sizeof(currentCommand), 0);
         if(strcmp(currentCommand, commands[UPLOAD]) ==0 ) {
-            pthread_mutex_lock(dirSem);
-            download(socket, clientDirPath, filesList);
-            pthread_mutex_unlock(dirSem);
+            pthread_mutex_lock(&user->userAccessSem);
+            char* fileName = download(socket, clientDirPath, user->filesReceived);
+            if(fileName == NULL) {
+                break;
+            }
+            if(shouldBroadcast) {
+                broadCastFile(user->syncSocketList, socket, fileName, clientDirPath);
+
+            }
+            pthread_mutex_unlock(&user->userAccessSem);
         } else if(strcmp(currentCommand, commands[DOWNLOAD]) ==0 ) {
             recv(socket, fileName, sizeof(fileName), 0);
-            pthread_mutex_lock(dirSem);
+            pthread_mutex_lock(&user->userAccessSem);
             char* filePath = strcatSafe(clientDirPath, fileName);
             upload(socket, filePath, fileName);
-            pthread_mutex_unlock(dirSem);
+            pthread_mutex_unlock(&user->userAccessSem);
         } else if(strcmp(currentCommand, commands[LIST]) ==0 ) {
             list();
         } else if(strcmp(currentCommand, commands[DELETE]) ==0 ) {
             recv(socket, fileName, sizeof(fileName), 0);
-            pthread_mutex_lock(dirSem);
+            pthread_mutex_lock(&user->userAccessSem);
             deleteFile(fileName, clientDirPath);
             write(socket, &endCommand, sizeof(endCommand));
-            pthread_mutex_unlock(dirSem);
+            pthread_mutex_unlock(&user->userAccessSem);
         } else if(strcmp(currentCommand, commands[DOWNLOADALL]) ==0 ) {
-            pthread_mutex_lock(dirSem);
+            pthread_mutex_lock(&user->userAccessSem);
             uploadAllFiles(socket, clientDirPath);
-            pthread_mutex_unlock(dirSem);
+            pthread_mutex_unlock(&user->userAccessSem);
         }
 
         if (strcmp(currentCommand, commands[EXIT]) == 0 || *currentCommand == "\0") {
@@ -162,7 +169,7 @@ int listenForSocketMessage(int socket, char* clientDirPath, pthread_mutex_t* dir
             return 0;
         }
     }
-
+    return -1;
 }
 
 struct tm  iso8601ToTM(char* timestamp) {

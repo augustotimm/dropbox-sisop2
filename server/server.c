@@ -56,7 +56,7 @@ void* clientListen(void* voidArg)
         return NULL;
     }
 
-    listenForSocketMessage(socket, path, argument->userAccessSem, argument->filesReceived);
+    listenForSocketMessage(socket, path, argument->user, true);
 
     printf("Server Exiting socket: %d\n", socket);
     close(socket);
@@ -107,7 +107,7 @@ int connectSyncListener(int socket, char*username, struct in_addr ipAddr) {
     addNewSocketConn(&user->user, socket, ipAddr, true);
 
 
-    listenForSocketMessage(socket, dirPath, syncDirSem, user->user.filesReceived);
+    listenForSocketMessage(socket, dirPath, &user->user, true);
     close(socket);
 }
 
