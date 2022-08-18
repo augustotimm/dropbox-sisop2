@@ -138,7 +138,7 @@ int listenForSocketMessage(int socket, char* clientDirPath, user_t*  user, bool 
         // read the message from client and copy it in buffer
         recv(socket, currentCommand, sizeof(currentCommand), 0);
         if(strcmp(currentCommand, commands[UPLOAD]) ==0 ) {
-            pthread_mutex_lock(&user->userAccessSem);
+            pthread_mutex_lock(user->userAccessSem);
             char* fileName = download(socket, clientDirPath, user->filesReceived, !shouldBroadcast);
             if(fileName == NULL) {
                 break;
@@ -147,32 +147,32 @@ int listenForSocketMessage(int socket, char* clientDirPath, user_t*  user, bool 
                 broadCastFile(user->syncSocketList, socket, fileName, clientDirPath);
 
             }
-            pthread_mutex_unlock(&user->userAccessSem);
+            pthread_mutex_unlock(user->userAccessSem);
             free(fileName);
             printf("\n\n[listenForSocketMessage] finished upload\n\n");
         } else if(strcmp(currentCommand, commands[DOWNLOAD]) ==0 ) {
             recv(socket, fileName, sizeof(fileName), 0);
-            pthread_mutex_lock(&user->userAccessSem);
+            pthread_mutex_lock(user->userAccessSem);
             char* filePath = strcatSafe(clientDirPath, fileName);
             upload(socket, filePath, fileName);
-            pthread_mutex_unlock(&user->userAccessSem);
+            pthread_mutex_unlock(user->userAccessSem);
         } else if(strcmp(currentCommand, commands[LIST]) ==0 ) {
             list();
         } else if(strcmp(currentCommand, commands[DELETE]) ==0 ) {
             recv(socket, fileName, sizeof(fileName), 0);
-            pthread_mutex_lock(&user->userAccessSem);
+            pthread_mutex_lock(user->userAccessSem);
             deleteFile(fileName, clientDirPath);
             write(socket, &endCommand, sizeof(endCommand));
 
             if(shouldBroadcast) {
                 broadCastDelete(user->syncSocketList, socket, fileName);
             }
-            pthread_mutex_unlock(&user->userAccessSem);
+            pthread_mutex_unlock(user->userAccessSem);
             printf("\n\b[listenForSocketMessage] finished delete\n\n");
         } else if(strcmp(currentCommand, commands[DOWNLOADALL]) ==0 ) {
-            pthread_mutex_lock(&user->userAccessSem);
+            pthread_mutex_lock(user->userAccessSem);
             uploadAllFiles(socket, clientDirPath);
-            pthread_mutex_unlock(&user->userAccessSem);
+            pthread_mutex_unlock(user->userAccessSem);
         }
 
         if (strcmp(currentCommand, commands[EXIT]) == 0 || strlen(currentCommand) == 0) {
@@ -217,8 +217,4 @@ void freeFileInfo(file_info info) {
     free(info.lastModificationDate);
     free(info.lastAccessDate);
     free(info.lastChangeDate);
-}
-
-bool checkFileExists(char* filePath) {
-    return access(filePath, F_OK) == 0;
 }

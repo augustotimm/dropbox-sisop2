@@ -66,7 +66,7 @@ typedef struct socket_conn_list {
 
 typedef struct user_t {
     user_session_t* clientThread[USERSESSIONNUMBER];
-    pthread_mutex_t userAccessSem;
+    pthread_mutex_t* userAccessSem;
     socket_conn_list* syncSocketList;
     char* username;
     // first element can never be null

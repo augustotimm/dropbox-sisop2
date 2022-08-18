@@ -105,7 +105,7 @@ void* listenSyncDir(void* args) {
     free(args);
     user_t *clientUser = calloc(1, sizeof(user_t));
     clientUser->syncSocketList = socketConn;
-    clientUser->userAccessSem = syncDirSem;
+    clientUser->userAccessSem = &syncDirSem;
     clientUser->filesReceived = filesReceived;
     clientUser->username = username;
     listenForSocketMessage(socket, path, clientUser, false);

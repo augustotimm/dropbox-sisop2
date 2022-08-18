@@ -50,6 +50,9 @@ bool hasAvailableSession(user_t user) {
 void freeUser(user_t* user) {
     free(user->username);
     user->username = NULL;
+
+    free(user->userAccessSem);
+
     for(int i = 0; i < USERSESSIONNUMBER; i++ ) {
         free(user->clientThread[i]);
         user->clientThread[i] = NULL;
@@ -136,8 +139,9 @@ user_list* createUser(char* username) {
     newUser->user.syncSocketList = NULL;
     newUser->user.filesReceived = NULL;
 
+    newUser->user.userAccessSem = calloc(1, sizeof(pthread_mutex_t));
     newUser->user.username = (char*) calloc(strlen(username) + 1, sizeof(char));
-    pthread_mutex_init(&newUser->user.userAccessSem, NULL);
+    pthread_mutex_init(newUser->user.userAccessSem, NULL);
     strcpy(newUser->user.username, username);
 
     return newUser;
@@ -158,13 +162,13 @@ int startUserSession( char* username, int socket) {
         user = newUser;
     }
     pthread_mutex_unlock(&connectedUsersMutex);
-    pthread_mutex_lock(&user->user.userAccessSem);
+    pthread_mutex_lock(user->user.userAccessSem);
 
 
     int result = startNewSession(user, socket, dirPath);
     free(dirPath);
     free(userSafe);
-    pthread_mutex_unlock(&newUser->user.userAccessSem);
+    pthread_mutex_unlock(user->user.userAccessSem);
     return result;
 }
 
@@ -211,10 +215,10 @@ user_list* findUser(char* username){
 
 void addNewSocketConn(user_t* user, int socket, char* sessionCode, bool isListener) {
 
-    pthread_mutex_lock(&user->userAccessSem);
+    pthread_mutex_lock(user->userAccessSem);
     socket_conn_list* newSocket = addSocket(user->syncSocketList, socket, sessionCode, isListener);
     if (user->syncSocketList == NULL) {
         user->syncSocketList = newSocket;
     }
-    pthread_mutex_unlock(&user->userAccessSem);
+    pthread_mutex_unlock(user->userAccessSem);
 }

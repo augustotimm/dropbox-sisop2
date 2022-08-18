@@ -143,7 +143,7 @@ int fileNameCompare(received_file_list* a, received_file_list* b) {
 
 
 int getSocketFromReceivedFile(received_file_list* head, char* fileName) {
-    received_file_list *tmp, *currentFile;
+    received_file_list *tmp = NULL, *currentFile = NULL;
     printf("received files:\n");
     DL_FOREACH_SAFE(head, currentFile, tmp ) {
         printf("file name: %s\n", currentFile->fileName);
