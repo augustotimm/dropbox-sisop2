@@ -76,6 +76,7 @@ void* watchDir(void* args){
 
         int i=0,length;
         char buffer[BUF_LEN];
+        char buff[20];
 
         /* Step 3. Read buffer*/
         length = read(fd,buffer,BUF_LEN);
@@ -85,17 +86,22 @@ void* watchDir(void* args){
             struct inotify_event *event = (struct inotify_event *) &buffer[i];
 
             if(event->len){
-                printf("EVENT MASK: %d\n", event->mask);
+                // printf("EVENT MASK: %d\n", event->mask);
                 pthread_mutex_lock(argument->userSem);
                 socket_conn_list* elt = NULL;
                 int receiverSocket = getSocketFromReceivedFile(argument->filesReceived, event->name);
                 int forbiddenSocket = findSyncDirSocket(argument->socketConnList, receiverSocket);
-                printf("forbidden socket: %d\n", forbiddenSocket);
+                // printf("forbidden socket: %d\n", forbiddenSocket);
                 if (event->mask & IN_CLOSE_WRITE || event->mask & IN_MOVED_TO) {
                     printf( "The file %s was created.\n", event->name );
 
                     DL_FOREACH(argument->socketConnList, elt) {
                         if(elt->socket != forbiddenSocket) {
+                            bzero(buff, sizeof(buff));
+                            recv(elt->socket, buff, sizeof(buff), 0);
+                            if(strcmp(buff, commands[WAITING]) != 0) {
+                                printf("\n[watchDir upload] expected waiting command received: %s\n", buff);
+                            }
                             printf("sending file %s to socket %d\n", event->name, elt->socket);
                             write(elt->socket, &commands[UPLOAD], sizeof(commands[UPLOAD]));
                             char* filePath = strcatSafe(pathToDir, event->name);
@@ -108,6 +114,11 @@ void* watchDir(void* args){
 
                     DL_FOREACH(argument->socketConnList, elt) {
                         printf( "The file %s was removed.\n", event->name );
+                        bzero(buff, sizeof(buff));
+                        recv(elt->socket, buff, sizeof(buff), 0);
+                        if(strcmp(buff, commands[WAITING]) != 0) {
+                            printf("\n[watchDir delete] expected waiting command received: %s\n", buff);
+                        }
                         if(elt->socket != forbiddenSocket) {
                             write(elt->socket, &commands[DELETE], sizeof(commands[DELETE]));
                             write(elt->socket, event->name, strlen(event->name));

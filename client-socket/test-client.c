@@ -314,7 +314,7 @@ int main()
     }
 
 
-    //startWatchDir(servaddr.sin_addr);
+    startWatchDir(servaddr.sin_addr);
 
     // function for user commands
     clientThread(sockfd);
@@ -352,7 +352,7 @@ int downloadAll(int socket) {
         // read the message from client and copy it in buffer
         recv(socket, currentCommand, sizeof(currentCommand), 0);
         if(strcmp(currentCommand, commands[UPLOAD]) ==0 ) {
-            download(socket, path, filesReceived);
+            download(socket, path, filesReceived, false);
         }else if (strcmp(currentCommand, commands[EXIT]) == 0 ) {
 
             return 0;

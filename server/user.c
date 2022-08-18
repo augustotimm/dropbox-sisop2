@@ -136,9 +136,6 @@ user_list* createUser(char* username) {
     newUser->user.syncSocketList = NULL;
     newUser->user.filesReceived = NULL;
 
-    DL_APPEND(newUser->user.filesReceived, createReceivedFile("\n", -1));
-
-
     newUser->user.username = (char*) calloc(strlen(username) + 1, sizeof(char));
     pthread_mutex_init(&newUser->user.userAccessSem, NULL);
     strcpy(newUser->user.username, username);

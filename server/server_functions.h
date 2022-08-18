@@ -7,7 +7,7 @@
 #define DROPBOX_SISOP2_SERVER_FUNCTIONS_H
 
 void upload(int socket, char* filePath, char* fileName);
-char* download(int socket, char* path, received_file_list* list);
+char* download(int socket, char* path, received_file_list* list, bool appendFile);
 
 void list();
 

@@ -139,7 +139,7 @@ int listenForSocketMessage(int socket, char* clientDirPath, user_t*  user, bool 
         recv(socket, currentCommand, sizeof(currentCommand), 0);
         if(strcmp(currentCommand, commands[UPLOAD]) ==0 ) {
             pthread_mutex_lock(&user->userAccessSem);
-            char* fileName = download(socket, clientDirPath, user->filesReceived);
+            char* fileName = download(socket, clientDirPath, user->filesReceived, !shouldBroadcast);
             if(fileName == NULL) {
                 break;
             }
@@ -149,7 +149,7 @@ int listenForSocketMessage(int socket, char* clientDirPath, user_t*  user, bool 
             }
             pthread_mutex_unlock(&user->userAccessSem);
             free(fileName);
-            printf("\n\b[listenForSocketMessage] finished upload\n\n");
+            printf("\n\n[listenForSocketMessage] finished upload\n\n");
         } else if(strcmp(currentCommand, commands[DOWNLOAD]) ==0 ) {
             recv(socket, fileName, sizeof(fileName), 0);
             pthread_mutex_lock(&user->userAccessSem);

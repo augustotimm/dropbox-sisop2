@@ -40,7 +40,7 @@ void upload(int socket, char* filePath, char* fileName) {
 
 }
 
-char* download(int socket, char* path, received_file_list* list) {
+char* download(int socket, char* path, received_file_list* list, bool appendFile) {
     printf("\ndownload start endC\n");
 
     write(socket, &endCommand, sizeof(endCommand));
@@ -55,7 +55,7 @@ char* download(int socket, char* path, received_file_list* list) {
 
 
     char* filePath = strcatSafe(path, fileName);
-    if(receiveFile(socket, filePath) == 0) {
+    if(receiveFile(socket, filePath) == 0 && appendFile) {
         received_file_list* newFile = createReceivedFile(fileName, socket);
         DL_APPEND(list, newFile);
     }
@@ -234,8 +234,14 @@ void broadCastFile(socket_conn_list* socketList, int forbiddenSocket, char* file
 
 void broadCastDelete(socket_conn_list* socketList, int forbiddenSocket, char* fileName) {
     socket_conn_list *current = NULL, *tmp = NULL;
+    char buff[20];
+    bzero(buff, sizeof(buff));
     DL_FOREACH_SAFE(socketList, current, tmp) {
         if (current->listenerSocket != forbiddenSocket) {
+            recv(current->socket, buff, sizeof(buff), 0);
+            if(strcmp(buff, commands[WAITING]) != 0) {
+                printf("[clientThread] expected waiting command");
+            }
             write(current->socket, &commands[DELETE], sizeof(commands[DELETE]));
             write(current->socket, fileName, strlen(fileName));
 
