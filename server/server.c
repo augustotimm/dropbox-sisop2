@@ -11,6 +11,7 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <pthread.h>
+#include <signal.h>
 #include "user.h"
 #include "server_functions.h"
 
@@ -324,6 +325,7 @@ void* syncDirListenerConn(void* args) {
 
 int main()
 {
+    sigaction(SIGPIPE, &(struct sigaction){SIG_IGN}, NULL);
     bzero(rootPath, sizeof(rootPath));
     printf("Insira o caminho para a pasta raiz onde ficarão as pastas de usuários\n");
     fgets(rootPath, sizeof(rootPath), stdin);

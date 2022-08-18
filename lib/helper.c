@@ -175,7 +175,7 @@ int listenForSocketMessage(int socket, char* clientDirPath, user_t*  user, bool 
             pthread_mutex_unlock(&user->userAccessSem);
         }
 
-        if (strcmp(currentCommand, commands[EXIT]) == 0 || *currentCommand == "\0") {
+        if (strcmp(currentCommand, commands[EXIT]) == 0 || strlen(currentCommand) == 0) {
 
             return 0;
         }
