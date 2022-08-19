@@ -125,7 +125,7 @@ int receiveFile(int socket, char* fileName) {
         }
         // decrementa a quantidade de bytes lidos
         bytesLeft -= KBYTE;
-        printf("bytes left: %d\n", bytesLeft);
+        // printf("bytes left: %d\n", bytesLeft);
     }
     fclose(file);
     printf("\nreceiveFile end endC\n");

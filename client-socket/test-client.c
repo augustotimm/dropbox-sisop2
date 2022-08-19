@@ -65,17 +65,37 @@ void newConnection(int sockfd, int socketType){
 
 int clientDownload(int socket) {
     write(socket, &commands[DOWNLOAD], sizeof(commands[DOWNLOAD]));
+    char filePath[KBYTE];
+    char receivingFileName[FILENAMESIZE];
 
     printf("File name to download:\n");
     char fileName[FILENAMESIZE];
     fgets(fileName, sizeof(fileName), stdin);
     fileName[strcspn(fileName, "\n")] = 0;
+    bzero(filePath, sizeof(filePath));
+
+    printf("Insert file path:\n");
+    fgets(filePath, sizeof(filePath), stdin);
+    filePath[strcspn(filePath, "\n")] = 0;
+
     write(socket, fileName, strlen(fileName));
-    char* filePath = strcatSafe(path, fileName);
-    receiveFile(socket, filePath);
+
+    char* filePathName = strcatSafe(filePath, fileName);
+
+    write(socket, &endCommand, sizeof(endCommand));
+
+    bzero(receivingFileName, sizeof(receivingFileName));
+    recv(socket, receivingFileName, sizeof(receivingFileName), 0);
+
+    if(strcmp(fileName, endCommand) == 0) {
+        printf("Connection out of sync\n");
+        printf("Expected filename but received: endCommand\n\n");
+        return NULL;
+    }
+    receiveFile(socket, filePathName);
 
 
-    free(filePath);
+    free(filePathName);
 }
 
 int clientDelete(int socket) {
