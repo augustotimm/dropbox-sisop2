@@ -145,7 +145,7 @@ int receiveFile(int socket, char* fileName) {
 int sendFile(int socket, char* filepath) {
     int fileSize, byteCount;
     FILE* file;
-    char* buff = calloc(KBYTE, sizeof(char));
+    char buff[KBYTE];
     bzero(buff, strlen(buff));
 
     printf("sending file: %s\n", filepath);
@@ -171,16 +171,19 @@ int sendFile(int socket, char* filepath) {
 
         while(!feof(file) && fileSize > 0)
         {
+            byteCount = -1;
+
             bzero(buff, sizeof(buff));
 
             fread(buff, KBYTE, 1, file);
 
             byteCount = write(socket, buff, KBYTE);
 
-            if(byteCount < 0)
+            if(byteCount < 0) {
                 printf("ERROR sending file\n");
                 printf("byteCount: %d\n\n");
                 return -1;
+            }
         }
         fclose(file);
     }
@@ -198,7 +201,6 @@ int sendFile(int socket, char* filepath) {
         return OUTOFSYNCERROR;
     }
     write(socket, endCommand, sizeof(endCommand));
-    free(buff);
     return 0;
 }
 
