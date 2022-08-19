@@ -70,6 +70,7 @@ int receiveFile(int socket, char* fileName) {
     int fileSize, bytesLeft;
     FILE* file;
     char buff[KBYTE];
+    char message[KBYTE];
     bzero(buff, sizeof(buff));
 
     recv(socket, buff, KBYTE, 0);
@@ -95,22 +96,36 @@ int receiveFile(int socket, char* fileName) {
     file = fopen(fileName, "wb");
 
     bytesLeft = fileSize;
-
+    int byteCount = 0;
+    int bytesRead = 0;
     while(bytesLeft > 0)
     {
-        recv(socket, buff, KBYTE, 0);
+        bzero(message, sizeof(message));
+        byteCount = 0;
+        while((byteCount < KBYTE && bytesLeft >= KBYTE) || (bytesLeft < KBYTE && byteCount < bytesLeft)){
+            bytesRead = 0;
+            bzero(buff, sizeof(buff));
+            bytesRead = recv(socket, buff, KBYTE - byteCount, 0);
+
+            for( int i = 0; i < bytesRead; i++) {
+                message[byteCount + i] = buff[i];
+            }
+            byteCount += bytesRead;
+
+        }
 
         // escreve no arquivo os bytes lidos
         if(bytesLeft > KBYTE)
         {
-            fwrite(buff, KBYTE, 1, file);
+            fwrite(message, KBYTE, 1, file);
         }
         else
         {
-            fwrite(buff, bytesLeft, 1, file);
+            fwrite(message, bytesLeft, 1, file);
         }
         // decrementa a quantidade de bytes lidos
         bytesLeft -= KBYTE;
+        printf("bytes left: %d\n", bytesLeft);
     }
     fclose(file);
     printf("\nreceiveFile end endC\n");
@@ -156,12 +171,16 @@ int sendFile(int socket, char* filepath) {
 
         while(!feof(file) && fileSize > 0)
         {
+            bzero(buff, sizeof(buff));
+
             fread(buff, KBYTE, 1, file);
 
             byteCount = write(socket, buff, KBYTE);
 
             if(byteCount < 0)
                 printf("ERROR sending file\n");
+                printf("byteCount: %d\n\n");
+                return -1;
         }
         fclose(file);
     }
