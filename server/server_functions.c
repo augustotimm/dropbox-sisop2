@@ -237,7 +237,7 @@ void broadCastFile(socket_conn_list* socketList, int forbiddenSocket, char* file
     char buff[20];
     bzero(buff, sizeof(buff));
     DL_FOREACH_SAFE(socketList, current, tmp) {
-        if (socketList->listenerSocket != forbiddenSocket) {
+        if (current->listenerSocket != forbiddenSocket) {
             recv(current->socket, buff, sizeof(buff), 0);
             if(strcmp(buff, commands[WAITING]) != 0) {
                 printf("[clientThread] expected waiting command");
