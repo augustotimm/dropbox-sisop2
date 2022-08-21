@@ -18,7 +18,6 @@
 #define MAX 2048
 
 #include <unistd.h>
-#include "server_globals.h"
 
 
 user_list* connectedUserListHead = NULL;

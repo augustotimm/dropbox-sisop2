@@ -6,7 +6,6 @@
 #include "server.h"
 #include <string.h>
 #include "../file-control/file-handler.h"
-#include "server_globals.h"
 #define OUTOFSESSION -90
 
 void createWatchDir(user_t* user);

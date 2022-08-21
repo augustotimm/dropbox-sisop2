@@ -20,9 +20,6 @@ char path[KBYTE];
 char rootPath[KBYTE];
 
 pthread_mutex_t syncDirSem;
-
-int listenerSocket;
-
 pthread_t listenSyncThread;
 received_file_list *filesReceived;
 
