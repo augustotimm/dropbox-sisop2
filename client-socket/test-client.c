@@ -161,7 +161,6 @@ void startListenSyncDir(struct in_addr ipAddr) {
 
     int* newSocket = calloc(1, sizeof(int ));
     *newSocket = sockfd;
-    listenerSocket = sockfd;
     int created = pthread_create(&listenSyncThread, NULL, listenSyncDir, newSocket);
     pthread_detach(listenSyncThread);
     if(created != 0) {
