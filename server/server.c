@@ -7,6 +7,7 @@
 #include <netdb.h>
 #include <netinet/in.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <string.h>
 #include <sys/socket.h>
 #include <sys/types.h>
@@ -14,13 +15,17 @@
 #include <signal.h>
 #include "user.h"
 #include "server_functions.h"
+#include "./replica-manager/replica-manager.h"
+
+
 
 #define MAX 2048
 
-#include <unistd.h>
 
 
 user_list* connectedUserListHead = NULL;
+replica_info_list* replicaList = NULL;
+
 char rootPath[KBYTE];
 
 pthread_cond_t closedUserConnection;
@@ -329,6 +334,9 @@ int main()
     printf("Insira o caminho para a pasta raiz onde ficarão as pastas de usuários\n");
     fgets(rootPath, sizeof(rootPath), stdin);
     rootPath[strcspn(rootPath, "\n")] = 0;
+    replicaList = readConfig( rootPath);
+    exit(0);
+
 
     connectedUserListHead = NULL;
 

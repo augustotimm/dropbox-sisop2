@@ -13,7 +13,7 @@
 #include <netinet/in.h>
 
 
-#define FILENAMESIZE 64
+#define FILENAMESIZE 256
 #define KBYTE 1024
 #define BUFFERSIZE 30
 
@@ -101,16 +101,6 @@ typedef struct file_info_list {
     file_info fileInfo;
     struct file_info_list *next, *prev;
 } file_info_list;
-
-typedef struct replica_info_t {
-    char* ipAddr;
-    int port;
-} replica_info_t;
-
-typedef struct replica_info_list {
-    replica_info_t replica;
-    struct replica_info_list *prev, *next;
-} replica_info_list;
 
 char* strcatSafe(char* head, char* tail);
 socket_conn_list* initSocketConnList(int socket, char* sessionCode, bool isClient);
