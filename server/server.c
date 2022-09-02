@@ -25,11 +25,19 @@
 
 user_list* connectedUserListHead = NULL;
 replica_info_list* replicaList = NULL;
+bool isPrimary = false;
+
+pthread_mutex_t startElectionMutex;
+bool isElectionRunning;
+
 
 char rootPath[KBYTE];
 
 pthread_cond_t closedUserConnection;
 pthread_mutex_t connectedUsersMutex;
+
+pthread_mutex_t connectedReplicaListMutex;
+
 
 struct new_connection_argument {
     int socket;
@@ -326,6 +334,46 @@ void* syncDirListenerConn(void* args) {
     }
 }
 
+void* checkPrimaryAlive(void* args) {
+    replica_info_t* primary = (replica_info_t*) args;
+    bool isAlive = true;
+    struct sockaddr_in servaddr;
+
+    int sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    if (sockfd == -1) {
+        printf("Socket to primary replica creation failed...\n");
+        exit(0);
+    }
+
+    servaddr.sin_family = AF_INET;
+    servaddr.sin_addr.s_addr = inet_addr(primary->ipAddr);
+    servaddr.sin_port = htons(primary->port);
+
+    do {
+        sleep(3);
+        if (connect(sockfd, (struct sockaddr*)&servaddr, sizeof(servaddr)) != 0) {
+            printf("Connection with the Primary backup failed\nStarting Election Process");
+            isAlive = false;
+        }
+    } while(isAlive);
+
+    pthread_mutex_lock(&startElectionMutex);
+    if(isElectionRunning) {
+        return NULL;
+    }
+    else {
+        isElectionRunning = true;
+    }
+    startElection();
+}
+
+void backupReplicaStart() {
+
+}
+
+void primaryReplicaStart() {
+
+}
 
 int main()
 {
@@ -335,8 +383,18 @@ int main()
     fgets(rootPath, sizeof(rootPath), stdin);
     rootPath[strcspn(rootPath, "\n")] = 0;
     replicaList = readConfig( rootPath);
-    exit(0);
 
+    replica_info_list* primary = findPrimaryReplica(replicaList);
+    if(!primary) {
+        isPrimary = true;
+    }
+
+    if(isPrimary)
+        primaryReplicaStart();
+    else
+        backupReplicaStart();
+
+    exit(0);
 
     connectedUserListHead = NULL;
 

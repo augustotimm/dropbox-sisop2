@@ -19,4 +19,7 @@ typedef struct replica_info_list {
 
 
 replica_info_list* readConfig(char* filePath);
+replica_info_list* findPrimaryReplica(replica_info_list* replicaList);
+void* startElection();
+
 #endif //DROPBOX_SISOP2_REPLICA_MANAGER_H

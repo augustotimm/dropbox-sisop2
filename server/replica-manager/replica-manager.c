@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include "replica-manager.h"
 #include "../../lib/helper.h"
+#include "../server.h"
 
 
 replica_info_list* createReplica(char* ip, int port, int isPrimary);
@@ -77,4 +78,27 @@ replica_info_list* createReplica(char* ip, int port, int isPrimary) {
     strcpy(replica->replica.ipAddr, ip);
 
     return replica;
+}
+
+int isPrimaryCompare(replica_info_list* a, replica_info_list* b ) {
+    if(a->replica.isPrimary == b->replica.isPrimary)
+        return 0;
+    else
+        return -1;
+}
+
+
+
+replica_info_list* findPrimaryReplica(replica_info_list* replicaList) {
+
+    replica_info_list *replica = NULL;
+    replica_info_list  etmp;
+
+    etmp.replica.isPrimary = true;
+
+    pthread_mutex_lock(&connectedReplicaListMutex);
+    DL_SEARCH(replicaList, replica, &etmp, isPrimaryCompare);
+    pthread_mutex_unlock(&connectedReplicaListMutex);
+
+    return  replica;
 }

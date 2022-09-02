@@ -12,7 +12,7 @@ void createWatchDir(user_t* user);
 void freeUserList(user_list* userList);
 socket_conn_list* addSocket(socket_conn_list* head, int socket, char* sessionCode, bool isListener);
 
-int  userCompare(user_list* a, user_list* b) {
+int userCompare(user_list* a, user_list* b) {
     return strcmp(a->user.username,b->user.username);
 }
 

@@ -10,6 +10,8 @@
 extern user_list* connectedUserListHead;
 extern pthread_mutex_t connectedUsersMutex;
 extern pthread_cond_t closedUserConnection;
+extern pthread_mutex_t connectedReplicaListMutex;
+
 extern char rootPath[KBYTE];
 
 void* clientListen(void* conf);
