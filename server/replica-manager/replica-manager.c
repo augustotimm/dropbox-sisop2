@@ -102,3 +102,6 @@ replica_info_list* findPrimaryReplica(replica_info_list* replicaList) {
 
     return  replica;
 }
+void* startElection(){
+    printf("\n--------Starting Election Process--------\n");
+};

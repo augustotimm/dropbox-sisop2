@@ -352,18 +352,20 @@ void* checkPrimaryAlive(void* args) {
     do {
         sleep(3);
         if (connect(sockfd, (struct sockaddr*)&servaddr, sizeof(servaddr)) != 0) {
-            printf("Connection with the Primary backup failed\nStarting Election Process");
+            printf("Connection with the Primary backup failed\n");
             isAlive = false;
         }
     } while(isAlive);
 
     pthread_mutex_lock(&startElectionMutex);
     if(isElectionRunning) {
+        pthread_mutex_unlock(&startElectionMutex);
         return NULL;
     }
     else {
         isElectionRunning = true;
     }
+    pthread_mutex_unlock(&startElectionMutex);
     startElection();
 }
 
@@ -372,32 +374,6 @@ void backupReplicaStart() {
 }
 
 void primaryReplicaStart() {
-
-}
-
-int main()
-{
-    sigaction(SIGPIPE, &(struct sigaction){SIG_IGN}, NULL);
-    bzero(rootPath, sizeof(rootPath));
-    printf("Insira o caminho para a pasta raiz onde ficarão as pastas de usuários\n");
-    fgets(rootPath, sizeof(rootPath), stdin);
-    rootPath[strcspn(rootPath, "\n")] = 0;
-    replicaList = readConfig( rootPath);
-
-    replica_info_list* primary = findPrimaryReplica(replicaList);
-    if(!primary) {
-        isPrimary = true;
-    }
-
-    if(isPrimary)
-        primaryReplicaStart();
-    else
-        backupReplicaStart();
-
-    exit(0);
-
-    connectedUserListHead = NULL;
-
     pthread_t userDisconnectedThread;
     pthread_create(&userDisconnectedThread, NULL, userDisconnectedEvent, NULL);
     pthread_detach(userDisconnectedThread);
@@ -413,6 +389,35 @@ int main()
     void** args;
     pthread_join(syncDirConnThread, args);
     clientConn(NULL);
+}
+
+int main()
+{
+    sigaction(SIGPIPE, &(struct sigaction){SIG_IGN}, NULL);
+    connectedUserListHead = NULL;
+
+    bzero(rootPath, sizeof(rootPath));
+    printf("Insira o caminho para a pasta raiz onde ficarão as pastas de usuários\n");
+    fgets(rootPath, sizeof(rootPath), stdin);
+    rootPath[strcspn(rootPath, "\n")] = 0;
+    char* configPath = strcatSafe(rootPath, "config.txt");
+    replicaList = readConfig( configPath);
+
+    replica_info_list* primary = findPrimaryReplica(replicaList);
+    if(!primary) {
+        isPrimary = true;
+    }
+
+    if(isPrimary)
+        primaryReplicaStart();
+    else
+        backupReplicaStart();
+
+    exit(0);
+
+
+
+
 
 }
 
