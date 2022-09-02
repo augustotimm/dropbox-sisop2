@@ -19,6 +19,7 @@
 
 
 
+#define LIVENESSPORT 9998
 #define MAX 2048
 
 
@@ -272,7 +273,6 @@ void* syncDirConn(void* args) {
 
         pthread_detach(newUserThread);
         //Reply to the client
-
     }
 }
 
@@ -334,27 +334,32 @@ void* syncDirListenerConn(void* args) {
     }
 }
 
-void* checkPrimaryAlive(void* args) {
-    replica_info_t* primary = (replica_info_t*) args;
+void* checkPrimaryAlive(replica_info_t primary) {
     bool isAlive = true;
     struct sockaddr_in servaddr;
 
-    int sockfd = socket(AF_INET, SOCK_STREAM, 0);
-    if (sockfd == -1) {
-        printf("Socket to primary replica creation failed...\n");
-        exit(0);
-    }
+
 
     servaddr.sin_family = AF_INET;
-    servaddr.sin_addr.s_addr = inet_addr(primary->ipAddr);
-    servaddr.sin_port = htons(primary->port);
+    servaddr.sin_addr.s_addr = inet_addr(primary.ipAddr);
+    servaddr.sin_port = htons(LIVENESSPORT);
 
     do {
-        sleep(3);
+
+        int sockfd = socket(AF_INET, SOCK_STREAM, 0);
+        if (sockfd == -1) {
+            printf("Socket to primary replica creation failed...\n");
+        }
         if (connect(sockfd, (struct sockaddr*)&servaddr, sizeof(servaddr)) != 0) {
             printf("Connection with the Primary backup failed\n");
             isAlive = false;
         }
+        else {
+            printf("Primary is alive\n");
+            close(sockfd);
+        }
+
+        sleep(3);
     } while(isAlive);
 
     pthread_mutex_lock(&startElectionMutex);
@@ -369,8 +374,51 @@ void* checkPrimaryAlive(void* args) {
     startElection();
 }
 
-void backupReplicaStart() {
+void backupReplicaStart(replica_info_t primary) {
+    checkPrimaryAlive(primary);
+}
 
+void listenLivenessCheck() {
+    int sockfd, connfd, len;
+    struct sockaddr_in servaddr, cli;
+
+    // socket create and verification
+    sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    if (sockfd == -1) {
+        printf("socket creation failed...\n");
+        exit(0);
+    }
+    else
+        printf("Socket successfully created..\n");
+    bzero(&servaddr, sizeof(servaddr));
+
+    // assign IP, PORT
+    servaddr.sin_family = AF_INET;
+    servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+    servaddr.sin_port = htons(LIVENESSPORT);
+
+    // Binding newly created socket to given IP and verification
+    if ((bind(sockfd, (struct sockaddr *)&servaddr, sizeof(servaddr))) != 0) {
+        printf("LIVENESS socket bind failed...\n");
+        exit(0);
+    }
+    else
+        printf("LIVENESS Socket successfully binded..\n");
+
+    // Now server is ready to listen and verification
+    if ((listen(sockfd, 5)) != 0) {
+        printf("LIVENESS Listen failed...\n");
+        exit(0);
+    }
+    else
+        printf("LIVENESS Server listening..\n");
+    len = sizeof(cli);
+
+    int i = 0;
+    while( (connfd = accept(sockfd, (struct sockaddr *)&cli, (socklen_t*)&len))  || i < 5)
+    {
+        close(connfd);
+    }
 }
 
 void primaryReplicaStart() {
@@ -386,9 +434,12 @@ void primaryReplicaStart() {
     pthread_create(&listenSyncDirConnThread, NULL, syncDirListenerConn, NULL);
     pthread_detach(listenSyncDirConnThread);
 
-    void** args;
-    pthread_join(syncDirConnThread, args);
-    clientConn(NULL);
+    pthread_t clientConnThread;
+    pthread_create(&clientConnThread, NULL, clientConn, NULL);
+    pthread_detach(clientConnThread);
+
+    listenLivenessCheck();
+
 }
 
 int main()
@@ -404,21 +455,23 @@ int main()
     replicaList = readConfig( configPath);
 
     replica_info_list* primary = findPrimaryReplica(replicaList);
+
     if(!primary) {
         isPrimary = true;
     }
 
     if(isPrimary)
         primaryReplicaStart();
-    else
-        backupReplicaStart();
+    else {
+        replica_info_t primaryCopy;
+        primaryCopy.port = primary->replica.port;
+        primaryCopy.ipAddr = (char*) calloc(strlen(primary->replica.ipAddr) + 1, sizeof(char));
+        strcpy(primaryCopy.ipAddr, primary->replica.ipAddr);
+
+        backupReplicaStart(primaryCopy);
+    }
 
     exit(0);
-
-
-
-
-
 }
 
 

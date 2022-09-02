@@ -5,6 +5,7 @@
 #ifndef DROPBOX_SISOP2_REPLICA_MANAGER_H
 #define DROPBOX_SISOP2_REPLICA_MANAGER_H
 #include "../../lib/utlist.h"
+#include <semaphore.h>
 
 typedef struct replica_info_t {
     char* ipAddr;
