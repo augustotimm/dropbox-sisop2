@@ -12,6 +12,9 @@ extern pthread_mutex_t connectedUsersMutex;
 extern pthread_cond_t closedUserConnection;
 extern pthread_mutex_t connectedReplicaListMutex;
 
+extern pthread_mutex_t backupConnectionMutex;
+extern socket_conn_list* backupConnectionList;
+
 extern char rootPath[KBYTE];
 
 void* clientListen(void* conf);

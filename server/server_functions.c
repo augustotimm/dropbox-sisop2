@@ -250,6 +250,20 @@ void broadCastFile(socket_conn_list* socketList, int forbiddenSocket, char* file
 
         }
     }
+
+    socket_conn_list* elt = NULL;
+    pthread_mutex_lock(backupConnectionList);
+
+    DL_FOREACH(backupConnectionList, elt) {
+        recv(elt->socket, buff, sizeof(buff), 0);
+        if(strcmp(buff, commands[WAITING]) != 0) {
+            printf("expected waiting command");
+        }
+
+        write(elt->socket, &commands[UPLOAD], sizeof(commands[UPLOAD]));
+
+        upload(elt->socket, filePath, fileName);
+    }
     free(filePath);
 }
 
@@ -261,11 +275,24 @@ void broadCastDelete(socket_conn_list* socketList, int forbiddenSocket, char* fi
         if (current->listenerSocket != forbiddenSocket) {
             recv(current->socket, buff, sizeof(buff), 0);
             if(strcmp(buff, commands[WAITING]) != 0) {
-                printf("[clientThread] expected waiting command");
+                printf("expected waiting command");
             }
             write(current->socket, &commands[DELETE], sizeof(commands[DELETE]));
             write(current->socket, fileName, strlen(fileName));
 
         }
+    }
+
+    socket_conn_list* elt = NULL;
+    pthread_mutex_lock(backupConnectionList);
+
+    DL_FOREACH(backupConnectionList, elt) {
+        recv(elt->socket, buff, sizeof(buff), 0);
+        if(strcmp(buff, commands[WAITING]) != 0) {
+            printf("expected waiting command");
+        }
+
+        write(elt->socket, &commands[DELETE], sizeof(commands[DELETE]));
+        write(elt->socket, fileName, strlen(fileName));
     }
 }
