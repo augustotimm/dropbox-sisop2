@@ -39,6 +39,7 @@ pthread_mutex_t connectedUsersMutex;
 
 pthread_mutex_t connectedReplicaListMutex;
 
+socket_conn_list* backupConnectionList = NULL;
 
 struct new_connection_argument {
     int socket;
@@ -345,7 +346,7 @@ void* checkPrimaryAlive(replica_info_t primary) {
     servaddr.sin_port = htons(LIVENESSPORT);
 
     do {
-
+        sleep(3);
         int sockfd = socket(AF_INET, SOCK_STREAM, 0);
         if (sockfd == -1) {
             printf("Socket to primary replica creation failed...\n");
@@ -358,8 +359,6 @@ void* checkPrimaryAlive(replica_info_t primary) {
             printf("Primary is alive\n");
             close(sockfd);
         }
-
-        sleep(3);
     } while(isAlive);
 
     pthread_mutex_lock(&startElectionMutex);
@@ -439,7 +438,6 @@ void primaryReplicaStart() {
     pthread_detach(clientConnThread);
 
     listenLivenessCheck();
-
 }
 
 int main()

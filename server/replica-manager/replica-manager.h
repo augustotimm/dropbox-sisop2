@@ -6,6 +6,7 @@
 #define DROPBOX_SISOP2_REPLICA_MANAGER_H
 #include "../../lib/utlist.h"
 #include <semaphore.h>
+#include "../../lib/helper.h"
 
 typedef struct replica_info_t {
     char* ipAddr;
@@ -23,4 +24,16 @@ replica_info_list* readConfig(char* filePath);
 replica_info_list* findPrimaryReplica(replica_info_list* replicaList);
 void* startElection();
 
+socket_conn_list *connectToBackups(replica_info_list *replicaList);
+
 #endif //DROPBOX_SISOP2_REPLICA_MANAGER_H
+
+// replicate files to backups
+
+// replicate userstate to backups
+
+// front end
+
+// election
+
+// reconnect front end to new primary
