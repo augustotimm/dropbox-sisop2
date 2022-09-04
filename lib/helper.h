@@ -38,13 +38,14 @@
 #define CLIENTSOCKET 0
 #define SYNCSOCKET 1
 #define SYNCLISTENSOCKET 2
+#define BACKUPSOCKET 3
 
 
 static const char endCommand[] = "\nend\n";
 static const char continueCommand[] = "\ncontinue\n";
 
 static const char commands[8][13] = {"upload", "download", "list local", "sync", "exit", "delete", "download all", "waiting"};
-static const char socketTypes[3][13] = {"client", "syncdir", "synclisten"};
+static const char socketTypes[4][13] = {"client", "syncdir", "synclisten", "backup"};
 
 typedef struct received_file_list {
     int socketReceiver;

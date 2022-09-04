@@ -39,6 +39,7 @@ pthread_mutex_t connectedUsersMutex;
 
 pthread_mutex_t connectedReplicaListMutex;
 
+pthread_mutex_t backupConnectionMutex;
 socket_conn_list* backupConnectionList = NULL;
 
 struct new_connection_argument {
@@ -378,17 +379,27 @@ void backupReplicaStart(replica_info_t primary) {
 }
 
 void newBackupConnection(void* args) {
-    struct new_connection_argument *argument = (struct new_connection_argument*) args;
-    int socket = argument->socket;
+    char newSocketType[USERNAMESIZE];
+    bzero(newSocketType, sizeof(newSocketType));
+    recv(socket, newSocketType, sizeof(newSocketType), 0);
 
-    socket_conn_list *newConn = (socket_conn_list*) calloc(1, sizeof(socket_conn_list));
-    newConn->socket = socket;
-    newConn = NULL;
+    if(strcmp(newSocketType, socketTypes[BACKUPSOCKET]) == 0) {
+       struct new_connection_argument *argument = (struct new_connection_argument*) args;
+       int socket = argument->socket;
 
-    newConn->prev = NULL;
-    newConn->next = NULL;
+       socket_conn_list *newConn = (socket_conn_list*) calloc(1, sizeof(socket_conn_list));
+       newConn->socket = socket;
+       newConn = NULL;
 
-    DL_APPEND(backupConnectionList, newConn);
+       newConn->prev = NULL;
+       newConn->next = NULL;
+
+       pthread_mutex_lock(&backupConnectionMutex);
+       DL_APPEND(backupConnectionList, newConn);
+       pthread_mutex_unlock(&backupConnectionMutex);
+
+       return;
+   }
 }
 
 void listenLivenessCheck() {
