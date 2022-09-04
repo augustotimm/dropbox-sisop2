@@ -125,7 +125,7 @@ void* listenSyncDir(void* args) {
     clientUser->userAccessSem = &syncDirSem;
     clientUser->filesReceived = filesReceived;
     clientUser->username = username;
-    listenForSocketMessage(socket, path, clientUser, false);
+    listenForSocketMessage(socket, path, clientUser, false, NULL, NULL);
     close(socket);
 }
 

@@ -107,7 +107,7 @@ char* strcatSafe(char* head, char* tail);
 socket_conn_list* initSocketConnList(int socket, char* sessionCode, bool isClient);
 
 //server comunication functions
-int listenForSocketMessage(int socket, char* clientDirPath, user_t*  user, bool shouldBroadcast);
+int listenForSocketMessage(int socket, char* clientDirPath, user_t*  user, bool shouldBroadcast, socket_conn_list* backupList, pthread_mutex_t* backupMutex);
 
 
 //file information functions

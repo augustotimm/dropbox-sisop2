@@ -50,6 +50,8 @@ struct new_connection_argument {
 void connectUser(int socket, char* username, char* sessionCode);
 int connectSyncDir(int socket, char* username, char* sessionCode);
 int connectSyncListener(int socket, char*username,  char* sessionCode);
+void* newBackupConnection(void* args);
+
 
 void* clientListen(void* voidArg)
 {
@@ -72,7 +74,7 @@ void* clientListen(void* voidArg)
         return NULL;
     }
 
-    listenForSocketMessage(socket, path, argument->user, true);
+    listenForSocketMessage(socket, path, argument->user, true, backupConnectionList, &backupConnectionMutex);
 
     printf("Server Exiting socket: %d\n", socket);
     close(socket);
@@ -123,7 +125,7 @@ int connectSyncListener(int socket, char*username, char* sessionCode) {
     addNewSocketConn(&user->user, socket, sessionCode, true);
 
 
-    listenForSocketMessage(socket, dirPath, &user->user, true);
+    listenForSocketMessage(socket, dirPath, &user->user, true, backupConnectionList, &backupConnectionMutex);
     close(socket);
 }
 
@@ -358,7 +360,7 @@ void* checkPrimaryAlive(replica_info_t primary) {
 
     write(sockfd, &socketTypes[BACKUPSOCKET], sizeof(socketTypes[BACKUPSOCKET]));
 
-    backupListenForMessage(socket, rootPath);
+    backupListenForMessage(sockfd, rootPath);
 
 
     pthread_mutex_lock(&startElectionMutex);
@@ -377,18 +379,17 @@ void backupReplicaStart(replica_info_t primary) {
     checkPrimaryAlive(primary);
 }
 
-void newBackupConnection(void* args) {
+void* newBackupConnection(void* args) {
+    struct new_connection_argument *argument = (struct new_connection_argument*) args;
+    int socket = argument->socket;
+
     char newSocketType[USERNAMESIZE];
     bzero(newSocketType, sizeof(newSocketType));
     recv(socket, newSocketType, sizeof(newSocketType), 0);
 
     if(strcmp(newSocketType, socketTypes[BACKUPSOCKET]) == 0) {
-       struct new_connection_argument *argument = (struct new_connection_argument*) args;
-       int socket = argument->socket;
-
        socket_conn_list *newConn = (socket_conn_list*) calloc(1, sizeof(socket_conn_list));
        newConn->socket = socket;
-       newConn = NULL;
 
        newConn->prev = NULL;
        newConn->next = NULL;
@@ -397,7 +398,7 @@ void newBackupConnection(void* args) {
        DL_APPEND(backupConnectionList, newConn);
        pthread_mutex_unlock(&backupConnectionMutex);
 
-       return;
+       return NULL;
    }
 }
 

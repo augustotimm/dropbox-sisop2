@@ -11,8 +11,6 @@
 #include "../server/server_functions.h"
 
 
-int getFileSize(FILE *ptrfile);
-time_t  modification;
 
 socket_conn_list* initSocketConnList(int socket, char* sessionCode, bool isClient) {
     socket_conn_list* newElement = calloc(1, sizeof(socket_conn_list));
@@ -92,22 +90,6 @@ void printFileInfos(file_info fileInfo) {
            fileInfo.fileName,fAccessDate,fChangeDate,fModDate);
 }
 
-char* tmToIso(struct tm* time) {
-    int y,M,d,h,m;
-    float s;
-    char* timestamp = calloc(BUFFERSIZE, sizeof(char ));
-    y = time->tm_year + 1900; // Year since 1900
-    M = time->tm_mon + 1;     // 0-11
-    d = time->tm_mday;        // 1-31
-    h = time->tm_hour;        // 0-23
-    m = time->tm_min;         // 0-59
-    s = time->tm_sec;
-
-    snprintf(timestamp, "%d-%d-%dT%d:%d:%fZ", &y, &M, &d, &h, &m, &s);
-
-    return timestamp;
-}
-
 void printFileInfoList(file_info_list* fileInfoList) {
     file_info_list* infosList;
     DL_FOREACH(fileInfoList, infosList) {
@@ -124,7 +106,7 @@ void deleteFile(char* filename, char* path) {
     }
 }
 
-int listenForSocketMessage(int socket, char* clientDirPath, user_t*  user, bool shouldBroadcast) {
+int listenForSocketMessage(int socket, char* clientDirPath, user_t*  user, bool shouldBroadcast, socket_conn_list* backupList, pthread_mutex_t* backupMutex) {
     char currentCommand[13];
     char fileName[FILENAMESIZE];
 
@@ -144,7 +126,7 @@ int listenForSocketMessage(int socket, char* clientDirPath, user_t*  user, bool 
                 break;
             }
             if(shouldBroadcast) {
-                broadCastFile(user->syncSocketList, socket, fileName, clientDirPath);
+                broadCastFile(user->syncSocketList, socket, fileName, clientDirPath, backupList, backupMutex);
 
             }
             pthread_mutex_unlock(user->userAccessSem);
@@ -165,7 +147,7 @@ int listenForSocketMessage(int socket, char* clientDirPath, user_t*  user, bool 
             write(socket, &endCommand, sizeof(endCommand));
 
             if(shouldBroadcast) {
-                broadCastDelete(user->syncSocketList, socket, fileName);
+                broadCastDelete(user->syncSocketList, socket, fileName, backupList, backupMutex);
             }
             pthread_mutex_unlock(user->userAccessSem);
             printf("\n\b[listenForSocketMessage] finished delete\n\n");
@@ -233,21 +215,6 @@ int backupListenForMessage(int socket, char* rootFolderPath) {
     return -1;
 }
 
-
-struct tm  iso8601ToTM(char* timestamp) {
-    int y,M,d,h,m;
-    float s;
-    sscanf(timestamp, "%d-%d-%dT%d:%d:%fZ", &y, &M, &d, &h, &m, &s);
-
-    struct tm time = { 0 };
-    time.tm_year = y - 1900; // Year since 1900
-    time.tm_mon = M - 1;     // 0-11
-    time.tm_mday = d;        // 1-31
-    time.tm_hour = h;        // 0-23
-    time.tm_min = m;         // 0-59
-    time.tm_sec = (int)s;
-    return time;
-}
 
 received_file_list* createReceivedFile(char* name, int socket){
     received_file_list* newFile = (received_file_list*) calloc(1, sizeof(received_file_list));

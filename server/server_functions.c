@@ -231,7 +231,7 @@ int uploadAllFiles(int socket, char* path) {
 
 }
 
-void broadCastFile(socket_conn_list* socketList, int forbiddenSocket, char* fileName, char* clientDirPath) {
+void broadCastFile(socket_conn_list* socketList, int forbiddenSocket, char* fileName, char* clientDirPath, socket_conn_list *backupList, pthread_mutex_t* backupMutex) {
     socket_conn_list *current = NULL, *tmp = NULL;
     char* filePath = strcatSafe(clientDirPath, fileName);
     char buff[20];
@@ -252,9 +252,9 @@ void broadCastFile(socket_conn_list* socketList, int forbiddenSocket, char* file
     }
 
     socket_conn_list* elt = NULL;
-    pthread_mutex_lock(backupConnectionList);
+    pthread_mutex_lock(backupMutex);
 
-    DL_FOREACH(backupConnectionList, elt) {
+    DL_FOREACH(backupList, elt) {
         recv(elt->socket, buff, sizeof(buff), 0);
         if(strcmp(buff, commands[WAITING]) != 0) {
             printf("expected waiting command");
@@ -264,10 +264,12 @@ void broadCastFile(socket_conn_list* socketList, int forbiddenSocket, char* file
 
         upload(elt->socket, filePath, fileName);
     }
+    pthread_mutex_unlock(backupMutex);
+
     free(filePath);
 }
 
-void broadCastDelete(socket_conn_list* socketList, int forbiddenSocket, char* fileName) {
+void broadCastDelete(socket_conn_list* socketList, int forbiddenSocket, char* fileName, socket_conn_list *backupList, pthread_mutex_t* backupMutex) {
     socket_conn_list *current = NULL, *tmp = NULL;
     char buff[20];
     bzero(buff, sizeof(buff));
@@ -284,9 +286,9 @@ void broadCastDelete(socket_conn_list* socketList, int forbiddenSocket, char* fi
     }
 
     socket_conn_list* elt = NULL;
-    pthread_mutex_lock(backupConnectionList);
+    pthread_mutex_lock(backupMutex);
 
-    DL_FOREACH(backupConnectionList, elt) {
+    DL_FOREACH(backupList, elt) {
         recv(elt->socket, buff, sizeof(buff), 0);
         if(strcmp(buff, commands[WAITING]) != 0) {
             printf("expected waiting command");
@@ -295,4 +297,6 @@ void broadCastDelete(socket_conn_list* socketList, int forbiddenSocket, char* fi
         write(elt->socket, &commands[DELETE], sizeof(commands[DELETE]));
         write(elt->socket, fileName, strlen(fileName));
     }
+    pthread_mutex_unlock(backupMutex);
+
 }
