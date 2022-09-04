@@ -231,7 +231,7 @@ int uploadAllFiles(int socket, char* path) {
 
 }
 
-void broadCastFile(socket_conn_list* socketList, int forbiddenSocket, char* fileName, char* clientDirPath, socket_conn_list *backupList, pthread_mutex_t* backupMutex) {
+void broadCastFile(socket_conn_list* socketList, int forbiddenSocket, char* fileName, char* clientDirPath) {
     socket_conn_list *current = NULL, *tmp = NULL;
     char* filePath = strcatSafe(clientDirPath, fileName);
     char buff[20];
@@ -250,6 +250,14 @@ void broadCastFile(socket_conn_list* socketList, int forbiddenSocket, char* file
 
         }
     }
+    free(filePath);
+}
+
+void broadCastFileToBackups(char* fileName, char* clientDirPath, socket_conn_list *backupList, pthread_mutex_t* backupMutex, char* username) {
+    char* filePath = strcatSafe(clientDirPath, fileName);
+    char buff[20];
+    bzero(buff, sizeof(buff));
+
 
     socket_conn_list* elt = NULL;
     pthread_mutex_lock(backupMutex);
@@ -261,6 +269,17 @@ void broadCastFile(socket_conn_list* socketList, int forbiddenSocket, char* file
         }
 
         write(elt->socket, &commands[UPLOAD], sizeof(commands[UPLOAD]));
+        recv(elt->socket, buff, sizeof(buff), 0);
+        if(strcmp(buff, endCommand) != 0) {
+            printf("[broadCastFileToBackups] expected endCommand command");
+        }
+
+        write(elt->socket, username, strlen(username));
+
+        recv(elt->socket, buff, sizeof(buff), 0);
+        if(strcmp(buff, endCommand) != 0) {
+            printf("[broadCastFileToBackups] expected endCommand command");
+        }
 
         upload(elt->socket, filePath, fileName);
     }
@@ -269,7 +288,8 @@ void broadCastFile(socket_conn_list* socketList, int forbiddenSocket, char* file
     free(filePath);
 }
 
-void broadCastDelete(socket_conn_list* socketList, int forbiddenSocket, char* fileName, socket_conn_list *backupList, pthread_mutex_t* backupMutex) {
+
+void broadCastDelete(socket_conn_list* socketList, int forbiddenSocket, char* fileName) {
     socket_conn_list *current = NULL, *tmp = NULL;
     char buff[20];
     bzero(buff, sizeof(buff));
@@ -285,6 +305,12 @@ void broadCastDelete(socket_conn_list* socketList, int forbiddenSocket, char* fi
         }
     }
 
+}
+
+void broadCastDeleteToBackups(char* fileName, socket_conn_list *backupList, pthread_mutex_t* backupMutex, char* username) {
+    socket_conn_list *current = NULL, *tmp = NULL;
+    char buff[20];
+    bzero(buff, sizeof(buff));
     socket_conn_list* elt = NULL;
     pthread_mutex_lock(backupMutex);
 
@@ -295,6 +321,18 @@ void broadCastDelete(socket_conn_list* socketList, int forbiddenSocket, char* fi
         }
 
         write(elt->socket, &commands[DELETE], sizeof(commands[DELETE]));
+        recv(elt->socket, buff, sizeof(buff), 0);
+        if(strcmp(buff, endCommand) != 0) {
+            printf("[broadCastDeleteToBackups] expected endCommand command");
+        }
+
+        write(elt->socket, username, strlen(username));
+
+        recv(elt->socket, buff, sizeof(buff), 0);
+        if(strcmp(buff, endCommand) != 0) {
+            printf("[broadCastDeleteToBackups] expected endCommand command");
+        }
+
         write(elt->socket, fileName, strlen(fileName));
     }
     pthread_mutex_unlock(backupMutex);

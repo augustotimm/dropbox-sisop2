@@ -126,7 +126,8 @@ int listenForSocketMessage(int socket, char* clientDirPath, user_t*  user, bool 
                 break;
             }
             if(shouldBroadcast) {
-                broadCastFile(user->syncSocketList, socket, fileName, clientDirPath, backupList, backupMutex);
+                broadCastFile(user->syncSocketList, socket, fileName, clientDirPath);
+                broadCastFileToBackups(fileName, clientDirPath, backupList, backupMutex, user->username);
 
             }
             pthread_mutex_unlock(user->userAccessSem);
@@ -147,7 +148,8 @@ int listenForSocketMessage(int socket, char* clientDirPath, user_t*  user, bool 
             write(socket, &endCommand, sizeof(endCommand));
 
             if(shouldBroadcast) {
-                broadCastDelete(user->syncSocketList, socket, fileName, backupList, backupMutex);
+                broadCastDelete(user->syncSocketList, socket, fileName);
+                broadCastDeleteToBackups(fileName, backupList, backupMutex, user->username);
             }
             pthread_mutex_unlock(user->userAccessSem);
             printf("\n\b[listenForSocketMessage] finished delete\n\n");
@@ -186,6 +188,7 @@ int backupListenForMessage(int socket, char* rootFolderPath) {
 
         recv(socket, username, sizeof(username), 0);
 
+        write(socket, &endCommand, strlen(endCommand));
 
         char* filePath = strcatSafe(rootFolderPath, username);
         char* clientDirPath = strcatSafe(filePath, "/");
