@@ -377,6 +377,20 @@ void backupReplicaStart(replica_info_t primary) {
     checkPrimaryAlive(primary);
 }
 
+void newBackupConnection(void* args) {
+    struct new_connection_argument *argument = (struct new_connection_argument*) args;
+    int socket = argument->socket;
+
+    socket_conn_list *newConn = (socket_conn_list*) calloc(1, sizeof(socket_conn_list));
+    newConn->socket = socket;
+    newConn = NULL;
+
+    newConn->prev = NULL;
+    newConn->next = NULL;
+
+    DL_APPEND(backupConnectionList, newConn);
+}
+
 void listenLivenessCheck() {
     int sockfd, connfd, len;
     struct sockaddr_in servaddr, cli;
@@ -416,7 +430,19 @@ void listenLivenessCheck() {
     int i = 0;
     while( (connfd = accept(sockfd, (struct sockaddr *)&cli, (socklen_t*)&len))  || i < 5)
     {
-        close(connfd);
+        struct in_addr ipAddr = cli.sin_addr;
+
+        puts("Connection accepted");
+        pthread_t newBackupThread;
+
+
+        struct new_connection_argument *arg = calloc(1, sizeof(struct new_connection_argument));
+        arg->socket = connfd;
+        arg->ipAddr = ipAddr;
+
+        pthread_create(&newBackupThread, NULL, newBackupConnection, arg);
+
+        pthread_detach(newBackupThread);
     }
 }
 
