@@ -346,21 +346,20 @@ void* checkPrimaryAlive(replica_info_t primary) {
     servaddr.sin_addr.s_addr = inet_addr(primary.ipAddr);
     servaddr.sin_port = htons(LIVENESSPORT);
 
-    do {
-        sleep(3);
-        int sockfd = socket(AF_INET, SOCK_STREAM, 0);
-        if (sockfd == -1) {
-            printf("Socket to primary replica creation failed...\n");
-        }
-        if (connect(sockfd, (struct sockaddr*)&servaddr, sizeof(servaddr)) != 0) {
-            printf("Connection with the Primary backup failed\n");
-            isAlive = false;
-        }
-        else {
-            printf("Primary is alive\n");
-            close(sockfd);
-        }
-    } while(isAlive);
+    int sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    if (sockfd == -1) {
+        printf("Socket to primary replica creation failed...\n");
+    }
+    if (connect(sockfd, (struct sockaddr*)&servaddr, sizeof(servaddr)) != 0) {
+        printf("Connection with the Primary backup failed\n");
+    }
+
+    printf("Primary is alive\n");
+
+    write(sockfd, &socketTypes[BACKUPSOCKET], sizeof(socketTypes[BACKUPSOCKET]));
+
+    backupListenForMessage(socket, rootPath);
+
 
     pthread_mutex_lock(&startElectionMutex);
     if(isElectionRunning) {

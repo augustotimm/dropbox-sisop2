@@ -183,6 +183,57 @@ int listenForSocketMessage(int socket, char* clientDirPath, user_t*  user, bool 
     return -1;
 }
 
+int backupListenForMessage(int socket, char* rootFolderPath) {
+    char currentCommand[13];
+    char fileName[FILENAMESIZE];
+    char username[USERNAMESIZE];
+
+    for (;;) {
+        bzero(currentCommand, sizeof(currentCommand));
+        bzero(fileName, sizeof(fileName));
+        bzero(username, sizeof(username));
+
+
+        printf("\n[listenForSocketMessage] WAITING\n");
+        write(socket, &commands[WAITING], sizeof(commands[WAITING]));
+
+        // read the message from client and copy it in buffer
+        recv(socket, currentCommand, sizeof(currentCommand), 0);
+
+        write(socket, &endCommand, strlen(endCommand));
+
+        recv(socket, username, sizeof(username), 0);
+
+
+        char* filePath = strcatSafe(rootFolderPath, username);
+        char* clientDirPath = strcatSafe(filePath, "/");
+        free(filePath);
+
+        if(strcmp(currentCommand, commands[UPLOAD]) ==0 ) {
+            char* fileName = download(socket, clientDirPath, NULL, false);
+            if(fileName == NULL) {
+                break;
+            }
+            free(fileName);
+            printf("\n\n[listenForBackupMessage] finished upload\n\n");
+        } else if(strcmp(currentCommand, commands[DELETE]) ==0 ) {
+            recv(socket, fileName, sizeof(fileName), 0);
+            deleteFile(fileName, clientDirPath);
+            write(socket, &endCommand, sizeof(endCommand));
+
+            printf("\n\b[listenForBackupMessage] finished delete\n\n");
+        }
+        free(clientDirPath);
+
+        if (strcmp(currentCommand, commands[EXIT]) == 0 || strlen(currentCommand) == 0) {
+
+            return 0;
+        }
+    }
+    return -1;
+}
+
+
 struct tm  iso8601ToTM(char* timestamp) {
     int y,M,d,h,m;
     float s;

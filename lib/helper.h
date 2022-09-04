@@ -124,4 +124,6 @@ bool checkFileExists(char* filePath);
 bool checkUpdateFile(char* path, char*filename, char* timestamp);
 char* tmToIso(struct tm* time);
 file_info getFileInfo(char* path, char* fileName);
+
+int backupListenForMessage(int socket, char* rootFolderPath);
 #endif //DROPBOX_SISOP2_HELPER_H
