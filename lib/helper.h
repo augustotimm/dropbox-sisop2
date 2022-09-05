@@ -56,6 +56,8 @@ typedef struct received_file_list {
 typedef struct user_session_t {
     pthread_t thread;
     bool isThreadComplete;
+    char* ipAddr;
+    int frontEndPort;
 } user_session_t;
 
 typedef struct socket_conn_list {
@@ -78,11 +80,6 @@ typedef struct user_list {
     user_t user;
     struct user_list *next, *prev;
 } user_list;
-
-typedef struct thread_argument {
-    bool* isThreadComplete;
-    void *argument;
-} thread_argument;
 
 typedef struct client_thread_argument {
     bool* isThreadComplete;
@@ -120,9 +117,6 @@ void freeReceivedFile(received_file_list* file);
 
 void deleteFile(char* filename, char* path);
 void freeFileInfo(file_info info);
-bool checkFileExists(char* filePath);
-bool checkUpdateFile(char* path, char*filename, char* timestamp);
-char* tmToIso(struct tm* time);
 file_info getFileInfo(char* path, char* fileName);
 
 int backupListenForMessage(int socket, char* rootFolderPath);

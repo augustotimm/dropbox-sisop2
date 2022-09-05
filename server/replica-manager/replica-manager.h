@@ -28,9 +28,7 @@ socket_conn_list *connectToBackups(replica_info_list *replicaList);
 
 #endif //DROPBOX_SISOP2_REPLICA_MANAGER_H
 
-// replicate files to backups
-
-// replicate userstate to backups
+// replicate user state to backups
 
 // front end
 

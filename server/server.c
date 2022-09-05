@@ -16,6 +16,7 @@
 #include "user.h"
 #include "server_functions.h"
 #include "./replica-manager/replica-manager.h"
+#include <arpa/inet.h>
 
 
 
@@ -45,9 +46,10 @@ socket_conn_list* backupConnectionList = NULL;
 struct new_connection_argument {
     int socket;
     struct in_addr ipAddr;
+    char* ipString;
 };
 
-void connectUser(int socket, char* username, char* sessionCode);
+void connectUser(int socket, char* username, char* sessionCode, char* ipAddr, int port);
 int connectSyncDir(int socket, char* username, char* sessionCode);
 int connectSyncListener(int socket, char*username,  char* sessionCode);
 void* newBackupConnection(void* args);
@@ -105,7 +107,14 @@ void* newConnection(void* arg) {
     write(socket, &endCommand, sizeof(endCommand));
 
     if(strcmp(newSocketType, socketTypes[CLIENTSOCKET]) == 0) {
-        connectUser(socket, username, sessionCode);
+        int port = 0;
+        bzero(newSocketType, sizeof(newSocketType));
+        recv(socket, newSocketType, sizeof(newSocketType), 0);
+        write(socket, &endCommand, sizeof(endCommand));
+
+        sscanf(newSocketType, "%d", &port);
+
+        connectUser(socket, username, sessionCode, argument->ipString, port);
     }
     if(strcmp(newSocketType, socketTypes[SYNCSOCKET]) == 0) {
         connectSyncDir(socket, username, sessionCode);
@@ -142,8 +151,8 @@ int connectSyncDir(int socket, char* username, char* sessionCode) {
 }
 
 
-void connectUser(int socket, char* username, char* sessionCode) {
-    if(startUserSession(username, socket) != 0) {
+void connectUser(int socket, char* username, char* sessionCode, char* ipAddr, int port) {
+    if(startUserSession(username, socket, ipAddr, port) != 0) {
         writeMessageToSocket(socket, "FALSE");
         close(socket);
     }
@@ -215,7 +224,12 @@ void* clientConn(void* args) {
         struct new_connection_argument *arg = calloc(1, sizeof(struct new_connection_argument));
         arg->socket = connfd;
         arg->ipAddr = ipAddr;
+        char *some_addr;
 
+        some_addr = inet_ntoa(ipAddr);
+
+
+        arg->ipString = strcatSafe(some_addr, "\0");
 
         pthread_create(&newUserThread, NULL, newConnection, arg);
 
@@ -488,6 +502,7 @@ void primaryReplicaStart() {
 
 int main()
 {
+
     sigaction(SIGPIPE, &(struct sigaction){SIG_IGN}, NULL);
     connectedUserListHead = NULL;
 
