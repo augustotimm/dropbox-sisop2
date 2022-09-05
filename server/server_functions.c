@@ -269,6 +269,8 @@ void broadCastFileToBackups(char* fileName, char* clientDirPath, socket_conn_lis
         }
 
         write(elt->socket, &commands[UPLOAD], sizeof(commands[UPLOAD]));
+
+        bzero(buff, sizeof(buff));
         recv(elt->socket, buff, sizeof(buff), 0);
         if(strcmp(buff, endCommand) != 0) {
             printf("[broadCastFileToBackups] expected endCommand command");

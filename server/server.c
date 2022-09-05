@@ -338,10 +338,11 @@ void* syncDirListenerConn(void* args) {
     }
 }
 
-void* checkPrimaryAlive(replica_info_t primary) {
+void* backupStartConnectionWithPrimary(replica_info_t primary) {
     bool isAlive = true;
     struct sockaddr_in servaddr;
-
+    char buff[20];
+    bzero(buff, sizeof(buff));
 
 
     servaddr.sin_family = AF_INET;
@@ -359,6 +360,10 @@ void* checkPrimaryAlive(replica_info_t primary) {
     printf("Primary is alive\n");
 
     write(sockfd, &socketTypes[BACKUPSOCKET], sizeof(socketTypes[BACKUPSOCKET]));
+    recv(sockfd, buff, sizeof(buff), 0);
+    if(strcmp(buff, endCommand) != 0) {
+        printf("[backupStartConnectionWithPrimary] expected endCommand command");
+    }
 
     backupListenForMessage(sockfd, rootPath);
 
@@ -376,7 +381,7 @@ void* checkPrimaryAlive(replica_info_t primary) {
 }
 
 void backupReplicaStart(replica_info_t primary) {
-    checkPrimaryAlive(primary);
+    backupStartConnectionWithPrimary(primary);
 }
 
 void* newBackupConnection(void* args) {
@@ -386,6 +391,8 @@ void* newBackupConnection(void* args) {
     char newSocketType[USERNAMESIZE];
     bzero(newSocketType, sizeof(newSocketType));
     recv(socket, newSocketType, sizeof(newSocketType), 0);
+
+    write(socket, &endCommand, strlen(endCommand));
 
     if(strcmp(newSocketType, socketTypes[BACKUPSOCKET]) == 0) {
        socket_conn_list *newConn = (socket_conn_list*) calloc(1, sizeof(socket_conn_list));
