@@ -53,6 +53,7 @@ void freeUser(user_t* user) {
     free(user->userAccessSem);
 
     for(int i = 0; i < USERSESSIONNUMBER; i++ ) {
+        free(user->clientThread[i]->ipAddr);
         free(user->clientThread[i]);
         user->clientThread[i] = NULL;
     }
