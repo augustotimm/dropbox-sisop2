@@ -26,6 +26,8 @@ received_file_list *filesReceived;
 socket_conn_list* socketConn = NULL;
 char* sessionCode;
 
+int frontEndPort = 0;
+
 void clientUpload(int socket) {
 
     write(socket, &commands[UPLOAD], sizeof(commands[UPLOAD]));
@@ -308,7 +310,12 @@ int main()
         printf("Connected to the server..\n");
 
     newConnection(sockfd, CLIENTSOCKET);
+    char portBuffer[BUFFERSIZE];
+    sprintf(portBuffer, "%d", frontEndPort);
 
+    write(sockfd, portBuffer, sizeof(portBuffer));
+    // wait for endcommand
+    recv(sockfd, portBuffer, sizeof(portBuffer), 0);
 
     char buff[USERNAMESIZE];
     bzero(buff, sizeof(buff));
