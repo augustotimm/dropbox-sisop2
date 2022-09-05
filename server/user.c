@@ -8,7 +8,6 @@
 #include "../file-control/file-handler.h"
 #define OUTOFSESSION -90
 
-void createWatchDir(user_t* user);
 void freeUserList(user_list* userList);
 socket_conn_list* addSocket(socket_conn_list* head, int socket, char* sessionCode, bool isListener);
 
@@ -22,6 +21,10 @@ bool isSessionAvailable(user_t user, int sessionNumber) {
 
 bool isSessionOpen(user_t user, int sessionNumber) {
     return user.clientThread[sessionNumber] != NULL && !user.clientThread[sessionNumber]->isThreadComplete;
+}
+
+bool isSessionClosed(user_t user, int sessionNumber) {
+    return user.clientThread[sessionNumber] != NULL && user.clientThread[sessionNumber]->isThreadComplete;
 }
 
 bool hasSessionOpen(user_t user) {
@@ -53,9 +56,11 @@ void freeUser(user_t* user) {
     free(user->userAccessSem);
 
     for(int i = 0; i < USERSESSIONNUMBER; i++ ) {
-        free(user->clientThread[i]->ipAddr);
-        free(user->clientThread[i]);
-        user->clientThread[i] = NULL;
+        if(user->clientThread[i] != NULL) {
+            free(user->clientThread[i]->ipAddr);
+            free(user->clientThread[i]);
+            user->clientThread[i] = NULL;
+        }
     }
 
     socket_conn_list *currentConn = NULL, *connTmp = NULL;
@@ -229,4 +234,37 @@ void addNewSocketConn(user_t* user, int socket, char* sessionCode, bool isListen
         user->syncSocketList = newSocket;
     }
     pthread_mutex_unlock(user->userAccessSem);
+}
+
+void freeSession(user_t* user, int sessionNumber) {
+    free(user->clientThread[sessionNumber]->ipAddr);
+    free(user->clientThread[sessionNumber]->sessionCode);
+    free(user->clientThread[sessionNumber]);
+    user->clientThread[sessionNumber] = NULL;
+}
+
+void closeUserSession(char* username, char* sessionCode) {
+    user_list* userList = findUser(username);
+    if(userList != NULL) {
+        pthread_mutex_lock(&userList->user.userAccessSem);
+        for (int i = 0; i < USERSESSIONNUMBER; ++i) {
+            if(userList->user.clientThread[i] != NULL) {
+                if(strcmp(sessionCode, userList->user.clientThread[i]->sessionCode) == 0) {
+                    freeSession(&userList->user, i);
+                }
+            }
+
+        }
+
+        if(!hasSessionOpen(userList->user)) {
+            pthread_mutex_lock( &connectedUsersMutex);
+
+            DL_DELETE(connectedUserListHead, userList);
+            freeUserList(userList);
+
+            pthread_mutex_unlock( &connectedUsersMutex);
+
+        } else
+            pthread_mutex_unlock(userList->user.userAccessSem);
+    }
 }

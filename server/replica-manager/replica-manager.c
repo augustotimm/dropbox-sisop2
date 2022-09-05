@@ -197,7 +197,15 @@ int backupListenForMessage(int socket, char* rootFolderPath) {
             if(startUserSession(username, socket, ipAddr, port, sessionCode) != 0) {
                 printf("[backupListenForMessage] Fail starting User session");
             }
+        } else if(strcmp(currentCommand, commands[USERCLOSE]) ==0 ) {
+            char sessionCode[BUFFERSIZE];
+            bzero(sessionCode, sizeof(sessionCode));
+            recv(socket, sessionCode, sizeof(sessionCode), 0);
+
+            closeUserSession(username, sessionCode);
         }
+
+
         free(clientDirPath);
 
         if (strcmp(currentCommand, commands[EXIT]) == 0 || strlen(currentCommand) == 0) {

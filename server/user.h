@@ -11,6 +11,9 @@ bool hasAvailableSession(user_t user);
 void freeUserList(user_list* userList);
 bool hasSessionOpen(user_t user);
 user_list* findUser(char* username);
+bool isSessionClosed(user_t user, int sessionNumber);
+void freeSession(user_t* user, int sessionNumber);
+void closeUserSession(char* username, char* sessionCode);
 
 void addSyncDir(int dirSocket, user_t* user, char* sessionCode);
 void addNewSocketConn(user_t* user, int socket, char* sessionCode, bool isListener);

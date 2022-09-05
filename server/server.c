@@ -196,6 +196,42 @@ void connectUser(int socket, char* username, char* sessionCode, char* ipAddr, in
     pthread_mutex_unlock(&backupConnectionMutex);
 }
 
+
+int closeBackupUserSession(char* username, char* sessionCode) {
+    socket_conn_list *elt = NULL;
+    char buff[20];
+    bzero(buff, sizeof(buff));
+
+    pthread_mutex_lock(&backupConnectionMutex);
+    DL_FOREACH(backupConnectionList, elt) {
+        recv(elt->socket, buff, sizeof(buff), 0);
+        if(strcmp(buff, commands[WAITING]) != 0) {
+            printf("expected waiting command");
+        }
+
+        write(elt->socket, &commands[USERCLOSE], sizeof(commands[USERCLOSE]));
+
+        bzero(buff, sizeof(buff));
+        recv(elt->socket, buff, sizeof(buff), 0);
+        if(strcmp(buff, endCommand) != 0) {
+            printf("[connectUser] expected endCommand command");
+        }
+
+        write(elt->socket, username, strlen(username));
+
+        recv(elt->socket, buff, sizeof(buff), 0);
+        if(strcmp(buff, endCommand) != 0) {
+            printf("[connectUser] expected endCommand command");
+        }
+
+        write(elt->socket, sessionCode, strlen(sessionCode));
+
+    }
+
+    pthread_mutex_unlock(&backupConnectionMutex);
+    return 0;
+}
+
 void* userDisconnectedEvent(void *arg) {
     while(1) {
         user_list* currentUser = NULL, *userTmp = NULL;
@@ -203,6 +239,13 @@ void* userDisconnectedEvent(void *arg) {
         pthread_cond_wait(&closedUserConnection, &connectedUsersMutex);
         DL_FOREACH_SAFE(connectedUserListHead, currentUser, userTmp) {
             pthread_mutex_lock(currentUser->user.userAccessSem);
+            for(int i =0; i < USERSESSIONNUMBER; i++) {
+                if(isSessionClosed(currentUser->user, i)) {
+                    closeBackupUserSession(currentUser->user.username, currentUser->user.clientThread[i]->sessionCode);
+                    freeSession(&currentUser->user, i);
+                }
+            }
+
             if(!hasSessionOpen(currentUser->user)) {
                 DL_DELETE(connectedUserListHead, currentUser);
 

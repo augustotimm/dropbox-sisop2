@@ -17,6 +17,7 @@
 #define KBYTE 1024
 #define BUFFERSIZE 30
 
+#define USERCLOSE 9
 #define USERCONN 8
 #define WAITING 7
 #define DOWNLOADALL 6
@@ -45,7 +46,7 @@
 static const char endCommand[] = "\nend\n";
 static const char continueCommand[] = "\ncontinue\n";
 
-static const char commands[9][13] = {
+static const char commands[10][13] = {
         "upload",
         "download",
         "list local",
@@ -54,7 +55,8 @@ static const char commands[9][13] = {
         "delete",
         "download all",
         "waiting",
-        "user conn"
+        "user conn",
+        "user close"
 };
 static const char socketTypes[4][13] = {"client", "syncdir", "synclisten", "backup"};
 
