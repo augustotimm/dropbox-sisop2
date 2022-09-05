@@ -160,8 +160,9 @@ int startUserSession( char* username, int socket) {
         DL_APPEND(connectedUserListHead, newUser);
         user = newUser;
     }
-    pthread_mutex_unlock(&connectedUsersMutex);
     pthread_mutex_lock(user->user.userAccessSem);
+    pthread_mutex_unlock(&connectedUsersMutex);
+
 
 
     int result = startNewSession(user, socket, dirPath);

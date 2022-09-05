@@ -155,12 +155,14 @@ void* userDisconnectedEvent(void *arg) {
 
         pthread_cond_wait(&closedUserConnection, &connectedUsersMutex);
         DL_FOREACH_SAFE(connectedUserListHead, currentUser, userTmp) {
+            pthread_mutex_lock(currentUser->user.userAccessSem);
             if(!hasSessionOpen(currentUser->user)) {
-                pthread_mutex_lock(currentUser->user.userAccessSem);
                 DL_DELETE(connectedUserListHead, currentUser);
 
                 freeUserList(currentUser);
-            }
+            } else
+                pthread_mutex_unlock(currentUser->user.userAccessSem);
+
         }
         pthread_mutex_unlock(&connectedUsersMutex);
     }
