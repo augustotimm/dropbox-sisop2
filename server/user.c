@@ -20,7 +20,10 @@ bool isSessionAvailable(user_t user, int sessionNumber) {
 }
 
 bool isSessionOpen(user_t user, int sessionNumber) {
-    return user.clientThread[sessionNumber] != NULL && !user.clientThread[sessionNumber]->isThreadComplete;
+    if(!isPrimary)
+        return user.clientThread[sessionNumber] != NULL;
+    else
+        return user.clientThread[sessionNumber] != NULL && !user.clientThread[sessionNumber]->isThreadComplete;
 }
 
 bool isSessionClosed(user_t user, int sessionNumber) {
@@ -128,8 +131,9 @@ int startNewSession(user_list* user, int sessionSocket, char* userDirPath, char*
         } else newClientThread->isThreadComplete = true;
 
 
-        newClientThread->sessionCode = sessionCode;
-        newClientThread->ipAddr = ipAddr;
+        newClientThread->sessionCode = strcatSafe(sessionCode, "\0");
+
+        newClientThread->ipAddr = strcatSafe(ipAddr, "\0");
         newClientThread->frontEndPort = port;
 
         if(!addSession(&user->user, newClientThread)) {
@@ -246,7 +250,7 @@ void freeSession(user_t* user, int sessionNumber) {
 void closeUserSession(char* username, char* sessionCode) {
     user_list* userList = findUser(username);
     if(userList != NULL) {
-        pthread_mutex_lock(&userList->user.userAccessSem);
+        pthread_mutex_lock(userList->user.userAccessSem);
         for (int i = 0; i < USERSESSIONNUMBER; ++i) {
             if(userList->user.clientThread[i] != NULL) {
                 if(strcmp(sessionCode, userList->user.clientThread[i]->sessionCode) == 0) {

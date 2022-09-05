@@ -115,6 +115,7 @@ void* newConnection(void* arg) {
         sscanf(newSocketType, "%d", &port);
 
         connectUser(socket, username, sessionCode, argument->ipString, port);
+        free(argument->ipString);
     }
     if(strcmp(newSocketType, socketTypes[SYNCSOCKET]) == 0) {
         connectSyncDir(socket, username, sessionCode);

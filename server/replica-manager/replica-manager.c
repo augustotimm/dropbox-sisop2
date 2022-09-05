@@ -149,7 +149,7 @@ int backupListenForMessage(int socket, char* rootFolderPath) {
         bzero(username, sizeof(username));
 
 
-        printf("\n[listenForSocketMessage] WAITING\n");
+        printf("\n[backupListenForMessage] WAITING\n");
         write(socket, &commands[WAITING], sizeof(commands[WAITING]));
 
         // read the message from client and copy it in buffer
@@ -190,6 +190,7 @@ int backupListenForMessage(int socket, char* rootFolderPath) {
             int port;
             sscanf(currentCommand, "%d", &port);
             char sessionCode[BUFFERSIZE];
+            bzero(sessionCode, sizeof(sessionCode));
 
 
             recv(socket, sessionCode, sizeof(sessionCode), 0);
