@@ -6,7 +6,7 @@
 #define DROPBOX_SISOP2_USER_H
 #include "../lib/helper.h"
 
-int startUserSession( char* username, int socket, char* ipAddr, int port);
+int startUserSession( char* username, int socket, char* ipAddr, int port, char* sessionCode);
 bool hasAvailableSession(user_t user);
 void freeUserList(user_list* userList);
 bool hasSessionOpen(user_t user);

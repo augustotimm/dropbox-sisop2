@@ -17,6 +17,7 @@
 #define KBYTE 1024
 #define BUFFERSIZE 30
 
+#define USERCONN 8
 #define WAITING 7
 #define DOWNLOADALL 6
 #define DELETE 5
@@ -44,7 +45,17 @@
 static const char endCommand[] = "\nend\n";
 static const char continueCommand[] = "\ncontinue\n";
 
-static const char commands[8][13] = {"upload", "download", "list local", "sync", "exit", "delete", "download all", "waiting"};
+static const char commands[9][13] = {
+        "upload",
+        "download",
+        "list local",
+        "sync",
+        "exit",
+        "delete",
+        "download all",
+        "waiting",
+        "user conn"
+};
 static const char socketTypes[4][13] = {"client", "syncdir", "synclisten", "backup"};
 
 typedef struct received_file_list {
@@ -58,6 +69,7 @@ typedef struct user_session_t {
     bool isThreadComplete;
     char* ipAddr;
     int frontEndPort;
+    char* sessionCode;
 } user_session_t;
 
 typedef struct socket_conn_list {
@@ -119,5 +131,4 @@ void deleteFile(char* filename, char* path);
 void freeFileInfo(file_info info);
 file_info getFileInfo(char* path, char* fileName);
 
-int backupListenForMessage(int socket, char* rootFolderPath);
 #endif //DROPBOX_SISOP2_HELPER_H

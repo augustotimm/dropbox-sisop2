@@ -106,7 +106,7 @@ client_thread_argument* createClientThreadArgument(bool* isThreadComplete, char*
     return argument;
 }
 
-int startNewSession(user_list* user, int sessionSocket, char* userDirPath, char* ipAddr, int port) {
+int startNewSession(user_list* user, int sessionSocket, char* userDirPath, char* ipAddr, int port, char* sessionCode) {
     if(hasAvailableSession(user->user)) {
         user_session_t* newClientThread = (user_session_t*) calloc(1, sizeof(user_session_t));
         client_thread_argument* argument =
@@ -117,9 +117,13 @@ int startNewSession(user_list* user, int sessionSocket, char* userDirPath, char*
                         &user->user
                 );
 
-        pthread_create(&newClientThread->thread, NULL, clientListen, argument);
-        pthread_detach(newClientThread->thread);
+        if(isPrimary) {
+            pthread_create(&newClientThread->thread, NULL, clientListen, argument);
+            pthread_detach(newClientThread->thread);
+        } else newClientThread->isThreadComplete = true;
 
+
+        newClientThread->sessionCode = sessionCode;
         newClientThread->ipAddr = ipAddr;
         newClientThread->frontEndPort = port;
 
@@ -150,7 +154,7 @@ user_list* createUser(char* username) {
     return newUser;
 }
 
-int startUserSession( char* username, int socket, char* ipAddr, int port) {
+int startUserSession( char* username, int socket, char* ipAddr, int port, char* sessionCode) {
     user_list* user = NULL;
     user_list etmp;
     char* userSafe = strcatSafe(username, "\0");
@@ -169,7 +173,7 @@ int startUserSession( char* username, int socket, char* ipAddr, int port) {
 
 
 
-    int result = startNewSession(user, socket, dirPath, ipAddr, port);
+    int result = startNewSession(user, socket, dirPath, ipAddr, port, sessionCode);
     free(dirPath);
     free(userSafe);
     pthread_mutex_unlock(user->user.userAccessSem);

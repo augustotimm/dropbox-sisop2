@@ -152,10 +152,48 @@ int connectSyncDir(int socket, char* username, char* sessionCode) {
 
 
 void connectUser(int socket, char* username, char* sessionCode, char* ipAddr, int port) {
-    if(startUserSession(username, socket, ipAddr, port) != 0) {
+    if(startUserSession(username, socket, ipAddr, port, sessionCode) != 0) {
         writeMessageToSocket(socket, "FALSE");
         close(socket);
     }
+    socket_conn_list *elt = NULL;
+    pthread_mutex_lock(&backupConnectionMutex);
+
+    char buff[20];
+    bzero(buff, sizeof(buff));
+    DL_FOREACH(backupConnectionList, elt) {
+        recv(elt->socket, buff, sizeof(buff), 0);
+        if(strcmp(buff, commands[WAITING]) != 0) {
+            printf("expected waiting command");
+        }
+
+        write(elt->socket, &commands[USERCONN], sizeof(commands[USERCONN]));
+
+        bzero(buff, sizeof(buff));
+        recv(elt->socket, buff, sizeof(buff), 0);
+        if(strcmp(buff, endCommand) != 0) {
+            printf("[connectUser] expected endCommand command");
+        }
+
+        write(elt->socket, username, strlen(username));
+
+        recv(elt->socket, buff, sizeof(buff), 0);
+        if(strcmp(buff, endCommand) != 0) {
+            printf("[connectUser] expected endCommand command");
+        }
+
+        write(elt->socket, ipAddr, strlen(ipAddr));
+        recv(elt->socket, buff, sizeof(buff), 0);
+        bzero(buff, sizeof(buff));
+
+        sprintf(buff, "%d", port);
+        write(elt->socket, buff, strlen(buff));
+        recv(elt->socket, buff, sizeof(buff), 0);
+        bzero(buff, sizeof(buff));
+
+        write(elt->socket, sessionCode, strlen(sessionCode));
+    }
+    pthread_mutex_unlock(&backupConnectionMutex);
 }
 
 void* userDisconnectedEvent(void *arg) {

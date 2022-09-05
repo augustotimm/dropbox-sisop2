@@ -8,6 +8,8 @@
 #include "replica-manager.h"
 #include "../../lib/helper.h"
 #include "../server.h"
+#include "../user.h"
+#include "../server_functions.h"
 
 
 replica_info_list* createReplica(char* ip, int port, int isPrimary);
@@ -134,4 +136,74 @@ socket_conn_list *connectToBackups(replica_info_list *replicaList) {
     }
 
     backupConnectionList;
+}
+
+int backupListenForMessage(int socket, char* rootFolderPath) {
+    char currentCommand[13];
+    char fileName[FILENAMESIZE];
+    char username[USERNAMESIZE];
+
+    for (;;) {
+        bzero(currentCommand, sizeof(currentCommand));
+        bzero(fileName, sizeof(fileName));
+        bzero(username, sizeof(username));
+
+
+        printf("\n[listenForSocketMessage] WAITING\n");
+        write(socket, &commands[WAITING], sizeof(commands[WAITING]));
+
+        // read the message from client and copy it in buffer
+        recv(socket, currentCommand, sizeof(currentCommand), 0);
+
+        write(socket, &endCommand, strlen(endCommand));
+
+        recv(socket, username, sizeof(username), 0);
+
+        write(socket, &endCommand, strlen(endCommand));
+
+        char* filePath = strcatSafe(rootFolderPath, username);
+        char* clientDirPath = strcatSafe(filePath, "/");
+        free(filePath);
+
+        if(strcmp(currentCommand, commands[UPLOAD]) ==0 ) {
+            char* fileName = download(socket, clientDirPath, NULL, false);
+            if(fileName == NULL) {
+                break;
+            }
+            free(fileName);
+            printf("\n\n[listenForBackupMessage] finished upload\n\n");
+        } else if(strcmp(currentCommand, commands[DELETE]) ==0 ) {
+            recv(socket, fileName, sizeof(fileName), 0);
+            deleteFile(fileName, clientDirPath);
+            write(socket, &endCommand, sizeof(endCommand));
+
+            printf("\n\b[listenForBackupMessage] finished delete\n\n");
+        } else if(strcmp(currentCommand, commands[USERCONN]) ==0 ) {
+            char ipAddr[BUFFERSIZE];
+            bzero(ipAddr, sizeof(ipAddr));
+            recv(socket, ipAddr, sizeof(ipAddr), 0);
+            write(socket, &endCommand, sizeof(endCommand));
+
+            bzero(currentCommand, sizeof(currentCommand));
+            recv(socket, currentCommand, sizeof(currentCommand), 0);
+            write(socket, &endCommand, sizeof(endCommand));
+            int port;
+            sscanf(currentCommand, "%d", &port);
+            char sessionCode[BUFFERSIZE];
+
+
+            recv(socket, sessionCode, sizeof(sessionCode), 0);
+
+            if(startUserSession(username, socket, ipAddr, port, sessionCode) != 0) {
+                printf("[backupListenForMessage] Fail starting User session");
+            }
+        }
+        free(clientDirPath);
+
+        if (strcmp(currentCommand, commands[EXIT]) == 0 || strlen(currentCommand) == 0) {
+
+            return 0;
+        }
+    }
+    return -1;
 }

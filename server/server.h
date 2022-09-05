@@ -15,6 +15,8 @@ extern pthread_mutex_t connectedReplicaListMutex;
 extern pthread_mutex_t backupConnectionMutex;
 extern socket_conn_list* backupConnectionList;
 
+extern bool isPrimary;
+
 extern char rootPath[KBYTE];
 
 void* clientListen(void* conf);
