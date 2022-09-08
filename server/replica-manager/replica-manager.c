@@ -12,7 +12,7 @@
 #include "../server_functions.h"
 
 
-replica_info_list* createReplica(char* ip, int port, int isPrimary);
+replica_info_list* createReplica(char* ip, int port, int isPrimary, int electionValue);
 
 replica_info_list* readConfig(char* filePath) {
     replica_info_list* replicaList = NULL;
@@ -36,6 +36,7 @@ replica_info_list* readConfig(char* filePath) {
         char* ipAddr;
         int port;
         int isPrimary;
+        int electionValue;
         if(rowCount > 0) {
             while(token != NULL)
             {
@@ -53,11 +54,15 @@ replica_info_list* readConfig(char* filePath) {
                     sscanf(token, "%d", &isPrimary);
                 }
 
+                if(tokenCount == 3) {
+                    sscanf(token, "%d", &electionValue);
+                }
+
                 tokenCount += 1;
                 token = strtok(NULL, ",");
             }
 
-            replica_info_list *newReplica = createReplica(ipAddr, port, isPrimary);
+            replica_info_list *newReplica = createReplica(ipAddr, port, isPrimary, electionValue);
             DL_APPEND(replicaList, newReplica);
         }
 
@@ -67,7 +72,7 @@ replica_info_list* readConfig(char* filePath) {
     return replicaList;
 }
 
-replica_info_list* createReplica(char* ip, int port, int isPrimary) {
+replica_info_list* createReplica(char* ip, int port, int isPrimary, int electionValue) {
     struct replica_info_list* replica = (replica_info_list*)
             calloc(1, sizeof(replica_info_list));
 
@@ -75,6 +80,7 @@ replica_info_list* createReplica(char* ip, int port, int isPrimary) {
     replica->next = NULL;
     replica->replica.port = port;
     replica->replica.isPrimary = !! isPrimary;
+    replica->replica.electionValue = electionValue;
 
     replica->replica.ipAddr = calloc(strlen(ip) +1, sizeof(char));
     strcpy(replica->replica.ipAddr, ip);
