@@ -478,6 +478,9 @@ void* backupStartConnectionWithPrimary(replica_info_t primary) {
         isElectionRunning = true;
     }
     pthread_mutex_unlock(&startElectionMutex);
+
+    deletePrimary();
+
     startElection();
 }
 

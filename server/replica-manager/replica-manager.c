@@ -366,3 +366,21 @@ void updatePrimary(int replicaElectionValue) {
     pthread_mutex_unlock(&connectedReplicaListMutex);
 
 }
+
+int primaryCompare(replica_info_list* a, replica_info_list* b) {
+    if(a->replica.isPrimary == b->replica.isPrimary)
+        return 0;
+    else
+        return -1;
+}
+void deletePrimary() {
+    replica_info_list * replica = NULL;
+    replica_info_list etmp;
+    etmp.replica.isPrimary = true;
+
+    pthread_mutex_lock(&connectedReplicaListMutex);
+    DL_SEARCH(replicaList, replica, &etmp, primaryCompare);
+    DL_DELETE(replicaList, replica);
+    pthread_mutex_unlock(&connectedReplicaListMutex);
+
+}
