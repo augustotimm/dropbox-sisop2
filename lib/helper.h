@@ -41,6 +41,7 @@
 #define SYNCSOCKET 1
 #define SYNCLISTENSOCKET 2
 #define BACKUPSOCKET 3
+#define ELECTIONSOCKET 4
 
 
 static const char endCommand[] = "\nend\n";
@@ -58,7 +59,7 @@ static const char commands[10][13] = {
         "user conn",
         "user close"
 };
-static const char socketTypes[4][13] = {"client", "syncdir", "synclisten", "backup"};
+static const char socketTypes[5][13] = {"client", "syncdir", "synclisten", "backup", "election"};
 
 typedef struct received_file_list {
     int socketReceiver;

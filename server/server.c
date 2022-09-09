@@ -28,6 +28,7 @@
 user_list* connectedUserListHead = NULL;
 replica_info_list* replicaList = NULL;
 bool isPrimary = false;
+int electionValue = -1;
 
 pthread_mutex_t startElectionMutex;
 bool isElectionRunning;
