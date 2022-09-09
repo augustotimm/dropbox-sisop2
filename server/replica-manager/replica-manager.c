@@ -363,7 +363,7 @@ void updatePrimary(int replicaElectionValue) {
     pthread_mutex_lock(&connectedReplicaListMutex);
     DL_SEARCH(replicaList, replica, &etmp, replicaCompare);
     if(replica == NULL) {
-        printf("\n\n--------New Primary Replica Not FOUND--------");
+        printf("\n\n--------New Primary Replica Not FOUND--------\n");
         exit(-99);
     } else {
         replica->replica.isPrimary = true;
