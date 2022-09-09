@@ -226,6 +226,7 @@ void* startElection(){
         DL_FOREACH(replicaList, element) {
             sendCoordinatorMessage(element->replica);
         }
+        printf("\nI BECAME PRIMARY\n");
         isPrimary = true;
     }
 
@@ -264,7 +265,7 @@ socket_conn_list *connectToBackups(replica_info_list *replicaList) {
     backupConnectionList;
 }
 
-int backupListenForMessage(int socket, char* rootFolderPath) {
+int backupListenForMessage(int socket, char* rootFolderPath, bool *isElectionRunning) {
     char currentCommand[13];
     char fileName[FILENAMESIZE];
     char username[USERNAMESIZE];
@@ -339,6 +340,10 @@ int backupListenForMessage(int socket, char* rootFolderPath) {
 
             return 0;
         }
+
+        if(isElectionRunning){
+            return 0;
+        }
     }
     return -1;
 }
@@ -374,13 +379,18 @@ int primaryCompare(replica_info_list* a, replica_info_list* b) {
         return -1;
 }
 void deletePrimary() {
-    replica_info_list * replica = NULL;
+    replica_info_list *replica = NULL, *replicaTmp = NULL;
     replica_info_list etmp;
     etmp.replica.isPrimary = true;
 
     pthread_mutex_lock(&connectedReplicaListMutex);
-    DL_SEARCH(replicaList, replica, &etmp, primaryCompare);
-    DL_DELETE(replicaList, replica);
+    DL_FOREACH_SAFE(replicaList, replica, replicaTmp) {
+        if(replica->replica.isPrimary) {
+            DL_DELETE(replicaList, replica);
+            free(replica->replica.ipAddr);
+            free(replica);
+        }
+    }
     pthread_mutex_unlock(&connectedReplicaListMutex);
 
 }

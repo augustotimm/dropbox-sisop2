@@ -466,17 +466,11 @@ void* backupStartConnectionWithPrimary(replica_info_t primary) {
         printf("[backupStartConnectionWithPrimary] expected endCommand command");
     }
 
-    backupListenForMessage(sockfd, rootPath);
+    backupListenForMessage(sockfd, rootPath, &isElectionRunning);
 
 
     pthread_mutex_lock(&startElectionMutex);
-    if(isElectionRunning) {
-        pthread_mutex_unlock(&startElectionMutex);
-        return NULL;
-    }
-    else {
-        isElectionRunning = true;
-    }
+    isElectionRunning = true;
     pthread_mutex_unlock(&startElectionMutex);
 
     deletePrimary();
@@ -486,6 +480,8 @@ void* backupStartConnectionWithPrimary(replica_info_t primary) {
 
 void backupReplicaStart(replica_info_t primary) {
 
+    // liberar essa memória
+    electionThread = (pthread_t*) calloc(1, sizeof(pthread_t));
     pthread_create(electionThread, NULL, listenElectionMessages, NULL);
 
     pthread_detach(electionThread);
@@ -532,10 +528,14 @@ void* newBackupConnection(void* args) {
 
         wait(1);
         close(socket);
+
+        pthread_mutex_lock(&startElectionMutex);
+        isElectionRunning = true;
+        pthread_mutex_unlock(&startElectionMutex);
+
         return NULL;
 
     }
-
     if(strcmp(newSocketType, socketTypes[ELECTIONCOORDSOCKET]) == 0) {
         char buff[20];
         bzero(buff, sizeof(buff));
