@@ -68,9 +68,26 @@ replica_info_list* readConfig(char* filePath) {
             DL_APPEND(replicaList, newReplica);
         }
         if(rowCount == 0) {
-            sscanf(token, "%d", &replicaElectionValue);
-            electionValue = replicaElectionValue;
+            while(token != NULL)
+            {
+                printf("Token: %s\n", token);
+
+                if(tokenCount == 0) {
+                    sscanf(token, "%d", &replicaElectionValue);
+                    electionValue = replicaElectionValue;
+                }
+
+                if(tokenCount == 1) {
+                    sscanf(token, "%d", &port);
+                    electionPort = port;
+                }
+
+                tokenCount += 1;
+                token = strtok(NULL, ",");
+            }
         }
+
+
 
         rowCount += 1;
     }
@@ -154,7 +171,7 @@ int sendElectionMessage(replica_info_t replica) {
     return 0;
 }
 
-int sendCoordinatorMessage (){
+int sendCoordinatorMessage (replica_info_t replica){
     struct sockaddr_in servaddr;
     char buff[20];
     bzero(buff, sizeof(buff));
@@ -173,7 +190,13 @@ int sendCoordinatorMessage (){
     }
 
     write(sockfd, &socketTypes[ELECTIONCOORDSOCKET], sizeof(socketTypes[ELECTIONCOORDSOCKET]));
-    read(sockfd, buff, sizeof(buff), 0);
+    recv(sockfd, buff, sizeof(buff), 0);
+
+    bzero(buff, sizeof(buff));
+
+    sprintf(buff, "%d", electionValue);
+
+    write(sockfd, buff, strlen(buff));
 
     close(sockfd);
 
@@ -181,7 +204,6 @@ int sendCoordinatorMessage (){
         return -1;
     }
 
-    isPrimary = true;
     return 0;
 }
 
@@ -202,8 +224,9 @@ void* startElection(){
     if(!hasHigherValue) {
         element = NULL;
         DL_FOREACH(replicaList, element) {
-            sendCoordinatorMessage();
+            sendCoordinatorMessage(element->replica);
         }
+        isPrimary = true;
     }
 
     pthread_mutex_unlock(&connectedReplicaListMutex);
@@ -318,4 +341,28 @@ int backupListenForMessage(int socket, char* rootFolderPath) {
         }
     }
     return -1;
+}
+
+int replicaCompare(replica_info_list* a, replica_info_list* b) {
+    if(a->replica.electionValue == b->replica.electionValue)
+        return 0;
+    else
+        return -1;
+}
+
+void updatePrimary(int replicaElectionValue) {
+    replica_info_list * replica = NULL;
+    replica_info_list etmp;
+    etmp.replica.electionValue = replicaElectionValue;
+
+    pthread_mutex_lock(&connectedReplicaListMutex);
+    DL_SEARCH(replicaList, replica, &etmp, replicaCompare);
+    if(replica == NULL) {
+        printf("\n\n--------New Primary Replica Not FOUND--------");
+        exit(-99);
+    } else {
+        replica->replica.isPrimary = true;
+    }
+    pthread_mutex_unlock(&connectedReplicaListMutex);
+
 }

@@ -29,6 +29,7 @@ user_list* connectedUserListHead = NULL;
 replica_info_list* replicaList = NULL;
 bool isPrimary = false;
 int electionValue = -1;
+int electionPort = -1;
 
 pthread_mutex_t startElectionMutex;
 bool isElectionRunning;
@@ -44,6 +45,8 @@ pthread_mutex_t connectedReplicaListMutex;
 pthread_mutex_t backupConnectionMutex;
 socket_conn_list* backupConnectionList = NULL;
 
+pthread_t* electionThread = NULL;
+
 struct new_connection_argument {
     int socket;
     struct in_addr ipAddr;
@@ -54,7 +57,7 @@ void connectUser(int socket, char* username, char* sessionCode, char* ipAddr, in
 int connectSyncDir(int socket, char* username, char* sessionCode);
 int connectSyncListener(int socket, char*username,  char* sessionCode);
 void* newBackupConnection(void* args);
-
+void listenElectionMessages();
 
 void* clientListen(void* voidArg)
 {
@@ -438,7 +441,6 @@ void* syncDirListenerConn(void* args) {
 }
 
 void* backupStartConnectionWithPrimary(replica_info_t primary) {
-    bool isAlive = true;
     struct sockaddr_in servaddr;
     char buff[20];
     bzero(buff, sizeof(buff));
@@ -480,6 +482,11 @@ void* backupStartConnectionWithPrimary(replica_info_t primary) {
 }
 
 void backupReplicaStart(replica_info_t primary) {
+
+    pthread_create(electionThread, NULL, listenElectionMessages, NULL);
+
+    pthread_detach(electionThread);
+
     backupStartConnectionWithPrimary(primary);
 }
 
@@ -506,6 +513,35 @@ void* newBackupConnection(void* args) {
 
        return NULL;
    }
+    if(strcmp(newSocketType, socketTypes[ELECTIONSOCKET]) == 0) {
+        char buff[20];
+        bzero(buff, sizeof(buff));
+        recv(socket, buff, sizeof(buff), 0);
+        int replicaElectionValue;
+        sscanf(buff, "%d", &replicaElectionValue);
+
+        if( replicaElectionValue < electionValue) {
+            write(socket, &endCommand, strlen(endCommand));
+        }
+        else{
+            write(socket, &continueCommand, strlen(continueCommand));
+        }
+
+        wait(1);
+        close(socket);
+        return NULL;
+
+    }
+
+    if(strcmp(newSocketType, socketTypes[ELECTIONCOORDSOCKET]) == 0) {
+        char buff[20];
+        bzero(buff, sizeof(buff));
+        recv(socket, buff, sizeof(buff), 0);
+        int replicaElectionValue;
+        sscanf(buff, "%d", &replicaElectionValue);
+
+        updatePrimary(replicaElectionValue);
+    }
 }
 
 void listenLivenessCheck() {
@@ -581,6 +617,61 @@ void primaryReplicaStart() {
     pthread_detach(clientConnThread);
 
     listenLivenessCheck();
+}
+
+void listenElectionMessages() {
+    int sockfd, connfd, len;
+    struct sockaddr_in servaddr, cli;
+
+    // socket create and verification
+    sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    if (sockfd == -1) {
+        printf("socket creation failed...\n");
+        exit(0);
+    }
+    else
+        printf("Socket successfully created..\n");
+    bzero(&servaddr, sizeof(servaddr));
+
+    // assign IP, PORT
+    servaddr.sin_family = AF_INET;
+    servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+    servaddr.sin_port = htons(electionPort);
+
+    // Binding newly created socket to given IP and verification
+    if ((bind(sockfd, (struct sockaddr *)&servaddr, sizeof(servaddr))) != 0) {
+        printf("Election socket bind failed...\n");
+        exit(0);
+    }
+    else
+        printf("Election Socket successfully binded..\n");
+
+    // Now server is ready to listen and verification
+    if ((listen(sockfd, 5)) != 0) {
+        printf("Election Listen failed...\n");
+        exit(0);
+    }
+    else
+        printf("Election Server listening..\n");
+    len = sizeof(cli);
+
+    int i = 0;
+    while( (connfd = accept(sockfd, (struct sockaddr *)&cli, (socklen_t*)&len))  || i < 5)
+    {
+        struct in_addr ipAddr = cli.sin_addr;
+
+        puts("Connection accepted");
+        pthread_t newBackupThread;
+
+
+        struct new_connection_argument *arg = calloc(1, sizeof(struct new_connection_argument));
+        arg->socket = connfd;
+        arg->ipAddr = ipAddr;
+
+        pthread_create(&newBackupThread, NULL, newBackupConnection, arg);
+
+        pthread_detach(newBackupThread);
+    }
 }
 
 int main()

@@ -28,6 +28,8 @@ void* startElection();
 socket_conn_list *connectToBackups(replica_info_list *replicaList);
 
 int backupListenForMessage(int socket, char* rootFolderPath);
+void updatePrimary(int replicaElectionValue);
+
 #endif //DROPBOX_SISOP2_REPLICA_MANAGER_H
 
 // front end

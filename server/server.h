@@ -19,6 +19,7 @@ extern socket_conn_list* backupConnectionList;
 extern bool isPrimary;
 extern int electionValue;
 extern replica_info_list* replicaList;
+extern int electionPort;
 
 extern char rootPath[KBYTE];
 
