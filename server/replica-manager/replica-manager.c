@@ -155,7 +155,34 @@ int sendElectionMessage(replica_info_t replica) {
 }
 
 int sendCoordinatorMessage (){
+    struct sockaddr_in servaddr;
+    char buff[20];
+    bzero(buff, sizeof(buff));
 
+
+    servaddr.sin_family = AF_INET;
+    servaddr.sin_addr.s_addr = inet_addr(replica.ipAddr);
+    servaddr.sin_port = htons(replica.port);
+
+    int sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    if (sockfd == -1) {
+        printf("Election socket to backup replica creation failed\nbackupId: %d\n", replica.electionValue);
+    }
+    if (connect(sockfd, (struct sockaddr*)&servaddr, sizeof(servaddr)) != 0) {
+        printf("election connection failed backupId: %d\n", replica.electionValue);
+    }
+
+    write(sockfd, &socketTypes[ELECTIONCOORDSOCKET], sizeof(socketTypes[ELECTIONCOORDSOCKET]));
+    read(sockfd, buff, sizeof(buff), 0);
+
+    close(sockfd);
+
+    if(strcmp(buff, endCommand) != 0) {
+        return -1;
+    }
+
+    isPrimary = true;
+    return 0;
 }
 
 void* startElection(){
