@@ -267,6 +267,8 @@ socket_conn_list *connectToBackups(replica_info_list *replicaList) {
 
 int backupListenForMessage(int socket, char* rootFolderPath, bool *isElectionRunning) {
     char currentCommand[13];
+    char buff[BUFFERSIZE];
+
     char fileName[FILENAMESIZE];
     char username[USERNAMESIZE];
 
@@ -274,6 +276,8 @@ int backupListenForMessage(int socket, char* rootFolderPath, bool *isElectionRun
         bzero(currentCommand, sizeof(currentCommand));
         bzero(fileName, sizeof(fileName));
         bzero(username, sizeof(username));
+        bzero(buff, sizeof(buff));
+
 
 
         printf("\n[backupListenForMessage] WAITING\n");
@@ -307,22 +311,22 @@ int backupListenForMessage(int socket, char* rootFolderPath, bool *isElectionRun
             printf("\n\b[listenForBackupMessage] finished delete\n\n");
         } else if(strcmp(currentCommand, commands[USERCONN]) ==0 ) {
             char ipAddr[BUFFERSIZE];
+
             bzero(ipAddr, sizeof(ipAddr));
             recv(socket, ipAddr, sizeof(ipAddr), 0);
             write(socket, &endCommand, sizeof(endCommand));
 
-            bzero(currentCommand, sizeof(currentCommand));
-            recv(socket, currentCommand, sizeof(currentCommand), 0);
+            recv(socket, buff, sizeof(buff), 0);
             write(socket, &endCommand, sizeof(endCommand));
             int port;
-            sscanf(currentCommand, "%d", &port);
-            char sessionCode[BUFFERSIZE];
-            bzero(sessionCode, sizeof(sessionCode));
+            sscanf(buff, "%d", &port);
+
+            bzero(buff, sizeof(buff));
 
 
-            recv(socket, sessionCode, sizeof(sessionCode), 0);
+            recv(socket, buff, sizeof(buff), 0);
 
-            if(startUserSession(username, socket, ipAddr, port, sessionCode) != 0) {
+            if(startUserSession(username, socket, ipAddr, port, buff) != 0) {
                 printf("[backupListenForMessage] Fail starting User session");
             }
         } else if(strcmp(currentCommand, commands[USERCLOSE]) ==0 ) {
@@ -341,7 +345,7 @@ int backupListenForMessage(int socket, char* rootFolderPath, bool *isElectionRun
             return 0;
         }
 
-        if(isElectionRunning){
+        if(*isElectionRunning){
             return 0;
         }
     }
@@ -378,6 +382,7 @@ int primaryCompare(replica_info_list* a, replica_info_list* b) {
     else
         return -1;
 }
+
 void deletePrimary() {
     replica_info_list *replica = NULL, *replicaTmp = NULL;
     replica_info_list etmp;
