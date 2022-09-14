@@ -24,7 +24,7 @@ pthread_mutex_t syncDirSem;
 pthread_t listenSyncThread;
 received_file_list *filesReceived;
 
-socket_conn_list* socketConn = NULL;
+sync_dir_conn* socketConn = NULL;
 char* sessionCode;
 
 int frontEndPort = 0;
@@ -126,14 +126,20 @@ void list_local(char * pathname) {
     printFileInfoList(infoList);
 }
 
-void* listenSyncDir(void* args) {
-    int socket = *(int*)args;
-    free(args);
+user_t *createClientUser() {
     user_t *clientUser = calloc(1, sizeof(user_t));
-    clientUser->syncSocketList = socketConn;
+    clientUser->syncSocketList = calloc(1, sizeof(socket_conn_list));
+    clientUser->syncSocketList->listenerSocket = *socketConn->listenerSocket;
+
     clientUser->userAccessSem = &syncDirSem;
     clientUser->filesReceived = filesReceived;
     clientUser->username = username;
+}
+
+void* listenSyncDir() {
+    int socket = *syncListenSocket;
+
+    user_t *clientUser = createClientUser();
     listenForSocketMessage(socket, path, clientUser, false, NULL, NULL);
     close(socket);
 }
@@ -141,13 +147,13 @@ void* listenSyncDir(void* args) {
 void startListenSyncDir() {
 
 
-    connectToServer(syncListenSocket, SYNCLISTENERPORT);
+    connectToServer(syncListenSocket, SYNCPORT);
 
     newConnection(*syncListenSocket, SYNCSOCKET);
     addSocketConn(*syncListenSocket, true);
 
 
-    int created = pthread_create(&listenSyncThread, NULL, listenSyncDir, syncListenSocket);
+    int created = pthread_create(&listenSyncThread, NULL, listenSyncDir, NULL);
     pthread_detach(listenSyncThread);
     if(created != 0) {
         printf("Listen sync dir failed\n");
@@ -158,9 +164,9 @@ void startListenSyncDir() {
 
 void startWatchDir() {
 
-    connectToServer(syncDirSocket, SYNCPORT);
+    connectToServer(syncDirSocket,  SYNCLISTENERPORT);
 
-    newConnection(*syncDirSocket, SYNCSOCKET);
+    newConnection(*syncDirSocket, SYNCLISTENSOCKET);
     addSocketConn(*syncDirSocket, false);
 
 
@@ -297,14 +303,21 @@ int main()
 void addSocketConn(int socket,  bool isListener) {
     pthread_mutex_lock(&syncDirSem);
     if(socketConn == NULL) {
-        socketConn = initSocketConnList(socket, sessionCode, isListener);
+        socketConn = calloc(1, sizeof(sync_dir_conn));
+        socketConn->listenerSocket = calloc(1, sizeof(int));
+        socketConn->socket = calloc(1, sizeof(int));
+
+        if(isListener)
+            *socketConn->listenerSocket = socket;
+        else
+            *socketConn->socket = socket;
     }
     else {
         if(isListener) {
-            socketConn->listenerSocket = socket;
+            *socketConn->listenerSocket = socket;
         }
         else {
-            socketConn->socket = socket;
+            *socketConn->socket = socket;
         }
     }
     pthread_mutex_unlock(&syncDirSem);

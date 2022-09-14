@@ -17,10 +17,14 @@ void* watchDir(void* args);
 char* getuserDirPath(char* username);
 void sig_handler(int sig);
 
+typedef struct sync_dir_conn {
+    int *socket;
+    int *listenerSocket;
+} sync_dir_conn;
 
 typedef struct watch_dir_argument {
     char* dirPath;
-    socket_conn_list* socketConnList;
+    sync_dir_conn* socketConnList;
     pthread_mutex_t* userSem;
     received_file_list *filesReceived;
 } watch_dir_argument;
