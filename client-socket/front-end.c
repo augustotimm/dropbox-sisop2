@@ -32,7 +32,8 @@ void* newServerConnection(void* args) {
     }
 }
 
-void listenForServerMessage() {
+void* listenForReplicaMessage(void* args) {
+    int port = * (int*) args;
     int sockfd, connfd, len;
     struct sockaddr_in servaddr, cli;
 
@@ -49,7 +50,7 @@ void listenForServerMessage() {
     // assign IP, PORT
     servaddr.sin_family = AF_INET;
     servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
-    servaddr.sin_port = htons(FRONTENDPORT);
+    servaddr.sin_port = htons(port);
 
     // Binding newly created socket to given IP and verification
     if ((bind(sockfd, (struct sockaddr *)&servaddr, sizeof(servaddr))) != 0) {

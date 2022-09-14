@@ -16,4 +16,5 @@ extern int* syncListenSocket;
 extern char serverIp[15];
 
 void connectToServer(int* connSocket, int port);
+void* listenForReplicaMessage(void* args);
 #endif //DROPBOX_SISOP2_FRONT_END_H

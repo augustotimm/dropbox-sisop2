@@ -227,6 +227,13 @@ void clientThread(int *connfd)
     }
 }
 
+void startListenForReplicaMessages(){
+    pthread_t replicaMessageThread;
+
+    pthread_create(&replicaMessageThread, NULL, listenForReplicaMessage, (void*)&frontEndPort);
+    pthread_detach(replicaMessageThread);
+}
+
 int main()
 {
     pthread_mutex_init(&isConnectionOpenMutex, NULL);
@@ -255,6 +262,12 @@ int main()
     bzero(serverIp, sizeof(serverIp));
 
     strcpy(serverIp, ipAddress);
+
+    printf("Insira a porta para mensagens do servidor\n");
+    fgets(ipAddress, sizeof(ipAddress), stdin);
+    ipAddress[strcspn(ipAddress, "\n")] = 0;
+
+    sscanf(ipAddress, "%d", &frontEndPort);
 
     clientSocket = calloc(1, sizeof(int));
     syncDirSocket = calloc(1, sizeof(int));
@@ -294,6 +307,9 @@ int main()
     startWatchDir();
 
     // function for user commands
+
+    startListenForReplicaMessages();
+
     clientThread(clientSocket);
 
     // close the socket
