@@ -11,9 +11,19 @@
 #include <stdio.h>
 #include "../lib/helper.h"
 
-void newServerConnection(int* connSocket) {
+#define SA struct sockaddr
+
+int* clientSocket = NULL;
+int* syncDirSocket = NULL;
+int* syncListenSocket = NULL;
+char serverIp[15];
+
+pthread_mutex_t isConnectionOpenMutex;
+
+void* newServerConnection(void* args) {
+    int* connSocket = (int*) args;
     char buff[BUFFERSIZE];
-    recv(socket, buff, sizeof(buff), 0);
+    recv(*connSocket, buff, sizeof(buff), 0);
     if(strcmp(buff, frontEndCommands[DEAD]) == 0) {
         pthread_mutex_lock(&isConnectionOpenMutex);
     }
@@ -66,8 +76,38 @@ void listenForServerMessage() {
 
         pthread_t newServerConn;
 
-        pthread_create(&newServerConn, NULL, newServerConnection, connSocket);
+        pthread_create(&newServerConn, NULL, newServerConnection, (void*)connSocket);
 
         pthread_detach(newServerConn);
     }
+}
+
+void connectToServer(int* connSocket, int port) {
+    struct sockaddr_in servaddr;
+    int sockfd;
+
+    sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    if (sockfd == -1) {
+        printf("socket creation failed...\n");
+        exit(0);
+    }
+    else
+        printf("Socket successfully created..\n");
+
+
+
+    // assign IP, PORT
+    servaddr.sin_family = AF_INET;
+    servaddr.sin_addr.s_addr = inet_addr(serverIp);
+    servaddr.sin_port = htons(port);
+
+    // connect the client socket to server socket
+    if (connect(sockfd, (SA*)&servaddr, sizeof(servaddr)) != 0) {
+        printf("Connection with the server failed...\n");
+        exit(0);
+    }
+    else
+        printf("Connected to the server..\n");
+
+    *connSocket = sockfd;
 }

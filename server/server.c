@@ -57,7 +57,7 @@ void connectUser(int socket, char* username, char* sessionCode, char* ipAddr, in
 int connectSyncDir(int socket, char* username, char* sessionCode);
 int connectSyncListener(int socket, char*username,  char* sessionCode);
 void* newBackupConnection(void* args);
-void listenElectionMessages();
+void* listenElectionMessages();
 
 void* clientListen(void* voidArg)
 {
@@ -483,7 +483,7 @@ void backupReplicaStart(replica_info_t primary) {
     if(electionThread == NULL) {
         electionThread = (pthread_t*) calloc(1, sizeof(pthread_t));
         pthread_create(electionThread, NULL, listenElectionMessages, NULL);
-        pthread_detach(electionThread);
+        pthread_detach(*electionThread);
     }
 
     backupStartConnectionWithPrimary(primary);
@@ -605,7 +605,7 @@ void listenLivenessCheck() {
 void primaryReplicaStart() {
 
     if(electionThread != NULL){
-        pthread_cancel(electionThread);
+        pthread_cancel(*electionThread);
         free(electionThread);
     }
     pthread_t userDisconnectedThread;
@@ -627,7 +627,7 @@ void primaryReplicaStart() {
     listenLivenessCheck();
 }
 
-void listenElectionMessages() {
+void* listenElectionMessages() {
     int sockfd, connfd, len;
     struct sockaddr_in servaddr, cli;
 

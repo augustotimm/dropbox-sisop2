@@ -12,7 +12,7 @@
 #define SA struct sockaddr
 char username[USERNAMESIZE];
 
-void startWatchDir(struct in_addr ipAddr);
+void startWatchDir();
 void addSocketConn(int socket, bool isListener);
 int downloadAll(int socket);
 void rand_str(char *dest, size_t length);
@@ -29,10 +29,10 @@ char* sessionCode;
 
 int frontEndPort = 0;
 
-void clientUpload(int socket) {
+void clientUpload(int *socket) {
     pthread_mutex_lock(&isConnectionOpenMutex);
     pthread_mutex_unlock(&isConnectionOpenMutex);
-    write(socket, &commands[UPLOAD], sizeof(commands[UPLOAD]));
+    write(*socket, &commands[UPLOAD], sizeof(commands[UPLOAD]));
 
     char filePath[KBYTE];
     char* fileName;
@@ -42,7 +42,7 @@ void clientUpload(int socket) {
     fgets(filePath, sizeof(filePath), stdin);
     filePath[strcspn(filePath, "\n")] = 0;
     fileName = basename(filePath);
-    upload(socket, filePath, fileName);
+    upload(*socket, filePath, fileName);
 
 }
 
@@ -64,11 +64,11 @@ void newConnection(int sockfd, int socketType){
 
 }
 
-int clientDownload(int socket) {
+int clientDownload(int *socket) {
     pthread_mutex_lock(&isConnectionOpenMutex);
     pthread_mutex_unlock(&isConnectionOpenMutex);
 
-    write(socket, &commands[DOWNLOAD], sizeof(commands[DOWNLOAD]));
+    write(*socket, &commands[DOWNLOAD], sizeof(commands[DOWNLOAD]));
     char filePath[KBYTE];
     char receivingFileName[FILENAMESIZE];
 
@@ -82,40 +82,40 @@ int clientDownload(int socket) {
     fgets(filePath, sizeof(filePath), stdin);
     filePath[strcspn(filePath, "\n")] = 0;
 
-    write(socket, fileName, strlen(fileName));
+    write(*socket, fileName, strlen(fileName));
 
     char* filePathName = strcatSafe(filePath, fileName);
 
-    write(socket, &endCommand, sizeof(endCommand));
+    write(*socket, &endCommand, sizeof(endCommand));
 
     bzero(receivingFileName, sizeof(receivingFileName));
-    recv(socket, receivingFileName, sizeof(receivingFileName), 0);
+    recv(*socket, receivingFileName, sizeof(receivingFileName), 0);
 
     if(strcmp(fileName, endCommand) == 0) {
         printf("Connection out of sync\n");
         printf("Expected filename but received: endCommand\n\n");
         return NULL;
     }
-    receiveFile(socket, filePathName);
+    receiveFile(*socket, filePathName);
 
 
     free(filePathName);
 }
 
-int clientDelete(int socket) {
+int clientDelete(int *socket) {
     pthread_mutex_lock(&isConnectionOpenMutex);
     pthread_mutex_unlock(&isConnectionOpenMutex);
 
-    write(socket, &commands[DELETE], sizeof(commands[DELETE]));
+    write(*socket, &commands[DELETE], sizeof(commands[DELETE]));
 
     printf("File name to delete:\n");
     char fileName[FILENAMESIZE];
     fgets(fileName, sizeof(fileName), stdin);
     fileName[strcspn(fileName, "\n")] = 0;
-    write(socket, fileName, strlen(fileName));
+    write(*socket, fileName, strlen(fileName));
     char buff[BUFFERSIZE];
     bzero(buff, sizeof(buff));
-    recv(socket, buff, sizeof(buff), 0);
+    recv(*socket, buff, sizeof(buff), 0);
     if(strcmp(buff, endCommand) != 0) return OUTOFSYNCERROR;
 
     return 0;
@@ -139,77 +139,30 @@ void* listenSyncDir(void* args) {
     close(socket);
 }
 
-void startListenSyncDir(struct in_addr ipAddr) {
-    int sockfd;
-    struct sockaddr_in servaddr;
+void startListenSyncDir() {
 
-    // socket create and verification
-    sockfd = socket(AF_INET, SOCK_STREAM, 0);
-    if (sockfd == -1) {
-        printf("socket creation failed...\n");
-        exit(0);
-    }
-    else
-        printf("Socket successfully created..\n");
-    bzero(&servaddr, sizeof(servaddr));
 
-    // assign IP, PORT
-    servaddr.sin_family = AF_INET;
-    servaddr.sin_addr = ipAddr;
-    servaddr.sin_port = htons(SYNCPORT);
+    connectToServer(syncListenSocket, SYNCLISTENERPORT);
 
-    // connect the client socket to server socket
-    if (connect(sockfd, (SA*)&servaddr, sizeof(servaddr)) != 0) {
-        printf("connection with the server failed...\n");
-        exit(0);
-    }
-    else
-        printf("connected to the server..\n");
+    newConnection(*syncListenSocket, SYNCSOCKET);
+    addSocketConn(*syncListenSocket, true);
 
-    newConnection(sockfd, SYNCSOCKET);
-    addSocketConn(sockfd, true);
 
-    int* newSocket = calloc(1, sizeof(int ));
-    *newSocket = sockfd;
-    int created = pthread_create(&listenSyncThread, NULL, listenSyncDir, newSocket);
+    int created = pthread_create(&listenSyncThread, NULL, listenSyncDir, syncListenSocket);
     pthread_detach(listenSyncThread);
     if(created != 0) {
         printf("Listen sync dir failed\n");
         pthread_cancel(listenSyncThread);
-        close(sockfd);
-        free(newSocket);
+        close(*syncListenSocket);
    }
 }
 
-void startWatchDir(struct in_addr ipAddr) {
-    int sockfd;
-    struct sockaddr_in servaddr;
+void startWatchDir() {
 
-    // socket create and verification
-    sockfd = socket(AF_INET, SOCK_STREAM, 0);
-    if (sockfd == -1) {
-        printf("socket creation failed...\n");
-        exit(0);
-    }
-    else
-        printf("Socket successfully created..\n");
-    bzero(&servaddr, sizeof(servaddr));
+    connectToServer(syncListenSocket, SYNCPORT);
 
-    // assign IP, PORT
-    servaddr.sin_family = AF_INET;
-    servaddr.sin_addr = ipAddr;
-    servaddr.sin_port = htons(SYNCPORT);
-
-    // connect the client socket to server socket
-    if (connect(sockfd, (SA*)&servaddr, sizeof(servaddr)) != 0) {
-        printf("connection with the server failed...\n");
-        exit(0);
-    }
-    else
-        printf("connected to the server..\n");
-
-    newConnection(sockfd, SYNCLISTENSOCKET);
-    addSocketConn(sockfd, false);
+    newConnection(*syncListenSocket, SYNCPORT);
+    addSocketConn(*syncListenSocket, false);
 
 
     pthread_t syncDirThread;
@@ -224,7 +177,7 @@ void startWatchDir(struct in_addr ipAddr) {
 }
 
 
-void clientThread(int connfd)
+void clientThread(int *connfd)
 {
     char userInput[MAX];
     char buff[MAX];
@@ -234,7 +187,7 @@ void clientThread(int connfd)
 
     for (;;) {
 
-        recv(connfd, buff, sizeof(buff), 0);
+        recv(*connfd, buff, sizeof(buff), 0);
         if(strcmp(buff, commands[WAITING]) != 0) {
             printf("[clientThread] expected waiting command");
         }
@@ -274,8 +227,6 @@ int main()
     srand((unsigned int)(time(NULL)));
     sessionCode = calloc(20, sizeof(char));
     rand_str(sessionCode, 18);
-    int sockfd;
-    struct sockaddr_in servaddr;
     pthread_mutex_init(&syncDirSem, NULL);
 
     DL_APPEND(filesReceived, createReceivedFile("\n", -1));
@@ -288,70 +239,58 @@ int main()
     printf("Enter username: ");
     fgets(username, USERNAMESIZE, stdin);
     username[strcspn(username, "\n")] = 0;
-
-    // socket create and verification
-    sockfd = socket(AF_INET, SOCK_STREAM, 0);
-    if (sockfd == -1) {
-        printf("socket creation failed...\n");
-        exit(0);
-    }
-    else
-        printf("Socket successfully created..\n");
-    bzero(&servaddr, sizeof(servaddr));
     char ipAddress[15];
-    bzero(ipAddress, sizeof(ipAddress));
+
     printf("Insira o IP do servidor\n");
     fgets(ipAddress, sizeof(ipAddress), stdin);
     ipAddress[strcspn(ipAddress, "\n")] = 0;
 
-    // assign IP, PORT
-    servaddr.sin_family = AF_INET;
-    servaddr.sin_addr.s_addr = inet_addr(ipAddress);
-    servaddr.sin_port = htons(SERVERPORT);
+    bzero(serverIp, sizeof(serverIp));
 
-    // connect the client socket to server socket
-    if (connect(sockfd, (SA*)&servaddr, sizeof(servaddr)) != 0) {
-        printf("Connection with the server failed...\n");
-        exit(0);
-    }
-    else
-        printf("Connected to the server..\n");
+    strcpy(serverIp, ipAddress);
 
-    newConnection(sockfd, CLIENTSOCKET);
+    clientSocket = calloc(1, sizeof(int));
+    syncDirSocket = calloc(1, sizeof(int));
+    syncListenSocket = calloc(1, sizeof(int));
+
+    connectToServer(clientSocket, SERVERPORT);
+
+    newConnection(*clientSocket, CLIENTSOCKET);
     char portBuffer[BUFFERSIZE];
+
     sprintf(portBuffer, "%d", frontEndPort);
 
-    write(sockfd, portBuffer, sizeof(portBuffer));
+    write(*clientSocket, portBuffer, sizeof(portBuffer));
     // wait for endcommand
-    recv(sockfd, portBuffer, sizeof(portBuffer), 0);
+    recv(*clientSocket, portBuffer, sizeof(portBuffer), 0);
 
     char buff[USERNAMESIZE];
     bzero(buff, sizeof(buff));
-    recv(sockfd, buff, sizeof(buff), 0);
+    recv(*clientSocket, buff, sizeof(buff), 0);
     printf("SERVER CONNECTION STATUS: %s\n", buff);
 
-    write(sockfd, &endCommand, sizeof(endCommand));
+    write(*clientSocket, &endCommand, sizeof(endCommand));
 
-    startListenSyncDir(servaddr.sin_addr);
+    startListenSyncDir();
     bzero(buff, sizeof(buff));
 
-    recv(sockfd, buff, sizeof(buff), 0);
+    recv(*clientSocket, buff, sizeof(buff), 0);
     if(strcmp(buff, commands[WAITING]) != 0) {
         printf("[clientThread] expected waiting command");
     }
 
-    if(downloadAll(sockfd) != 0) {
+    if(downloadAll(*clientSocket) != 0) {
         return OUTOFSYNCERROR;
     }
 
 
-    startWatchDir(servaddr.sin_addr);
+    startWatchDir();
 
     // function for user commands
-    clientThread(sockfd);
+    clientThread(clientSocket);
 
     // close the socket
-    close(sockfd);
+    close(*clientSocket);
 }
 
 void addSocketConn(int socket,  bool isListener) {
