@@ -4,7 +4,7 @@ project(dropbox_sisop2 C)
 set(CMAKE_C_STANDARD 99)
 find_package(Threads REQUIRED)
 
-add_executable(serverAPP ./server/server.c ./server/server.h lib/utlist.h lib/helper.h lib/helper.c server/user.c server/user.h ./file-control/file-handler.c ./file-control/file-handler.h server/server_functions.c server/server_functions.h server/replica-manager/replica-manager.c server/replica-manager/replica-manager.h)
+add_executable(serverAPP ./server/server.c ./server/server.h lib/utlist.h lib/helper.h lib/helper.c server/user.c server/user.h server/server_functions.c server/server_functions.h server/replica-manager/replica-manager.c server/replica-manager/replica-manager.h)
 add_executable(client ./client-socket/test-client.c ./client-socket/test-client.h lib/utlist.h lib/helper.h lib/helper.c ./file-control/file-handler.c ./file-control/file-handler.h server/server_functions.c server/server_functions.h client-socket/front-end.c client-socket/front-end.h)
 
 

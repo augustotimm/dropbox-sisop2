@@ -6,10 +6,13 @@
 #include "server.h"
 #include <string.h>
 #include "../file-control/file-handler.h"
+#include <sys/stat.h>
+
 #define OUTOFSESSION -90
 
 void freeUserList(user_list* userList);
 socket_conn_list* addSocket(socket_conn_list* head, int socket, char* sessionCode, bool isListener);
+char* getuserDirPath(char* username);
 
 int userCompare(user_list* a, user_list* b) {
     return strcmp(a->user.username,b->user.username);
@@ -271,4 +274,17 @@ void closeUserSession(char* username, char* sessionCode) {
         } else
             pthread_mutex_unlock(userList->user.userAccessSem);
     }
+}
+
+char* getuserDirPath(char* username) {
+    char slash[2] = "/";
+    char* filePath = strcatSafe(rootPath, username);
+    char* dirPath = strcatSafe(filePath, slash);
+    free(filePath);
+    struct stat st = {0};
+    if(stat(dirPath, &st) == -1) {
+        mkdir(dirPath, 0700);
+    }
+
+    return dirPath;
 }

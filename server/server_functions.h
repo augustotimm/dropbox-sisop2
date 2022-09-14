@@ -17,6 +17,6 @@ int uploadAllFiles(int socket, char* dirPath);
 void broadCastFile(socket_conn_list* socketList, int forbiddenSocket, char* fileName, char* clientDirPath);
 void broadCastDelete(socket_conn_list* socketList, int forbiddenSocket, char* fileName);
 
-void broadCastFileToBackups(char* fileName, char* clientDirPath, socket_conn_list *backupList, pthread_mutex_t* backupMutex, char* username);
-void broadCastDeleteToBackups(char* fileName, socket_conn_list *backupList, pthread_mutex_t* backupMutex, char* username);
+void broadCastFileToBackups(char* fileName, char* clientDirPath, backup_conn_list *backupList, pthread_mutex_t* backupMutex, char* username);
+void broadCastDeleteToBackups(char* fileName, backup_conn_list *backupList, pthread_mutex_t* backupMutex, char* username);
 #endif //DROPBOX_SISOP2_SERVER_FUNCTIONS_H

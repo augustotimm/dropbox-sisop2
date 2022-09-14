@@ -98,6 +98,12 @@ typedef struct socket_conn_list {
     struct socket_conn_list *prev, *next;
 } socket_conn_list;
 
+typedef struct backup_conn_list {
+    int socket;
+    struct backup_conn_list *prev, *next;
+} backup_conn_list;
+
+
 typedef struct user_t {
     user_session_t* clientThread[USERSESSIONNUMBER];
     pthread_mutex_t* userAccessSem;
@@ -135,7 +141,7 @@ char* strcatSafe(char* head, char* tail);
 socket_conn_list* initSocketConnList(int socket, char* sessionCode, bool isClient);
 
 //server comunication functions
-int listenForSocketMessage(int socket, char* clientDirPath, user_t*  user, bool shouldBroadcast, socket_conn_list* backupList, pthread_mutex_t* backupMutex);
+int listenForSocketMessage(int socket, char* clientDirPath, user_t*  user, bool shouldBroadcast, backup_conn_list* backupList, pthread_mutex_t* backupMutex);
 
 
 //file information functions

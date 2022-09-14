@@ -106,7 +106,7 @@ void deleteFile(char* filename, char* path) {
     }
 }
 
-int listenForSocketMessage(int socket, char* clientDirPath, user_t*  user, bool shouldBroadcast, socket_conn_list* backupList, pthread_mutex_t* backupMutex) {
+int listenForSocketMessage(int socket, char* clientDirPath, user_t*  user, bool shouldBroadcast, backup_conn_list* backupList, pthread_mutex_t* backupMutex) {
     char currentCommand[13];
     char fileName[FILENAMESIZE];
 

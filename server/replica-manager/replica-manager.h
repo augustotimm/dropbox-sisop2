@@ -20,12 +20,11 @@ typedef struct replica_info_list {
     struct replica_info_list *prev, *next;
 } replica_info_list;
 
-
 replica_info_list* readConfig(char* filePath);
 replica_info_list* findPrimaryReplica(replica_info_list* replicaList);
 void* startElection();
 
-socket_conn_list *connectToBackups(replica_info_list *replicaList);
+backup_conn_list *connectToBackups(replica_info_list *replicaList);
 
 int backupListenForMessage(int socket, char* rootFolderPath, bool *isElectionRunning);
 void updatePrimary(int replicaElectionValue);

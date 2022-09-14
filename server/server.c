@@ -43,7 +43,7 @@ pthread_mutex_t connectedUsersMutex;
 pthread_mutex_t connectedReplicaListMutex;
 
 pthread_mutex_t backupConnectionMutex;
-socket_conn_list* backupConnectionList = NULL;
+backup_conn_list* backupConnectionList = NULL;
 
 pthread_t* electionThread = NULL;
 
@@ -160,7 +160,7 @@ void connectUser(int socket, char* username, char* sessionCode, char* ipAddr, in
         writeMessageToSocket(socket, "FALSE");
         close(socket);
     }
-    socket_conn_list *elt = NULL;
+    backup_conn_list *elt = NULL;
     pthread_mutex_lock(&backupConnectionMutex);
 
     char buff[20];
@@ -202,7 +202,7 @@ void connectUser(int socket, char* username, char* sessionCode, char* ipAddr, in
 
 
 int closeBackupUserSession(char* username, char* sessionCode) {
-    socket_conn_list *elt = NULL;
+    backup_conn_list *elt = NULL;
     char buff[20];
     bzero(buff, sizeof(buff));
 
@@ -500,7 +500,7 @@ void* newBackupConnection(void* args) {
     write(socket, &endCommand, strlen(endCommand));
 
     if(strcmp(newSocketType, socketTypes[BACKUPSOCKET]) == 0) {
-       socket_conn_list *newConn = (socket_conn_list*) calloc(1, sizeof(socket_conn_list));
+       backup_conn_list *newConn = (backup_conn_list*) calloc(1, sizeof(backup_conn_list));
        newConn->socket = socket;
 
        newConn->prev = NULL;
@@ -526,7 +526,6 @@ void* newBackupConnection(void* args) {
             write(socket, &continueCommand, strlen(continueCommand));
         }
 
-        wait(1);
         close(socket);
 
         pthread_mutex_lock(&startElectionMutex);

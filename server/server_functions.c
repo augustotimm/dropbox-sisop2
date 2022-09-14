@@ -253,13 +253,13 @@ void broadCastFile(socket_conn_list* socketList, int forbiddenSocket, char* file
     free(filePath);
 }
 
-void broadCastFileToBackups(char* fileName, char* clientDirPath, socket_conn_list *backupList, pthread_mutex_t* backupMutex, char* username) {
+void broadCastFileToBackups(char* fileName, char* clientDirPath, backup_conn_list *backupList, pthread_mutex_t* backupMutex, char* username) {
     char* filePath = strcatSafe(clientDirPath, fileName);
     char buff[20];
     bzero(buff, sizeof(buff));
 
 
-    socket_conn_list* elt = NULL;
+    backup_conn_list* elt = NULL;
     pthread_mutex_lock(backupMutex);
 
     DL_FOREACH(backupList, elt) {
@@ -309,11 +309,11 @@ void broadCastDelete(socket_conn_list* socketList, int forbiddenSocket, char* fi
 
 }
 
-void broadCastDeleteToBackups(char* fileName, socket_conn_list *backupList, pthread_mutex_t* backupMutex, char* username) {
-    socket_conn_list *current = NULL, *tmp = NULL;
+void broadCastDeleteToBackups(char* fileName, backup_conn_list *backupList, pthread_mutex_t* backupMutex, char* username) {
+    backup_conn_list *current = NULL, *tmp = NULL;
     char buff[20];
     bzero(buff, sizeof(buff));
-    socket_conn_list* elt = NULL;
+    backup_conn_list* elt = NULL;
     pthread_mutex_lock(backupMutex);
 
     DL_FOREACH(backupList, elt) {

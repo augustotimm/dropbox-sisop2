@@ -234,7 +234,7 @@ void* startElection(){
 
 };
 
-socket_conn_list *connectToBackups(replica_info_list *replicaList) {
+backup_conn_list *connectToBackups(replica_info_list *replicaList) {
     replica_info_list *elt = NULL;
     struct sockaddr_in servaddr;
     socket_conn_list *backupConnectionList = NULL;
@@ -253,7 +253,6 @@ socket_conn_list *connectToBackups(replica_info_list *replicaList) {
         else {
             socket_conn_list *newConn = (socket_conn_list*) calloc(1, sizeof(socket_conn_list));
             newConn->socket = sockfd;
-            newConn = NULL;
 
             newConn->prev = NULL;
             newConn->next = NULL;
@@ -262,7 +261,7 @@ socket_conn_list *connectToBackups(replica_info_list *replicaList) {
         }
     }
 
-    backupConnectionList;
+    return backupConnectionList;
 }
 
 int backupListenForMessage(int socket, char* rootFolderPath, bool *isElectionRunning) {

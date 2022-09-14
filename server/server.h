@@ -14,7 +14,7 @@ extern pthread_cond_t closedUserConnection;
 extern pthread_mutex_t connectedReplicaListMutex;
 
 extern pthread_mutex_t backupConnectionMutex;
-extern socket_conn_list* backupConnectionList;
+extern backup_conn_list* backupConnectionList;
 
 extern bool isPrimary;
 extern int electionValue;
