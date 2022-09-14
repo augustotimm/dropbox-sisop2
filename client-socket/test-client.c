@@ -158,10 +158,10 @@ void startListenSyncDir() {
 
 void startWatchDir() {
 
-    connectToServer(syncListenSocket, SYNCPORT);
+    connectToServer(syncDirSocket, SYNCPORT);
 
-    newConnection(*syncListenSocket, SYNCSOCKET);
-    addSocketConn(*syncListenSocket, false);
+    newConnection(*syncDirSocket, SYNCSOCKET);
+    addSocketConn(*syncDirSocket, false);
 
 
     pthread_t syncDirThread;
