@@ -35,6 +35,4 @@ void deletePrimary();
 
 // front end
 
-// election
-
 // reconnect front end to new primary

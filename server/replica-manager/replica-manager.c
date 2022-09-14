@@ -341,7 +341,6 @@ int backupListenForMessage(int socket, char* rootFolderPath, bool *isElectionRun
         free(clientDirPath);
 
         if (strcmp(currentCommand, commands[EXIT]) == 0 || strlen(currentCommand) == 0) {
-
             return 0;
         }
 

@@ -30,6 +30,7 @@
 #define USERSESSIONNUMBER 2
 #define SYNCLISTENERPORT 7777
 #define SERVERPORT 8888
+#define FRONTENDPORT 9988
 #define SYNCPORT 9999
 
 
@@ -44,10 +45,16 @@
 #define ELECTIONSOCKET 4
 #define ELECTIONCOORDSOCKET 5
 
+#define DEAD 0
+#define NEWPRIMARY 0
 
 
 static const char endCommand[] = "\nend\n";
 static const char continueCommand[] = "\ncontinue\n";
+static const char frontEndCommands [2][13] = {
+        "dead",
+        "new primary"
+};
 
 static const char commands[10][13] = {
         "upload",

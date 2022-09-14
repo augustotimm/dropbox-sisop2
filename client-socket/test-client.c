@@ -6,6 +6,7 @@
 #include "../lib/helper.h"
 #include "../file-control/file-handler.h"
 #include "../server/server_functions.h"
+#include "./front-end.h"
 
 #define MAX 80
 #define SA struct sockaddr
@@ -29,7 +30,8 @@ char* sessionCode;
 int frontEndPort = 0;
 
 void clientUpload(int socket) {
-
+    pthread_mutex_lock(&isConnectionOpenMutex);
+    pthread_mutex_unlock(&isConnectionOpenMutex);
     write(socket, &commands[UPLOAD], sizeof(commands[UPLOAD]));
 
     char filePath[KBYTE];
@@ -63,6 +65,9 @@ void newConnection(int sockfd, int socketType){
 }
 
 int clientDownload(int socket) {
+    pthread_mutex_lock(&isConnectionOpenMutex);
+    pthread_mutex_unlock(&isConnectionOpenMutex);
+
     write(socket, &commands[DOWNLOAD], sizeof(commands[DOWNLOAD]));
     char filePath[KBYTE];
     char receivingFileName[FILENAMESIZE];
@@ -98,6 +103,9 @@ int clientDownload(int socket) {
 }
 
 int clientDelete(int socket) {
+    pthread_mutex_lock(&isConnectionOpenMutex);
+    pthread_mutex_unlock(&isConnectionOpenMutex);
+
     write(socket, &commands[DELETE], sizeof(commands[DELETE]));
 
     printf("File name to delete:\n");
