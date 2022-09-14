@@ -5,23 +5,22 @@
 #include <sys/stat.h>
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
 #include<stdio.h>
 #include<sys/inotify.h>
 #include<unistd.h>
 #include<signal.h>
 #include<fcntl.h>
+#include "../client-socket/front-end.h"
 #include "../server/server_functions.h"
+
 struct stat info;
 time_t  epoch_time;
-// /home/augusto/repositorios/ufrgs/dropbox-sisop2/watch_folder/
-// /home/augusto/repositorios/ufrgs/dropbox-sisop2/client-socket/sync/
+
 //TODO change to relative path
 extern char rootPath[KBYTE];
 
 int getSocketFromReceivedFile(received_file_list* head, char* fileName);
-int findSyncDirSocket(socket_conn_list* head, int clientSocket);
-
+int findSyncDirSocket(sync_dir_conn conn, int clientSocket);
 int fd,wd;
 
 void sig_handler(int sig){
@@ -50,6 +49,8 @@ char* getuserDirPath(char* username) {
 void* watchDir(void* args){
     watch_dir_argument* argument = (watch_dir_argument *) args;
     char* pathToDir = argument->dirPath;
+
+    sync_dir_conn *conn = argument->socketConnList;
 
     signal(SIGINT,sig_handler);
 
@@ -88,44 +89,43 @@ void* watchDir(void* args){
             if(event->len){
                 // printf("EVENT MASK: %d\n", event->mask);
                 pthread_mutex_lock(argument->userSem);
-                socket_conn_list* elt = NULL;
                 int receiverSocket = getSocketFromReceivedFile(argument->filesReceived, event->name);
-                int forbiddenSocket = findSyncDirSocket(argument->socketConnList, receiverSocket);
+                int forbiddenSocket = findSyncDirSocket(*conn, receiverSocket);
                 // printf("forbidden socket: %d\n", forbiddenSocket);
                 if (event->mask & IN_CLOSE_WRITE || event->mask & IN_MOVED_TO) {
                     printf( "The file %s was created.\n", event->name );
+                    pthread_mutex_lock(&isConnectionOpenMutex);
+                    pthread_mutex_unlock(&isConnectionOpenMutex);
 
-                    DL_FOREACH(argument->socketConnList, elt) {
-                        if(elt->socket != forbiddenSocket) {
-                            bzero(buff, sizeof(buff));
-                            recv(elt->socket, buff, sizeof(buff), 0);
-                            if(strcmp(buff, commands[WAITING]) != 0) {
-                                printf("\n[watchDir upload] expected waiting command received: %s\n", buff);
-                            }
-                            printf("sending file %s to socket %d\n", event->name, elt->socket);
-                            write(elt->socket, &commands[UPLOAD], sizeof(commands[UPLOAD]));
-                            char* filePath = strcatSafe(pathToDir, event->name);
-                            upload(elt->socket, filePath, event->name);
-                            free(filePath);
+                    if(*conn->socket != forbiddenSocket) {
+                        bzero(buff, sizeof(buff));
+                        recv(*conn->socket, buff, sizeof(buff), 0);
+                        if(strcmp(buff, commands[WAITING]) != 0) {
+                            printf("\n[watchDir upload] expected waiting command received: %s\n", buff);
                         }
+                        printf("sending file %s to socket %d\n", event->name, *conn->socket);
+                        write(*conn->socket, &commands[UPLOAD], sizeof(commands[UPLOAD]));
+                        char* filePath = strcatSafe(pathToDir, event->name);
+                        upload(*conn->socket, filePath, event->name);
+                        free(filePath);
                     }
                 } else if (event->mask & IN_DELETE || event->mask & IN_MOVED_FROM) {
 
+                    pthread_mutex_lock(&isConnectionOpenMutex);
+                    pthread_mutex_unlock(&isConnectionOpenMutex);
 
-                    DL_FOREACH(argument->socketConnList, elt) {
-                        printf( "The file %s was removed.\n", event->name );
+                    printf( "The file %s was removed.\n", event->name );
+                    bzero(buff, sizeof(buff));
+                    recv(*conn->socket, buff, sizeof(buff), 0);
+                    if(strcmp(buff, commands[WAITING]) != 0) {
+                        printf("\n[watchDir delete] expected waiting command received: %s\n", buff);
+                    }
+                    if(*conn->socket != forbiddenSocket) {
+                        write(*conn->socket, &commands[DELETE], sizeof(commands[DELETE]));
+                        write(*conn->socket, event->name, strlen(event->name));
+                        char buff[BUFFERSIZE];
                         bzero(buff, sizeof(buff));
-                        recv(elt->socket, buff, sizeof(buff), 0);
-                        if(strcmp(buff, commands[WAITING]) != 0) {
-                            printf("\n[watchDir delete] expected waiting command received: %s\n", buff);
-                        }
-                        if(elt->socket != forbiddenSocket) {
-                            write(elt->socket, &commands[DELETE], sizeof(commands[DELETE]));
-                            write(elt->socket, event->name, strlen(event->name));
-                            char buff[BUFFERSIZE];
-                            bzero(buff, sizeof(buff));
-                            recv(elt->socket, buff, sizeof(buff), 0);
-                        }
+                        recv(*conn->socket, buff, sizeof(buff), 0);
                     }
                 }
 
@@ -135,12 +135,6 @@ void* watchDir(void* args){
         }
     }
 }
-
-
-int fileNameCompare(received_file_list* a, received_file_list* b) {
-    return strcmp(a->fileName,b->fileName);
-}
-
 
 int getSocketFromReceivedFile(received_file_list* head, char* fileName) {
     received_file_list *tmp = NULL, *currentFile = NULL;
@@ -154,21 +148,10 @@ int getSocketFromReceivedFile(received_file_list* head, char* fileName) {
     }
     return -1;
 }
+int findSyncDirSocket(sync_dir_conn conn, int clientSocket) {
 
-int compareClientSocket(socket_conn_list* a, socket_conn_list* b) {
-    if(a->listenerSocket == b->listenerSocket)
-        return 0;
-    else
-        return -1;
-}
-
-int findSyncDirSocket(socket_conn_list* head, int clientSocket) {
-    socket_conn_list *conn = NULL;
-    socket_conn_list etmp;
-    etmp.listenerSocket = clientSocket;
-    DL_SEARCH(head, conn, &etmp, compareClientSocket);
-    if(conn == NULL)
-        return -1;
-    return conn->socket;
+    if(*conn.listenerSocket == clientSocket)
+        return *conn.socket;
+    return -1;
 }
 
