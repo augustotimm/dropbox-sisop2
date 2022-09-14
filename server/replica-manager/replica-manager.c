@@ -234,6 +234,38 @@ void* startElection(){
 
 };
 
+int sendMessageToFrontEnd(user_session_t session, char* message){
+    struct sockaddr_in servaddr;
+    char buff[20];
+    bzero(buff, sizeof(buff));
+
+
+    servaddr.sin_family = AF_INET;
+    servaddr.sin_addr.s_addr = inet_addr(session.ipAddr);
+    servaddr.sin_port = htons(session.frontEndPort);
+
+    int sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    if (sockfd == -1) {
+        printf("Failed sending message: %s, to session: %s", message, session.sessionCode);
+        return -1;
+    }
+    if (connect(sockfd, (struct sockaddr*)&servaddr, sizeof(servaddr)) != 0) {
+        printf("Failed sending message: %s, to session: %s", message, session.sessionCode);
+        return -1;
+    }
+
+    write(sockfd, message, strlen(message));
+    recv(sockfd, buff, sizeof(buff), 0);
+
+    close(sockfd);
+
+    if(strcmp(buff, endCommand) != 0) {
+        return -1;
+    }
+
+    return 0;
+}
+
 backup_conn_list *connectToBackups(replica_info_list *replicaList) {
     replica_info_list *elt = NULL;
     struct sockaddr_in servaddr;

@@ -439,6 +439,21 @@ void* syncDirListenerConn(void* args) {
     }
 }
 
+
+void broadcastMessageToAllFrontEnd(char* message){
+    pthread_mutex_lock(&connectedUsersMutex);
+    user_list *current = NULL;
+    DL_FOREACH(connectedUserListHead, current){
+        pthread_mutex_lock(&current->user.userAccessSem);
+        for(int i = 0; i < USERSESSIONNUMBER; i++) {
+            sendMessageToFrontEnd(*current->user.clientThread[i], message);
+        }
+        pthread_mutex_unlock(&current->user.userAccessSem);
+    }
+
+    pthread_mutex_unlock(&connectedUsersMutex);
+}
+
 void* backupStartConnectionWithPrimary(replica_info_t primary) {
     struct sockaddr_in servaddr;
     char buff[20];
@@ -467,6 +482,7 @@ void* backupStartConnectionWithPrimary(replica_info_t primary) {
 
     backupListenForMessage(sockfd, rootPath, &isElectionRunning);
 
+    broadcastMessageToAllFrontEnd(frontEndCommands[DEAD]);
 
     pthread_mutex_lock(&startElectionMutex);
     isElectionRunning = true;

@@ -24,12 +24,16 @@ void* newServerConnection(void* args) {
     int* connSocket = (int*) args;
     char buff[BUFFERSIZE];
     recv(*connSocket, buff, sizeof(buff), 0);
+    write(*connSocket, &endCommand, sizeof(endCommand));
     if(strcmp(buff, frontEndCommands[DEAD]) == 0) {
         pthread_mutex_lock(&isConnectionOpenMutex);
     }
     if(strcmp(buff, frontEndCommands[NEWPRIMARY]) == 0) {
         pthread_mutex_unlock(&isConnectionOpenMutex);
     }
+    close(*connSocket);
+
+    free(connSocket);
 }
 
 void* listenForReplicaMessage(void* args) {
