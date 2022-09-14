@@ -48,7 +48,6 @@ void clientUpload(int *socket) {
 
 void newConnection(int sockfd, int socketType){
     write(sockfd, &socketTypes[socketType], sizeof(socketTypes[socketType]));
-    printf("username: %s\n", username);
     char endCommand[6];
     bzero(endCommand, sizeof(endCommand));
 
@@ -161,7 +160,7 @@ void startWatchDir() {
 
     connectToServer(syncListenSocket, SYNCPORT);
 
-    newConnection(*syncListenSocket, SYNCPORT);
+    newConnection(*syncListenSocket, SYNCSOCKET);
     addSocketConn(*syncListenSocket, false);
 
 
@@ -224,6 +223,8 @@ void clientThread(int *connfd)
 
 int main()
 {
+    pthread_mutex_init(&isConnectionOpenMutex, NULL);
+
     srand((unsigned int)(time(NULL)));
     sessionCode = calloc(20, sizeof(char));
     rand_str(sessionCode, 18);
