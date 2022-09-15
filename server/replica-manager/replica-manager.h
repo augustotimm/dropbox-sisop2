@@ -31,7 +31,8 @@ void updatePrimary(int replicaElectionValue);
 void deletePrimary();
 
 
-int sendMessageToFrontEnd(user_session_t session, char* message);
+int sendMessageToFrontEnd(user_session_t session, const char* message);
+void broadcastNewPrimaryToBackups();
 #endif //DROPBOX_SISOP2_REPLICA_MANAGER_H
 
 // front end

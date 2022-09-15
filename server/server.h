@@ -23,6 +23,8 @@ extern int electionPort;
 
 extern char rootPath[KBYTE];
 
+extern pthread_cond_t electionFinished;
+
 void* clientListen(void* conf);
 #endif //DROPBOX_SISOP2_SERVER_H
 

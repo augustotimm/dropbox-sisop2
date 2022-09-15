@@ -20,7 +20,7 @@
 
 
 
-#define LIVENESSPORT 9998
+#define LIVENESSPORT 9997
 #define MAX 2048
 
 
@@ -32,6 +32,12 @@ int electionValue = -1;
 int electionPort = -1;
 
 pthread_mutex_t startElectionMutex;
+pthread_cond_t electionFinished;
+
+pthread_mutex_t waitForPrimaryMutex;
+pthread_cond_t primaryIsRunning;
+
+
 bool isElectionRunning = false;
 
 
@@ -43,9 +49,13 @@ pthread_mutex_t connectedUsersMutex;
 pthread_mutex_t connectedReplicaListMutex;
 
 pthread_mutex_t backupConnectionMutex;
+
 backup_conn_list* backupConnectionList = NULL;
 
-pthread_t* electionThread = NULL;
+pthread_t* electionSocketThread = NULL;
+
+pthread_t* connectionToPrimary = NULL;
+
 
 struct new_connection_argument {
     int socket;
@@ -88,9 +98,11 @@ void* clientListen(void* voidArg)
     pthread_cond_signal(&closedUserConnection);
 
 }
+
 void writeMessageToSocket(int socket, char* message) {
     write(socket, message, strlen(message)+1);
 }
+
 void* newConnection(void* arg) {
     struct new_connection_argument *argument = (struct new_connection_argument*) arg;
     int socket = argument->socket;
@@ -154,7 +166,6 @@ int connectSyncDir(int socket, char* username, char* sessionCode) {
 
 }
 
-
 void connectUser(int socket, char* username, char* sessionCode, char* ipAddr, int port) {
     if(startUserSession(username, socket, ipAddr, port, sessionCode) != 0) {
         writeMessageToSocket(socket, "FALSE");
@@ -199,7 +210,6 @@ void connectUser(int socket, char* username, char* sessionCode, char* ipAddr, in
     }
     pthread_mutex_unlock(&backupConnectionMutex);
 }
-
 
 int closeBackupUserSession(char* username, char* sessionCode) {
     backup_conn_list *elt = NULL;
@@ -439,22 +449,26 @@ void* syncDirListenerConn(void* args) {
     }
 }
 
-
-void broadcastMessageToAllFrontEnd(char* message){
+void broadcastMessageToAllFrontEnd(const char* message){
     pthread_mutex_lock(&connectedUsersMutex);
     user_list *current = NULL;
     DL_FOREACH(connectedUserListHead, current){
-        pthread_mutex_lock(&current->user.userAccessSem);
+        pthread_mutex_lock(current->user.userAccessSem);
         for(int i = 0; i < USERSESSIONNUMBER; i++) {
-            sendMessageToFrontEnd(*current->user.clientThread[i], message);
+            if(current->user.clientThread[i] != NULL)
+                sendMessageToFrontEnd(*current->user.clientThread[i], message);
         }
-        pthread_mutex_unlock(&current->user.userAccessSem);
+        pthread_mutex_unlock(current->user.userAccessSem);
     }
 
     pthread_mutex_unlock(&connectedUsersMutex);
 }
 
-void* backupStartConnectionWithPrimary(replica_info_t primary) {
+void* backupStartConnectionWithPrimary(void* args) {
+    replica_info_list *primaryList = (replica_info_list*) args;
+    replica_info_t primary = primaryList->replica;
+
+
     struct sockaddr_in servaddr;
     char buff[20];
     bzero(buff, sizeof(buff));
@@ -469,7 +483,7 @@ void* backupStartConnectionWithPrimary(replica_info_t primary) {
         printf("Socket to primary replica creation failed...\n");
     }
     if (connect(sockfd, (struct sockaddr*)&servaddr, sizeof(servaddr)) != 0) {
-        printf("Connection with the Primary backup failed\n");
+        printf("Connection with Primary backup failed\n");
     }
 
     printf("Primary is alive\n");
@@ -482,27 +496,36 @@ void* backupStartConnectionWithPrimary(replica_info_t primary) {
 
     backupListenForMessage(sockfd, rootPath, &isElectionRunning);
 
-    broadcastMessageToAllFrontEnd(frontEndCommands[DEAD]);
-
     pthread_mutex_lock(&startElectionMutex);
-    isElectionRunning = true;
+    if(!isElectionRunning) {
+        broadcastMessageToAllFrontEnd(frontEndCommands[DEAD]);
+        pthread_t electionThread;
+        pthread_create(&electionThread, NULL, startElection, NULL);
+        pthread_detach( electionThread);
+        isElectionRunning = true;
+    }
     pthread_mutex_unlock(&startElectionMutex);
 
-    deletePrimary();
 
-    startElection();
 }
 
-void backupReplicaStart(replica_info_t primary) {
+void backupReplicaStart() {
+    replica_info_list* primary = findPrimaryReplica(replicaList);
 
     // liberar essa memória
-    if(electionThread == NULL) {
-        electionThread = (pthread_t*) calloc(1, sizeof(pthread_t));
-        pthread_create(electionThread, NULL, listenElectionMessages, NULL);
-        pthread_detach(*electionThread);
+    if(electionSocketThread == NULL) {
+        electionSocketThread = (pthread_t*) calloc(1, sizeof(pthread_t));
+        pthread_create(electionSocketThread, NULL, listenElectionMessages, NULL);
+        pthread_detach(*electionSocketThread);
     }
 
-    backupStartConnectionWithPrimary(primary);
+    pthread_cond_wait(&primaryIsRunning, &waitForPrimaryMutex);
+    pthread_mutex_unlock(&waitForPrimaryMutex);
+
+    connectionToPrimary = (pthread_t*) calloc(1, sizeof(pthread_t));
+    pthread_create(connectionToPrimary, NULL, backupStartConnectionWithPrimary, (void*) primary);
+    pthread_detach(*connectionToPrimary);
+
 }
 
 void* newBackupConnection(void* args) {
@@ -545,7 +568,13 @@ void* newBackupConnection(void* args) {
         close(socket);
 
         pthread_mutex_lock(&startElectionMutex);
-        isElectionRunning = true;
+        if(!isElectionRunning && !isPrimary) {
+            pthread_t electionThread;
+            pthread_create(&electionThread, NULL, startElection, NULL);
+            pthread_detach( electionThread);
+            isElectionRunning = true;
+            pthread_cancel(*connectionToPrimary);
+        }
         pthread_mutex_unlock(&startElectionMutex);
 
         return NULL;
@@ -559,6 +588,9 @@ void* newBackupConnection(void* args) {
         sscanf(buff, "%d", &replicaElectionValue);
 
         updatePrimary(replicaElectionValue);
+    }
+    if(strcmp(newSocketType, socketTypes[NEWPRIMARYSOCKET]) == 0) {
+        pthread_cond_signal(&primaryIsRunning);
     }
 }
 
@@ -619,9 +651,9 @@ void listenLivenessCheck() {
 
 void primaryReplicaStart() {
 
-    if(electionThread != NULL){
-        pthread_cancel(*electionThread);
-        free(electionThread);
+    if(electionSocketThread != NULL){
+        pthread_cancel(*electionSocketThread);
+        free(electionSocketThread);
     }
     pthread_t userDisconnectedThread;
     pthread_create(&userDisconnectedThread, NULL, userDisconnectedEvent, NULL);
@@ -639,7 +671,12 @@ void primaryReplicaStart() {
     pthread_create(&clientConnThread, NULL, clientConn, NULL);
     pthread_detach(clientConnThread);
 
-    listenLivenessCheck();
+    pthread_t listenLivenessCheckThread;
+    pthread_create(&listenLivenessCheckThread, NULL, listenLivenessCheck, NULL);
+    pthread_detach(listenLivenessCheckThread);
+
+    wait(1);
+    broadcastNewPrimaryToBackups();
 }
 
 void* listenElectionMessages() {
@@ -720,13 +757,14 @@ int main()
         if (isPrimary)
             primaryReplicaStart();
         else {
-            replica_info_t primaryCopy;
-            primaryCopy.port = primary->replica.port;
-            primaryCopy.ipAddr = (char *) calloc(strlen(primary->replica.ipAddr) + 1, sizeof(char));
-            strcpy(primaryCopy.ipAddr, primary->replica.ipAddr);
-
-            backupReplicaStart(primaryCopy);
+            backupReplicaStart();
         }
+
+        pthread_cond_wait(&electionFinished, &startElectionMutex);
+        isElectionRunning = false;
+        pthread_mutex_unlock(&startElectionMutex);
+        free(connectionToPrimary);
+        connectionToPrimary = NULL;
     }
 
     exit(0);

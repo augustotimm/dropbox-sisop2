@@ -210,6 +210,7 @@ int sendCoordinatorMessage (replica_info_t replica){
 void* startElection(){
     printf("\n--------Starting Election Process--------\n");
     pthread_mutex_lock(&connectedReplicaListMutex);
+    deletePrimary();
     replica_info_list* element = NULL;
 
     bool hasHigherValue = false;
@@ -232,9 +233,10 @@ void* startElection(){
 
     pthread_mutex_unlock(&connectedReplicaListMutex);
 
+    pthread_cond_signal(&electionFinished);
 };
 
-int sendMessageToFrontEnd(user_session_t session, char* message){
+int sendMessageToFrontEnd(user_session_t session, const char* message){
     struct sockaddr_in servaddr;
     char buff[20];
     bzero(buff, sizeof(buff));
@@ -317,6 +319,14 @@ int backupListenForMessage(int socket, char* rootFolderPath, bool *isElectionRun
         // read the message from client and copy it in buffer
         recv(socket, currentCommand, sizeof(currentCommand), 0);
 
+        if (strcmp(currentCommand, commands[EXIT]) == 0 || strlen(currentCommand) == 0) {
+            return 0;
+        }
+
+        if(*isElectionRunning){
+            return 0;
+        }
+
         write(socket, &endCommand, strlen(endCommand));
 
         recv(socket, username, sizeof(username), 0);
@@ -370,14 +380,6 @@ int backupListenForMessage(int socket, char* rootFolderPath, bool *isElectionRun
 
 
         free(clientDirPath);
-
-        if (strcmp(currentCommand, commands[EXIT]) == 0 || strlen(currentCommand) == 0) {
-            return 0;
-        }
-
-        if(*isElectionRunning){
-            return 0;
-        }
     }
     return -1;
 }
@@ -406,26 +408,54 @@ void updatePrimary(int replicaElectionValue) {
 
 }
 
-int primaryCompare(replica_info_list* a, replica_info_list* b) {
-    if(a->replica.isPrimary == b->replica.isPrimary)
-        return 0;
-    else
-        return -1;
-}
-
 void deletePrimary() {
     replica_info_list *replica = NULL, *replicaTmp = NULL;
-    replica_info_list etmp;
-    etmp.replica.isPrimary = true;
 
-    pthread_mutex_lock(&connectedReplicaListMutex);
     DL_FOREACH_SAFE(replicaList, replica, replicaTmp) {
-        if(replica->replica.isPrimary) {
+        if(replica->replica.isPrimary == true) {
             DL_DELETE(replicaList, replica);
             free(replica->replica.ipAddr);
             free(replica);
         }
     }
-    pthread_mutex_unlock(&connectedReplicaListMutex);
 
+}
+
+int sendNewPrimaryMessage(replica_info_t replica) {
+    struct sockaddr_in servaddr;
+    char buff[20];
+    bzero(buff, sizeof(buff));
+
+
+    servaddr.sin_family = AF_INET;
+    servaddr.sin_addr.s_addr = inet_addr(replica.ipAddr);
+    servaddr.sin_port = htons(replica.port);
+
+    int sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    if (sockfd == -1) {
+        printf("Election socket to backup replica creation failed\nbackupId: %d\n", replica.electionValue);
+    }
+    if (connect(sockfd, (struct sockaddr*)&servaddr, sizeof(servaddr)) != 0) {
+        printf("election connection failed backupId: %d\n", replica.electionValue);
+    }
+
+    write(sockfd, &socketTypes[NEWPRIMARYSOCKET], sizeof(socketTypes[NEWPRIMARYSOCKET]));
+    recv(sockfd, buff, sizeof(buff), 0);
+
+    close(sockfd);
+
+    return 0;
+}
+
+
+void broadcastNewPrimaryToBackups(){
+    pthread_mutex_lock(&connectedReplicaListMutex);
+
+    replica_info_list* element = NULL;
+
+    DL_FOREACH(replicaList, element) {
+        sendNewPrimaryMessage(element->replica);
+    }
+
+    pthread_mutex_unlock(&connectedReplicaListMutex);
 }

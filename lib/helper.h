@@ -28,9 +28,9 @@
 #define DOWNLOAD 1
 #define UPLOAD 0
 #define USERSESSIONNUMBER 2
-#define SYNCLISTENERPORT 7777
-#define SERVERPORT 8888
-#define SYNCPORT 9999
+#define SYNCLISTENERPORT 7772
+#define SERVERPORT 8882
+#define SYNCPORT 9992
 
 
 #define USERNAMESIZE 64
@@ -43,6 +43,7 @@
 #define BACKUPSOCKET 3
 #define ELECTIONSOCKET 4
 #define ELECTIONCOORDSOCKET 5
+#define NEWPRIMARYSOCKET 6
 
 #define DEAD 0
 #define NEWPRIMARY 0
@@ -67,13 +68,14 @@ static const char commands[10][13] = {
         "user conn",
         "user close"
 };
-static const char socketTypes[6][13] = {
+static const char socketTypes[7][16] = {
         "client",
         "syncdir",
         "synclisten",
         "backup",
         "election",
-        "coordinator"
+        "coordinator",
+        "primary ready"
 };
 
 typedef struct received_file_list {

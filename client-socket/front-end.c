@@ -23,8 +23,11 @@ pthread_mutex_t isConnectionOpenMutex;
 void* newServerConnection(void* args) {
     int* connSocket = (int*) args;
     char buff[BUFFERSIZE];
+    bzero(buff, sizeof(buff));
+
     recv(*connSocket, buff, sizeof(buff), 0);
     write(*connSocket, &endCommand, sizeof(endCommand));
+    printf("\n---frontend command: %s\n", buff);
     if(strcmp(buff, frontEndCommands[DEAD]) == 0) {
         pthread_mutex_lock(&isConnectionOpenMutex);
     }
