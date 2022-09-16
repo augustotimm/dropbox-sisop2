@@ -9,7 +9,7 @@
 #include <arpa/inet.h>
 #include <string.h>
 #include <stdio.h>
-#include "../lib/helper.h"
+#include "./test-client.h"
 
 #define SA struct sockaddr
 
@@ -19,6 +19,10 @@ int* syncListenSocket = NULL;
 char serverIp[15];
 
 pthread_mutex_t isConnectionOpenMutex;
+
+void reconnect() {
+
+}
 
 void* newServerConnection(void* args) {
     int* connSocket = (int*) args;
@@ -33,6 +37,7 @@ void* newServerConnection(void* args) {
     }
     if(strcmp(buff, frontEndCommands[NEWPRIMARY]) == 0) {
         pthread_mutex_unlock(&isConnectionOpenMutex);
+
     }
     close(*connSocket);
 
@@ -118,4 +123,44 @@ void connectToServer(int* connSocket, int port) {
         printf("Connected to the server..\n");
 
     *connSocket = sockfd;
+}
+
+void newConnection(int sockfd, int socketType){
+    write(sockfd, &socketTypes[socketType], sizeof(socketTypes[socketType]));
+    char endCommand[6];
+    bzero(endCommand, sizeof(endCommand));
+
+    recv(sockfd, &endCommand, sizeof(endCommand), 0);
+
+    write(sockfd, &username, sizeof(username));
+    bzero(endCommand, sizeof(endCommand));
+    recv(sockfd, &endCommand, sizeof(endCommand), 0);
+
+    write(sockfd, sessionCode, strlen(sessionCode));
+    bzero(endCommand, sizeof(endCommand));
+    recv(sockfd, &endCommand, sizeof(endCommand), 0);
+
+}
+
+void addSocketConn(int socket,  bool isListener) {
+    pthread_mutex_lock(&socketConnMutex);
+    if(socketConn == NULL) {
+        socketConn = calloc(1, sizeof(sync_dir_conn));
+        socketConn->listenerSocket = calloc(1, sizeof(int));
+        socketConn->socket = calloc(1, sizeof(int));
+
+        if(isListener)
+            *socketConn->listenerSocket = socket;
+        else
+            *socketConn->socket = socket;
+    }
+    else {
+        if(isListener) {
+            *socketConn->listenerSocket = socket;
+        }
+        else {
+            *socketConn->socket = socket;
+        }
+    }
+    pthread_mutex_unlock(&socketConnMutex);
 }

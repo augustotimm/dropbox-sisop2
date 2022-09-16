@@ -3,10 +3,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <libgen.h>
-#include "../lib/helper.h"
-#include "../file-control/file-handler.h"
 #include "../server/server_functions.h"
 #include "./front-end.h"
+#include "../file-control/file-handler.h"
+#include "./test-client.h"
 
 #define MAX 80
 #define SA struct sockaddr
@@ -24,7 +24,9 @@ pthread_mutex_t syncDirSem;
 pthread_t listenSyncThread;
 received_file_list *filesReceived;
 
-sync_dir_conn* socketConn = NULL;
+sync_dir_conn* socketConn;
+pthread_mutex_t socketConnMutex;
+
 char* sessionCode;
 
 int frontEndPort = 0;
@@ -46,22 +48,6 @@ void clientUpload(int *socket) {
 
 }
 
-void newConnection(int sockfd, int socketType){
-    write(sockfd, &socketTypes[socketType], sizeof(socketTypes[socketType]));
-    char endCommand[6];
-    bzero(endCommand, sizeof(endCommand));
-
-    recv(sockfd, &endCommand, sizeof(endCommand), 0);
-
-    write(sockfd, &username, sizeof(username));
-    bzero(endCommand, sizeof(endCommand));
-    recv(sockfd, &endCommand, sizeof(endCommand), 0);
-
-    write(sockfd, sessionCode, strlen(sessionCode));
-    bzero(endCommand, sizeof(endCommand));
-    recv(sockfd, &endCommand, sizeof(endCommand), 0);
-
-}
 
 int clientDownload(int *socket) {
     pthread_mutex_lock(&isConnectionOpenMutex);
@@ -314,29 +300,6 @@ int main()
 
     // close the socket
     close(*clientSocket);
-}
-
-void addSocketConn(int socket,  bool isListener) {
-    pthread_mutex_lock(&syncDirSem);
-    if(socketConn == NULL) {
-        socketConn = calloc(1, sizeof(sync_dir_conn));
-        socketConn->listenerSocket = calloc(1, sizeof(int));
-        socketConn->socket = calloc(1, sizeof(int));
-
-        if(isListener)
-            *socketConn->listenerSocket = socket;
-        else
-            *socketConn->socket = socket;
-    }
-    else {
-        if(isListener) {
-            *socketConn->listenerSocket = socket;
-        }
-        else {
-            *socketConn->socket = socket;
-        }
-    }
-    pthread_mutex_unlock(&syncDirSem);
 }
 
 int downloadAll(int socket) {

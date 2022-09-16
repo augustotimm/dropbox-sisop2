@@ -12,6 +12,7 @@
 #include<fcntl.h>
 #include "../client-socket/front-end.h"
 #include "../server/server_functions.h"
+#include "../client-socket/test-client.h"
 
 struct stat info;
 time_t  epoch_time;
