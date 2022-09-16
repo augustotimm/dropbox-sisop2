@@ -21,6 +21,11 @@ extern char username[USERNAMESIZE];
 extern char* sessionCode;
 extern sync_dir_conn* socketConn;
 extern pthread_mutex_t socketConnMutex;
+extern pthread_t listenSyncThread;
+extern pthread_t clientThread;
 
+void startWatchDir();
+void startListenSyncDir();
+int startClient(bool shouldDownloadAll);
 
 #endif //DROPBOX_SISOP2_TEST_CLIENT_H

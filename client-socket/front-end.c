@@ -20,10 +20,6 @@ char serverIp[15];
 
 pthread_mutex_t isConnectionOpenMutex;
 
-void reconnect() {
-
-}
-
 void* newServerConnection(void* args) {
     int* connSocket = (int*) args;
     char buff[BUFFERSIZE];
@@ -36,6 +32,11 @@ void* newServerConnection(void* args) {
         pthread_mutex_lock(&isConnectionOpenMutex);
     }
     if(strcmp(buff, frontEndCommands[NEWPRIMARY]) == 0) {
+        int clientStarted = startClient(false);
+        if(clientStarted != 0){
+            exit(OUTOFSYNCERROR);
+        }
+
         pthread_mutex_unlock(&isConnectionOpenMutex);
 
     }

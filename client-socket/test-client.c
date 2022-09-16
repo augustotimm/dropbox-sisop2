@@ -22,10 +22,14 @@ char rootPath[KBYTE];
 
 pthread_mutex_t syncDirSem;
 pthread_t listenSyncThread;
+pthread_t clientThread;
+
 received_file_list *filesReceived;
 
 sync_dir_conn* socketConn;
 pthread_mutex_t socketConnMutex;
+
+pthread_cond_t exitCond;
 
 char* sessionCode;
 
@@ -168,19 +172,20 @@ void startWatchDir() {
 }
 
 
-void clientThread(int *connfd)
+void* clientThreadFunction(void* args)
 {
+    int connfd = *(int*) args;
+    free(args);
     char userInput[MAX];
     char buff[MAX];
-    bzero(username, sizeof(username));
     bzero(buff, sizeof(buff));
     int n;
 
     for (;;) {
 
-        recv(*connfd, buff, sizeof(buff), 0);
+        recv(connfd, buff, sizeof(buff), 0);
         if(strcmp(buff, commands[WAITING]) != 0) {
-            printf("[clientThread] expected waiting command");
+            printf("[clientThreadFunction] expected waiting command");
         }
 
         bzero(userInput, sizeof(userInput));
@@ -191,23 +196,25 @@ void clientThread(int *connfd)
         userInput[strcspn(userInput, "\n")] = 0;
         if(strcmp(userInput, commands[UPLOAD]) ==0 ) {
             pthread_mutex_lock(&syncDirSem);
-            clientUpload(connfd);
+            clientUpload(&connfd);
             pthread_mutex_unlock(&syncDirSem);
         } else if(strcmp(userInput, commands[DOWNLOAD]) ==0 ) {
             pthread_mutex_lock(&syncDirSem);
-            clientDownload(connfd);
+            clientDownload(&connfd);
             pthread_mutex_unlock(&syncDirSem);
         } else if(strcmp(userInput, commands[LIST]) ==0 ) {
             list_local(path);
         } else if(strcmp(userInput, commands[DELETE]) ==0 ) {
             pthread_mutex_lock(&syncDirSem);
-            clientDelete(connfd);
+            clientDelete(&connfd);
             pthread_mutex_unlock(&syncDirSem);
         }
 
         if ((strncmp(userInput, "exit", 4)) == 0) {
             printf("Client Exit...\n");
             write(socket, &commands[EXIT], sizeof(commands[EXIT]));
+            close(socket);
+            pthread_cond_signal(&exitCond);
             break;
         }
     }
@@ -259,6 +266,24 @@ int main()
     syncDirSocket = calloc(1, sizeof(int));
     syncListenSocket = calloc(1, sizeof(int));
 
+    startListenForReplicaMessages();
+
+
+    int created = startClient(true);
+    pthread_detach(clientThread);
+
+    if(created != 0) {
+        exit(OUTOFSYNCERROR);
+    }
+
+    startWatchDir();
+
+
+    pthread_cond_wait(&exitCond, &syncDirSem);
+}
+
+int startClient(bool shouldDownloadAll) {
+
     connectToServer(clientSocket, SERVERPORT);
 
     newConnection(*clientSocket, CLIENTSOCKET);
@@ -272,8 +297,7 @@ int main()
 
     char buff[USERNAMESIZE];
     bzero(buff, sizeof(buff));
-    recv(*clientSocket, buff, sizeof(buff), 0);
-    printf("SERVER CONNECTION STATUS: %s\n", buff);
+
 
     write(*clientSocket, &endCommand, sizeof(endCommand));
 
@@ -282,24 +306,26 @@ int main()
 
     recv(*clientSocket, buff, sizeof(buff), 0);
     if(strcmp(buff, commands[WAITING]) != 0) {
-        printf("[clientThread] expected waiting command");
+        printf("[clientThreadFunction] expected waiting command");
+        exit(OUTOFSYNCERROR);
     }
 
-    if(downloadAll(*clientSocket) != 0) {
-        return OUTOFSYNCERROR;
+    if(shouldDownloadAll){
+        if(downloadAll(*clientSocket) != 0) {
+            exit(OUTOFSYNCERROR);
+        }
     }
 
 
-    startWatchDir();
+    int created = pthread_create(&clientThread, NULL, clientThreadFunction, (void*)clientSocket);
+    pthread_detach(clientThread);
 
-    // function for user commands
+    if(created != 0) {
+        exit(OUTOFSYNCERROR);
+    }
 
-    startListenForReplicaMessages();
 
-    clientThread(clientSocket);
-
-    // close the socket
-    close(*clientSocket);
+    return 0;
 }
 
 int downloadAll(int socket) {

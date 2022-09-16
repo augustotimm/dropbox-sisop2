@@ -78,11 +78,8 @@ void* clientListen(void* voidArg)
     char currentCommand[13];
     bzero(currentCommand, sizeof(currentCommand));
 
-    strcpy(currentCommand, "TRUE");
-    write(socket, currentCommand, sizeof(currentCommand));
 
-    //waiting for command
-    printf("waiting for first command\n");
+
     recv(socket, currentCommand, sizeof(currentCommand), 0);
     if(strcmp(currentCommand, endCommand) != 0) {
         printf("Connection out of sync\n");
@@ -676,7 +673,7 @@ void primaryReplicaStart() {
     pthread_detach(listenLivenessCheckThread);
 
     wait(1);
-    broadcastNewPrimaryToBackups();
+    //broadcastNewPrimaryToBackups();
 }
 
 void* listenElectionMessages() {

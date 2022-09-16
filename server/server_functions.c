@@ -240,7 +240,7 @@ void broadCastFile(socket_conn_list* socketList, int forbiddenSocket, char* file
         if (current->listenerSocket != forbiddenSocket) {
             recv(current->socket, buff, sizeof(buff), 0);
             if(strcmp(buff, commands[WAITING]) != 0) {
-                printf("[clientThread] expected waiting command");
+                printf("[clientThreadFunction] expected waiting command");
             }
 
             write(current->socket, &commands[UPLOAD], sizeof(commands[UPLOAD]));
