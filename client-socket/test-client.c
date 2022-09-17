@@ -143,13 +143,8 @@ void startListenSyncDir() {
     addSocketConn(*syncListenSocket, true);
 
 
-    int created = pthread_create(&listenSyncThread, NULL, listenSyncDir, NULL);
+    pthread_create(&listenSyncThread, NULL, listenSyncDir, NULL);
     pthread_detach(listenSyncThread);
-    if(created != 0) {
-        printf("Listen sync dir failed\n");
-        pthread_cancel(listenSyncThread);
-        close(*syncListenSocket);
-   }
 }
 
 void startWatchDir() {

@@ -13,6 +13,11 @@
 
 #define SA struct sockaddr
 
+typedef struct new_conn_args{
+    int connSocket;
+    char* ipAddress;
+}new_conn_args;
+
 int* clientSocket = NULL;
 int* syncDirSocket = NULL;
 int* syncListenSocket = NULL;
@@ -20,18 +25,34 @@ char serverIp[15];
 
 pthread_mutex_t isConnectionOpenMutex;
 
+pthread_mutex_t newServerConnectionMutex;
+
+bool isPrimaryDead = false;
+
 void* newServerConnection(void* args) {
-    int* connSocket = (int*) args;
+    new_conn_args * newConnArgs = (new_conn_args*) args;
+    int connSocket = newConnArgs->connSocket;
     char buff[BUFFERSIZE];
     bzero(buff, sizeof(buff));
 
-    recv(*connSocket, buff, sizeof(buff), 0);
-    write(*connSocket, &endCommand, sizeof(endCommand));
+    recv(connSocket, buff, sizeof(buff), 0);
+    write(connSocket, &endCommand, sizeof(endCommand));
     printf("\n---frontend command: %s\n", buff);
-    if(strcmp(buff, frontEndCommands[DEAD]) == 0) {
+
+    printf("\nServer IP ADDRESS:\n%s\n", newConnArgs->ipAddress);
+
+    pthread_mutex_lock(&newServerConnectionMutex);
+    if(strcmp(buff, frontEndCommands[DEAD]) == 0 && !isPrimaryDead) {
         pthread_mutex_lock(&isConnectionOpenMutex);
+        isPrimaryDead = true;
     }
     if(strcmp(buff, frontEndCommands[NEWPRIMARY]) == 0) {
+        pthread_cancel(clientThread);
+        pthread_cancel(listenSyncThread);
+
+        bzero(serverIp, sizeof(serverIp));
+        strcpy(serverIp, newConnArgs->ipAddress);
+
         int clientStarted = startClient(false);
         if(clientStarted != 0){
             exit(OUTOFSYNCERROR);
@@ -40,9 +61,11 @@ void* newServerConnection(void* args) {
         pthread_mutex_unlock(&isConnectionOpenMutex);
 
     }
-    close(*connSocket);
+    pthread_mutex_unlock(&newServerConnectionMutex);
+    close(connSocket);
 
-    free(connSocket);
+    free(newConnArgs->ipAddress);
+    free(newConnArgs);
 }
 
 void* listenForReplicaMessage(void* args) {
@@ -85,12 +108,17 @@ void* listenForReplicaMessage(void* args) {
     int i = 0;
     while( (connfd = accept(sockfd, (struct sockaddr *)&cli, (socklen_t*)&len))  || i < 5)
     {
-        int *connSocket = calloc(1, sizeof(int));
-        *connSocket = connfd;
+        new_conn_args *newConnArgs = calloc(1, sizeof(new_conn_args));
+        newConnArgs->connSocket = connfd;
+
+        newConnArgs->ipAddress = calloc(15, sizeof(char));
+        bzero(newConnArgs->ipAddress, 15);
+
+        newConnArgs->ipAddress = inet_ntoa(cli.sin_addr);
 
         pthread_t newServerConn;
 
-        pthread_create(&newServerConn, NULL, newServerConnection, (void*)connSocket);
+        pthread_create(&newServerConn, NULL, newServerConnection, (void*)newConnArgs);
 
         pthread_detach(newServerConn);
     }
