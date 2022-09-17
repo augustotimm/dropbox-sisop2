@@ -23,9 +23,9 @@ extern sync_dir_conn* socketConn;
 extern pthread_mutex_t socketConnMutex;
 extern pthread_t listenSyncThread;
 extern pthread_t clientThread;
-
-void startWatchDir();
-void startListenSyncDir();
-int startClient(bool shouldDownloadAll);
+extern char path[KBYTE];
+extern received_file_list *filesReceived;
+extern pthread_mutex_t syncDirSem;
+extern pthread_cond_t exitCond;
 
 #endif //DROPBOX_SISOP2_TEST_CLIENT_H

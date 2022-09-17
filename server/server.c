@@ -118,6 +118,7 @@ void* newConnection(void* arg) {
     recv(socket, sessionCode, USERNAMESIZE, 0);
     write(socket, &endCommand, sizeof(endCommand));
 
+    printf("\nNew Connection type: %s", newSocketType);
     if(strcmp(newSocketType, socketTypes[CLIENTSOCKET]) == 0) {
         int port = 0;
         bzero(newSocketType, sizeof(newSocketType));
@@ -316,7 +317,7 @@ void* clientConn(void* args) {
     {
         struct in_addr ipAddr = cli.sin_addr;
 
-        puts("Connection accepted");
+        printf("\nConnection accepted: Clientconn");
         pthread_t newUserThread;
         struct new_connection_argument *arg = calloc(1, sizeof(struct new_connection_argument));
         arg->socket = connfd;
@@ -382,7 +383,7 @@ void* syncDirConn(void* args) {
     {
         struct in_addr ipAddr = cli.sin_addr;
 
-        puts("Connection accepted");
+        printf("\nConnection accepted: Syncdir conn");
         pthread_t newUserThread;
 
 
@@ -443,7 +444,7 @@ void* syncDirListenerConn(void* args) {
     {
         struct in_addr ipAddr = cli.sin_addr;
 
-        puts("Connection accepted");
+        printf("\nConnection accepted: syncDirListenerConn");
         pthread_t newUserThread;
 
 
@@ -496,7 +497,7 @@ void* backupStartConnectionWithPrimary(void* args) {
         printf("Connection with Primary backup failed\n");
     }
 
-    printf("Primary is alive\n");
+    printf("\nPrimary is alive\n");
 
     write(sockfd, &socketTypes[BACKUPSOCKET], sizeof(socketTypes[BACKUPSOCKET]));
     recv(sockfd, buff, sizeof(buff), 0);
@@ -540,13 +541,22 @@ void backupReplicaStart() {
 
 void* newBackupConnection(void* args) {
     struct new_connection_argument *argument = (struct new_connection_argument*) args;
+    printf("\n void to argument");
     int socket = argument->socket;
 
-    char newSocketType[USERNAMESIZE];
+    printf("\nAccessed socket argument");
+    char newSocketType[SOCKETTYPESIZE + 1];
     bzero(newSocketType, sizeof(newSocketType));
+    printf("\nnewSocketType bzero");
+
     recv(socket, newSocketType, sizeof(newSocketType), 0);
 
+    printf("\nnewSocketType message received");
+
     write(socket, &endCommand, strlen(endCommand));
+
+    printf("\nSend endcommand");
+
 
     printf("\nNEW BACKUP CONNECTION: %s", newSocketType);
 
@@ -586,6 +596,7 @@ void* newBackupConnection(void* args) {
             pthread_detach( electionThread);
             isElectionRunning = true;
             pthread_cancel(*connectionToPrimary);
+            connectionToPrimary = NULL;
         }
         pthread_mutex_unlock(&startElectionMutex);
 
@@ -598,6 +609,12 @@ void* newBackupConnection(void* args) {
         recv(socket, buff, sizeof(buff), 0);
         int replicaElectionValue;
         sscanf(buff, "%d", &replicaElectionValue);
+        if(connectionToPrimary != NULL) {
+            pthread_cancel(*connectionToPrimary);
+            connectionToPrimary = NULL;
+        }
+
+        deletePrimary();
 
         updatePrimary(replicaElectionValue);
     }
@@ -654,7 +671,7 @@ void listenLivenessCheck() {
     {
         struct in_addr ipAddr = cli.sin_addr;
 
-        puts("Connection accepted");
+        printf("\nConnection accepted: Listenlivenesscheck");
         pthread_t newBackupThread;
 
 
@@ -696,6 +713,7 @@ void primaryReplicaStart() {
 
     wait(1);
     broadcastNewPrimaryToBackups();
+    broadcastMessageToAllFrontEnd(frontEndCommands[NEWPRIMARY]);
 }
 
 void* listenElectionMessages() {
@@ -739,7 +757,7 @@ void* listenElectionMessages() {
     {
         struct in_addr ipAddr = cli.sin_addr;
 
-        puts("Connection accepted");
+        printf("\nConnection accepted: election message");
         pthread_t newBackupThread;
 
 

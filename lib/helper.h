@@ -46,8 +46,9 @@
 #define NEWPRIMARYSOCKET 6
 
 #define DEAD 0
-#define NEWPRIMARY 0
+#define NEWPRIMARY 1
 
+#define SOCKETTYPESIZE 16
 
 static const char endCommand[] = "\nend\n";
 static const char continueCommand[] = "\ncontinue\n";
@@ -68,7 +69,7 @@ static const char commands[10][13] = {
         "user conn",
         "user close"
 };
-static const char socketTypes[7][16] = {
+static const char socketTypes[7][SOCKETTYPESIZE] = {
         "client",
         "syncdir",
         "synclisten",

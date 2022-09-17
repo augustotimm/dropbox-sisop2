@@ -209,11 +209,12 @@ int sendCoordinatorMessage (replica_info_t replica){
 
 void* startElection(){
     printf("\n--------Starting Election Process--------\n");
-    pthread_mutex_lock(&connectedReplicaListMutex);
     deletePrimary();
     replica_info_list* element = NULL;
 
     bool hasHigherValue = false;
+
+    pthread_mutex_lock(&connectedReplicaListMutex);
     DL_FOREACH(replicaList, element) {
         if(element->replica.electionValue > electionValue) {
             if(sendElectionMessage(element->replica) == 0) {
@@ -373,6 +374,7 @@ void updatePrimary(int replicaElectionValue) {
         exit(-99);
     } else {
         replica->replica.isPrimary = true;
+        printf("\nUpdated primary");
     }
     pthread_mutex_unlock(&connectedReplicaListMutex);
 
@@ -381,17 +383,22 @@ void updatePrimary(int replicaElectionValue) {
 void deletePrimary() {
     replica_info_list *replica = NULL, *replicaTmp = NULL;
 
+    pthread_mutex_lock(&connectedReplicaListMutex);
     DL_FOREACH_SAFE(replicaList, replica, replicaTmp) {
         if(replica->replica.isPrimary == true) {
             DL_DELETE(replicaList, replica);
             free(replica->replica.ipAddr);
             free(replica);
+            pthread_mutex_unlock(&connectedReplicaListMutex);
+            printf("\nDeleted old primary");
+            return;
         }
     }
 
+    pthread_mutex_unlock(&connectedReplicaListMutex);
 }
 
-int sendNewPrimaryMessage(replica_info_t replica) {
+int sendNewPrimaryBackupMessage(replica_info_t replica) {
     struct sockaddr_in servaddr;
     char buff[20];
     bzero(buff, sizeof(buff));
@@ -423,7 +430,7 @@ void broadcastNewPrimaryToBackups(){
     replica_info_list* element = NULL;
 
     DL_FOREACH(replicaList, element) {
-        sendNewPrimaryMessage(element->replica);
+        sendNewPrimaryBackupMessage(element->replica);
     }
 
     pthread_mutex_unlock(&connectedReplicaListMutex);
