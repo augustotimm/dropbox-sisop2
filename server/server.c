@@ -673,7 +673,7 @@ void primaryReplicaStart() {
     pthread_detach(listenLivenessCheckThread);
 
     wait(1);
-    //broadcastNewPrimaryToBackups();
+    broadcastNewPrimaryToBackups();
 }
 
 void* listenElectionMessages() {
@@ -731,8 +731,31 @@ void* listenElectionMessages() {
     }
 }
 
+void intHandler(int dummy) {
+    printf("[intHandler]");
+    user_list* currentUser = NULL, *userTmp = NULL;
+
+    pthread_mutex_lock(&connectedUsersMutex);
+    DL_FOREACH_SAFE(connectedUserListHead, currentUser, userTmp) {
+        pthread_mutex_lock(currentUser->user.userAccessSem);
+        for(int i =0; i < USERSESSIONNUMBER; i++) {
+            close(currentUser->user.clientThread[i]->sessionSocket);
+        }
+        socket_conn_list* currentSocketConn = NULL;
+        DL_FOREACH(currentUser->user.syncSocketList, currentSocketConn) {
+            close(currentSocketConn->socket);
+            close(currentSocketConn->listenerSocket);
+        }
+
+    }
+
+    exit(0);
+}
+
 int main()
 {
+    signal(SIGINT, intHandler);
+
 
     sigaction(SIGPIPE, &(struct sigaction){SIG_IGN}, NULL);
     connectedUserListHead = NULL;
@@ -751,12 +774,12 @@ int main()
     }
 
     for(;;){
-        if (isPrimary)
+        if (isPrimary) {
             primaryReplicaStart();
+        }
         else {
             backupReplicaStart();
         }
-
         pthread_cond_wait(&electionFinished, &startElectionMutex);
         isElectionRunning = false;
         pthread_mutex_unlock(&startElectionMutex);

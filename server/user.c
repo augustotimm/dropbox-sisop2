@@ -119,27 +119,31 @@ client_thread_argument* createClientThreadArgument(bool* isThreadComplete, char*
 
 int startNewSession(user_list* user, int sessionSocket, char* userDirPath, char* ipAddr, int port, char* sessionCode) {
     if(hasAvailableSession(user->user)) {
-        user_session_t* newClientThread = (user_session_t*) calloc(1, sizeof(user_session_t));
-        client_thread_argument* argument =
-                createClientThreadArgument(
-                        &newClientThread->isThreadComplete,
-                        userDirPath,
-                        sessionSocket,
-                        &user->user
-                );
+        user_session_t* newClientSession = (user_session_t*) calloc(1, sizeof(user_session_t));
+
 
         if(isPrimary) {
-            pthread_create(&newClientThread->thread, NULL, clientListen, argument);
-            pthread_detach(newClientThread->thread);
-        } else newClientThread->isThreadComplete = true;
+            newClientSession->isThreadComplete = false;
+            newClientSession->sessionSocket = sessionSocket;
 
+            client_thread_argument* argument =
+                    createClientThreadArgument(
+                            &newClientSession->isThreadComplete,
+                            userDirPath,
+                            sessionSocket,
+                            &user->user
+                    );
 
-        newClientThread->sessionCode = strcatSafe(sessionCode, "\0");
+            pthread_create(&newClientSession->thread, NULL, clientListen, argument);
+            pthread_detach(newClientSession->thread);
+        } else newClientSession->isThreadComplete = true;
 
-        newClientThread->ipAddr = strcatSafe(ipAddr, "\0");
-        newClientThread->frontEndPort = port;
+        newClientSession->sessionCode = strcatSafe(sessionCode, "\0");
 
-        if(!addSession(&user->user, newClientThread)) {
+        newClientSession->ipAddr = strcatSafe(ipAddr, "\0");
+        newClientSession->frontEndPort = port;
+
+        if(!addSession(&user->user, newClientSession)) {
             return OUTOFSESSION;
         }
         return 0;

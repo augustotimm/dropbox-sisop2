@@ -90,6 +90,7 @@ typedef struct user_session_t {
     char* ipAddr;
     int frontEndPort;
     char* sessionCode;
+    int sessionSocket;
 } user_session_t;
 
 typedef struct socket_conn_list {
