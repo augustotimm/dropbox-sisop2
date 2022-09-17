@@ -268,36 +268,6 @@ int sendMessageToFrontEnd(user_session_t session, const char* message){
     return 0;
 }
 
-backup_conn_list *connectToBackups(replica_info_list *replicaList) {
-    replica_info_list *elt = NULL;
-    struct sockaddr_in servaddr;
-    socket_conn_list *backupConnectionList = NULL;
-    DL_FOREACH(replicaList, elt) {
-        servaddr.sin_family = AF_INET;
-        servaddr.sin_addr.s_addr = inet_addr(elt->replica.ipAddr);
-        servaddr.sin_port = htons(elt->replica.port);
-
-        int sockfd = socket(AF_INET, SOCK_STREAM, 0);
-        if (sockfd == -1) {
-            printf("Socket to backup replica creation failed...\n");
-        }
-        if (connect(sockfd, (struct sockaddr*)&servaddr, sizeof(servaddr)) != 0) {
-            printf("Connection with a backup failed\n");
-        }
-        else {
-            socket_conn_list *newConn = (socket_conn_list*) calloc(1, sizeof(socket_conn_list));
-            newConn->socket = sockfd;
-
-            newConn->prev = NULL;
-            newConn->next = NULL;
-
-            DL_APPEND(backupConnectionList, newConn);
-        }
-    }
-
-    return backupConnectionList;
-}
-
 int backupListenForMessage(int socket, char* rootFolderPath, bool *isElectionRunning) {
     char currentCommand[13];
     char buff[BUFFERSIZE];
@@ -446,7 +416,6 @@ int sendNewPrimaryMessage(replica_info_t replica) {
 
     return 0;
 }
-
 
 void broadcastNewPrimaryToBackups(){
     pthread_mutex_lock(&connectedReplicaListMutex);

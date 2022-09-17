@@ -294,8 +294,9 @@ void* clientConn(void* args) {
     servaddr.sin_port = htons(SERVERPORT);
 
     // Binding newly created socket to given IP and verification
-    if ((bind(sockfd, (struct sockaddr *)&servaddr, sizeof(servaddr))) != 0) {
-        printf("CLIENTCONN socket bind failed...\n");
+    int socketBind = bind(sockfd, (struct sockaddr *)&servaddr, sizeof(servaddr));
+    if (socketBind != 0) {
+        printf("CLIENTCONN socket bind failed: %d...\n", socketBind);
         exit(0);
     }
     else
@@ -547,6 +548,8 @@ void* newBackupConnection(void* args) {
 
     write(socket, &endCommand, strlen(endCommand));
 
+    printf("\nNEW BACKUP CONNECTION: %s", newSocketType);
+
     if(strcmp(newSocketType, socketTypes[BACKUPSOCKET]) == 0) {
        backup_conn_list *newConn = (backup_conn_list*) calloc(1, sizeof(backup_conn_list));
        newConn->socket = socket;
@@ -598,9 +601,12 @@ void* newBackupConnection(void* args) {
 
         updatePrimary(replicaElectionValue);
     }
+
     if(strcmp(newSocketType, socketTypes[NEWPRIMARYSOCKET]) == 0) {
         pthread_cond_signal(&primaryIsRunning);
     }
+
+    close(socket);
 }
 
 void listenLivenessCheck() {
@@ -756,7 +762,8 @@ void intHandler(int dummy) {
     DL_FOREACH_SAFE(connectedUserListHead, currentUser, userTmp) {
         pthread_mutex_lock(currentUser->user.userAccessSem);
         for(int i =0; i < USERSESSIONNUMBER; i++) {
-            close(currentUser->user.clientThread[i]->sessionSocket);
+            if(currentUser->user.clientThread[i] != NULL)
+                close(currentUser->user.clientThread[i]->sessionSocket);
         }
         socket_conn_list* currentSocketConn = NULL;
         DL_FOREACH(currentUser->user.syncSocketList, currentSocketConn) {

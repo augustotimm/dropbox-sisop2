@@ -41,27 +41,31 @@ void* newServerConnection(void* args) {
 
     printf("\nServer IP ADDRESS:\n%s\n", newConnArgs->ipAddress);
 
-    pthread_mutex_lock(&newServerConnectionMutex);
     if(strcmp(buff, frontEndCommands[DEAD]) == 0 && !isPrimaryDead) {
         pthread_mutex_lock(&isConnectionOpenMutex);
         isPrimaryDead = true;
     }
     if(strcmp(buff, frontEndCommands[NEWPRIMARY]) == 0) {
-        pthread_cancel(clientThread);
-        pthread_cancel(listenSyncThread);
+        pthread_mutex_lock(&newServerConnectionMutex);
+        if(isPrimaryDead) {
+            pthread_cancel(clientThread);
+            pthread_cancel(listenSyncThread);
 
-        bzero(serverIp, sizeof(serverIp));
-        strcpy(serverIp, newConnArgs->ipAddress);
+            bzero(serverIp, sizeof(serverIp));
+            strcpy(serverIp, newConnArgs->ipAddress);
 
-        int clientStarted = startClient(false);
-        if(clientStarted != 0){
-            exit(OUTOFSYNCERROR);
+            int clientStarted = startClient(false);
+            if(clientStarted != 0){
+                exit(OUTOFSYNCERROR);
+            }
+
+            isPrimaryDead = false;
+            pthread_mutex_unlock(&isConnectionOpenMutex);
         }
 
-        pthread_mutex_unlock(&isConnectionOpenMutex);
+        pthread_mutex_unlock(&newServerConnectionMutex);
 
     }
-    pthread_mutex_unlock(&newServerConnectionMutex);
     close(connSocket);
 
     free(newConnArgs->ipAddress);
@@ -114,7 +118,7 @@ void* listenForReplicaMessage(void* args) {
         newConnArgs->ipAddress = calloc(15, sizeof(char));
         bzero(newConnArgs->ipAddress, 15);
 
-        newConnArgs->ipAddress = inet_ntoa(cli.sin_addr);
+        strcpy(newConnArgs->ipAddress, inet_ntoa(cli.sin_addr));
 
         pthread_t newServerConn;
 
