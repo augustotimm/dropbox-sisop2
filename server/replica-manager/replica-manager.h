@@ -24,8 +24,6 @@ replica_info_list* readConfig(char* filePath);
 replica_info_list* findPrimaryReplica(replica_info_list* replicaList);
 void* startElection();
 
-backup_conn_list *connectToBackups(replica_info_list *replicaList);
-
 int backupListenForMessage(int socket, char* rootFolderPath, bool *isElectionRunning);
 void updatePrimary(int replicaElectionValue);
 void deletePrimary();

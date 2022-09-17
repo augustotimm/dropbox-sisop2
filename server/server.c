@@ -282,6 +282,10 @@ void* clientConn(void* args) {
     }
     else
         printf("CLIENTCONN Socket successfully created..\n");
+
+    if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int)) < 0)
+        printf("setsockopt(SO_REUSEADDR) failed");
+
     bzero(&servaddr, sizeof(servaddr));
 
     // assign IP, PORT
@@ -344,6 +348,10 @@ void* syncDirConn(void* args) {
     }
     else
         printf("Socket successfully created..\n");
+
+    if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int)) < 0)
+        printf("setsockopt(SO_REUSEADDR) failed");
+
     bzero(&servaddr, sizeof(servaddr));
 
     // assign IP, PORT
@@ -401,6 +409,10 @@ void* syncDirListenerConn(void* args) {
     }
     else
         printf("Socket successfully created..\n");
+
+    if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int)) < 0)
+        printf("setsockopt(SO_REUSEADDR) failed");
+
     bzero(&servaddr, sizeof(servaddr));
 
     // assign IP, PORT
@@ -603,6 +615,10 @@ void listenLivenessCheck() {
     }
     else
         printf("Socket successfully created..\n");
+
+    if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int)) < 0)
+        printf("setsockopt(SO_REUSEADDR) failed");
+
     bzero(&servaddr, sizeof(servaddr));
 
     // assign IP, PORT
@@ -736,6 +752,7 @@ void intHandler(int dummy) {
     user_list* currentUser = NULL, *userTmp = NULL;
 
     pthread_mutex_lock(&connectedUsersMutex);
+    pthread_mutex_lock(&backupConnectionMutex);
     DL_FOREACH_SAFE(connectedUserListHead, currentUser, userTmp) {
         pthread_mutex_lock(currentUser->user.userAccessSem);
         for(int i =0; i < USERSESSIONNUMBER; i++) {
@@ -748,6 +765,12 @@ void intHandler(int dummy) {
         }
 
     }
+
+    backup_conn_list *replica = NULL;
+    DL_FOREACH(backupConnectionList, replica) {
+        close(replica->socket);
+    }
+
 
     exit(0);
 }
@@ -776,6 +799,13 @@ int main()
     for(;;){
         if (isPrimary) {
             primaryReplicaStart();
+
+            char buff[10];
+            fgets(buff, sizeof(buff), stdin);
+            buff[strcspn(buff, "\n")] = 0;
+            if(strlen(buff) > 1) {
+                intHandler(1);
+            }
         }
         else {
             backupReplicaStart();
