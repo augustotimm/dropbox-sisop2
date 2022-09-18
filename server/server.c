@@ -515,50 +515,68 @@ void* backupStartConnectionWithPrimary(void* args) {
         pthread_detach( electionThread);
         isElectionRunning = true;
     }
+
     pthread_mutex_unlock(&startElectionMutex);
-
-
 }
 
 void backupReplicaStart() {
+    printf("\n[backupReplicaStart0]");
+    printf("\n[backupReplicaStart1]");
+
+
     replica_info_list* primary = findPrimaryReplica(replicaList);
 
-    // liberar essa memória
+    printf("\n[backupReplicaStart2]");
+
     if(electionSocketThread == NULL) {
+        printf("\n[backupReplicaStart3]");
+
+        printf("\n[backupReplicaStart]");
+
         electionSocketThread = (pthread_t*) calloc(1, sizeof(pthread_t));
         pthread_create(electionSocketThread, NULL, listenElectionMessages, NULL);
         pthread_detach(*electionSocketThread);
     }
 
-    pthread_cond_wait(&primaryIsRunning, &waitForPrimaryMutex);
-    pthread_mutex_unlock(&waitForPrimaryMutex);
+    printf("\n[backupReplicaStart4]");
 
-    connectionToPrimary = (pthread_t*) calloc(1, sizeof(pthread_t));
+    if(connectionToPrimary == NULL) {
+        printf("\n[backupReplicaStart5]");
+
+        printf("\nStarting connection to primary");
+
+        pthread_cond_wait(&primaryIsRunning, &waitForPrimaryMutex);
+        pthread_mutex_unlock(&waitForPrimaryMutex);
+
+        connectionToPrimary = (pthread_t*) calloc(1, sizeof(pthread_t));
+    }   else {
+        free(connectionToPrimary);
+        connectionToPrimary = (pthread_t*) calloc(1, sizeof(pthread_t));
+        printf("\nRestarting connection to primary");
+    }
+
+    printf("\n[backupReplicaStart6] primary: %d", primary->replica.electionValue);
+
     pthread_create(connectionToPrimary, NULL, backupStartConnectionWithPrimary, (void*) primary);
     pthread_detach(*connectionToPrimary);
 
+    printf("\n[backupReplicaStart] finished");
 }
 
 void* newBackupConnection(void* args) {
     struct new_connection_argument *argument = (struct new_connection_argument*) args;
-    printf("\n void to argument");
     int socket = argument->socket;
 
-    printf("\nAccessed socket argument");
+    printf("\nNEW BACKUP CONNECTION:\t");
+
     char newSocketType[SOCKETTYPESIZE + 1];
     bzero(newSocketType, sizeof(newSocketType));
-    printf("\nnewSocketType bzero");
 
     recv(socket, newSocketType, sizeof(newSocketType), 0);
 
-    printf("\nnewSocketType message received");
-
     write(socket, &endCommand, strlen(endCommand));
 
-    printf("\nSend endcommand");
-
-
-    printf("\nNEW BACKUP CONNECTION: %s", newSocketType);
+    printf("%s", newSocketType);
 
     if(strcmp(newSocketType, socketTypes[BACKUPSOCKET]) == 0) {
        backup_conn_list *newConn = (backup_conn_list*) calloc(1, sizeof(backup_conn_list));
@@ -596,10 +614,10 @@ void* newBackupConnection(void* args) {
             pthread_detach( electionThread);
             isElectionRunning = true;
             pthread_cancel(*connectionToPrimary);
-            connectionToPrimary = NULL;
         }
         pthread_mutex_unlock(&startElectionMutex);
 
+        printf("\nELECTION MESSAGE answered");
         return NULL;
 
     }
@@ -609,24 +627,30 @@ void* newBackupConnection(void* args) {
         recv(socket, buff, sizeof(buff), 0);
         int replicaElectionValue;
         sscanf(buff, "%d", &replicaElectionValue);
+        pthread_mutex_lock(&startElectionMutex);
         if(connectionToPrimary != NULL) {
             pthread_cancel(*connectionToPrimary);
-            connectionToPrimary = NULL;
         }
+        isElectionRunning = true;
+        pthread_mutex_unlock(&startElectionMutex);
 
+        pthread_mutex_lock(&connectedReplicaListMutex);
         deletePrimary();
+        pthread_mutex_unlock(&connectedReplicaListMutex);
 
         updatePrimary(replicaElectionValue);
-    }
+        pthread_cond_signal(&electionFinished);
 
+    }
     if(strcmp(newSocketType, socketTypes[NEWPRIMARYSOCKET]) == 0) {
+        printf("\nNew primary found me");
         pthread_cond_signal(&primaryIsRunning);
     }
 
     close(socket);
 }
 
-void listenLivenessCheck() {
+void* listenLivenessCheck(void* args) {
     int sockfd, connfd, len;
     struct sockaddr_in servaddr, cli;
 
@@ -687,10 +711,14 @@ void listenLivenessCheck() {
 
 void primaryReplicaStart() {
 
-    if(electionSocketThread != NULL){
-        pthread_cancel(*electionSocketThread);
-        free(electionSocketThread);
-    }
+//    if(electionSocketThread != NULL){
+//        pthread_cancel(*electionSocketThread);
+//        free(electionSocketThread);
+//    }
+    pthread_t listenLivenessCheckThread;
+    pthread_create(&listenLivenessCheckThread, NULL, listenLivenessCheck, NULL);
+    pthread_detach(listenLivenessCheckThread);
+
     pthread_t userDisconnectedThread;
     pthread_create(&userDisconnectedThread, NULL, userDisconnectedEvent, NULL);
     pthread_detach(userDisconnectedThread);
@@ -706,10 +734,6 @@ void primaryReplicaStart() {
     pthread_t clientConnThread;
     pthread_create(&clientConnThread, NULL, clientConn, NULL);
     pthread_detach(clientConnThread);
-
-    pthread_t listenLivenessCheckThread;
-    pthread_create(&listenLivenessCheckThread, NULL, listenLivenessCheck, NULL);
-    pthread_detach(listenLivenessCheckThread);
 
     wait(1);
     broadcastNewPrimaryToBackups();
@@ -823,6 +847,7 @@ int main()
 
     for(;;){
         if (isPrimary) {
+            printf("\n[main] isPrimary\n");
             primaryReplicaStart();
 
             char buff[10];
@@ -833,13 +858,21 @@ int main()
             }
         }
         else {
+            printf("\n[main] isBackup\n");
+
             backupReplicaStart();
         }
         pthread_cond_wait(&electionFinished, &startElectionMutex);
+        if (!isPrimary)
+            pthread_cond_wait(&primaryIsRunning, &waitForPrimaryMutex);
+
         isElectionRunning = false;
+        fflush(stdout);
+        printf("\n[main] restarting replica\n");
+
+        if (!isPrimary)
+            pthread_mutex_unlock(&waitForPrimaryMutex);
         pthread_mutex_unlock(&startElectionMutex);
-        free(connectionToPrimary);
-        connectionToPrimary = NULL;
     }
 
     exit(0);

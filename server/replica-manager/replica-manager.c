@@ -119,15 +119,18 @@ int isPrimaryCompare(replica_info_list* a, replica_info_list* b ) {
 }
 
 replica_info_list* findPrimaryReplica(replica_info_list* replicaList) {
-
+    printf("[findPrimaryReplica]");
     replica_info_list *replica = NULL;
     replica_info_list  etmp;
 
     etmp.replica.isPrimary = true;
 
     pthread_mutex_lock(&connectedReplicaListMutex);
+    printf("\n----[findPrimaryReplica]connectedReplicaListMutex locked----\n");
     DL_SEARCH(replicaList, replica, &etmp, isPrimaryCompare);
     pthread_mutex_unlock(&connectedReplicaListMutex);
+    printf("\n----[findPrimaryReplica]connectedReplicaListMutex unlocked----\n");
+
 
     return  replica;
 }
@@ -168,6 +171,7 @@ int sendElectionMessage(replica_info_t replica) {
         return -1;
     }
 
+    printf("\nElection message successful");
     return 0;
 }
 
@@ -209,12 +213,12 @@ int sendCoordinatorMessage (replica_info_t replica){
 
 void* startElection(){
     printf("\n--------Starting Election Process--------\n");
-    deletePrimary();
     replica_info_list* element = NULL;
 
     bool hasHigherValue = false;
 
     pthread_mutex_lock(&connectedReplicaListMutex);
+    printf("\n----[startElection]connectedReplicaListMutex locked----\n");
     DL_FOREACH(replicaList, element) {
         if(element->replica.electionValue > electionValue) {
             if(sendElectionMessage(element->replica) == 0) {
@@ -230,11 +234,16 @@ void* startElection(){
         }
         printf("\nI BECAME PRIMARY\n");
         isPrimary = true;
+        pthread_cond_signal(&electionFinished);
+
+        deletePrimary();
+
     }
 
     pthread_mutex_unlock(&connectedReplicaListMutex);
+    printf("\n----[startElection]connectedReplicaListMutex unlocked----\n");
 
-    pthread_cond_signal(&electionFinished);
+    printf("\nFinished election");
 };
 
 int sendMessageToFrontEnd(user_session_t session, const char* message){
@@ -368,6 +377,7 @@ void updatePrimary(int replicaElectionValue) {
     etmp.replica.electionValue = replicaElectionValue;
 
     pthread_mutex_lock(&connectedReplicaListMutex);
+    printf("\n----[updatePrimary]connectedReplicaListMutex locked----\n");
     DL_SEARCH(replicaList, replica, &etmp, replicaCompare);
     if(replica == NULL) {
         printf("\n\n--------New Primary Replica Not FOUND--------\n");
@@ -376,26 +386,25 @@ void updatePrimary(int replicaElectionValue) {
         replica->replica.isPrimary = true;
         printf("\nUpdated primary");
     }
+
     pthread_mutex_unlock(&connectedReplicaListMutex);
+    printf("\n----[updatePrimary]connectedReplicaListMutex unlocked----\n");
 
 }
 
 void deletePrimary() {
     replica_info_list *replica = NULL, *replicaTmp = NULL;
 
-    pthread_mutex_lock(&connectedReplicaListMutex);
+    printf("\n----[deletePrimary]connectedReplicaListMutex locked----\n");
     DL_FOREACH_SAFE(replicaList, replica, replicaTmp) {
         if(replica->replica.isPrimary == true) {
             DL_DELETE(replicaList, replica);
             free(replica->replica.ipAddr);
             free(replica);
-            pthread_mutex_unlock(&connectedReplicaListMutex);
-            printf("\nDeleted old primary");
-            return;
         }
     }
 
-    pthread_mutex_unlock(&connectedReplicaListMutex);
+    printf("\n----[deletePrimary]connectedReplicaListMutex unlocked----\n");
 }
 
 int sendNewPrimaryBackupMessage(replica_info_t replica) {
@@ -420,6 +429,8 @@ int sendNewPrimaryBackupMessage(replica_info_t replica) {
     recv(sockfd, buff, sizeof(buff), 0);
 
     close(sockfd);
+
+    printf("\nSent new primary message to replica: %d", replica.electionValue);
 
     return 0;
 }
