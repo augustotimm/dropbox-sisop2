@@ -39,9 +39,12 @@ pthread_cond_t primaryIsRunning;
 
 
 bool isElectionRunning = false;
-
+int backupsReady = 0;
 
 char rootPath[KBYTE];
+
+pthread_cond_t backupsReadyCond;
+pthread_mutex_t backupsReadyMutex;
 
 pthread_cond_t closedUserConnection;
 pthread_mutex_t connectedUsersMutex;
@@ -540,14 +543,15 @@ void backupReplicaStart() {
 
     printf("\n[backupReplicaStart4]");
 
+    pthread_t backupReadyThread;
+    pthread_create(&backupReadyThread, NULL, sendBackupReadyMessage, NULL);
+    pthread_detach(backupReadyThread);
+
+    pthread_cond_wait(&primaryIsRunning, &waitForPrimaryMutex);
+    pthread_mutex_unlock(&waitForPrimaryMutex);
+    printf("\n[backupReplicaStart5] Starting connection to primary");
+
     if(connectionToPrimary == NULL) {
-        printf("\n[backupReplicaStart5]");
-
-        printf("\nStarting connection to primary");
-
-        pthread_cond_wait(&primaryIsRunning, &waitForPrimaryMutex);
-        pthread_mutex_unlock(&waitForPrimaryMutex);
-
         connectionToPrimary = (pthread_t*) calloc(1, sizeof(pthread_t));
     }   else {
         free(connectionToPrimary);
@@ -627,25 +631,47 @@ void* newBackupConnection(void* args) {
         recv(socket, buff, sizeof(buff), 0);
         int replicaElectionValue;
         sscanf(buff, "%d", &replicaElectionValue);
+
+        printf("\n----[ELECTIONCOORDSOCKET]startElectionMutex locked----\n");
         pthread_mutex_lock(&startElectionMutex);
-        if(connectionToPrimary != NULL) {
-            pthread_cancel(*connectionToPrimary);
-        }
         isElectionRunning = true;
         pthread_mutex_unlock(&startElectionMutex);
+        printf("\n----[ELECTIONCOORDSOCKET]startElectionMutex unlocked----\n");
 
+
+        printf("\n----[ELECTIONCOORDSOCKET]connectedReplicaListMutex locked----\n");
         pthread_mutex_lock(&connectedReplicaListMutex);
         deletePrimary();
         pthread_mutex_unlock(&connectedReplicaListMutex);
+        printf("\n----[ELECTIONCOORDSOCKET]connectedReplicaListMutex unlocked----\n");
 
         updatePrimary(replicaElectionValue);
         pthread_cond_signal(&electionFinished);
+        printf("\n----[ELECTIONCOORDSOCKET]electionFinished cond----\n");
+
+
 
     }
     if(strcmp(newSocketType, socketTypes[NEWPRIMARYSOCKET]) == 0) {
         printf("\nNew primary found me");
         pthread_cond_signal(&primaryIsRunning);
     }
+    if(strcmp(newSocketType, socketTypes[RESTARTEDSOCKET]) == 0) {
+        printf("\n---RESTARTEDBACKUP---\n");
+
+        backupsReady +=1;
+        replica_info_list *elt = NULL;
+        int count;
+        pthread_mutex_lock(&connectedReplicaListMutex);
+        DL_COUNT(replicaList, elt, count);
+        pthread_mutex_unlock(&connectedReplicaListMutex);
+        if(backupsReady == count) {
+            printf("\n---BackupsReady---\n");
+            pthread_cond_signal(&backupsReadyCond);
+            backupsReady = 0;
+        }
+    }
+
 
     close(socket);
 }
@@ -711,10 +737,7 @@ void* listenLivenessCheck(void* args) {
 
 void primaryReplicaStart() {
 
-//    if(electionSocketThread != NULL){
-//        pthread_cancel(*electionSocketThread);
-//        free(electionSocketThread);
-//    }
+//
     pthread_t listenLivenessCheckThread;
     pthread_create(&listenLivenessCheckThread, NULL, listenLivenessCheck, NULL);
     pthread_detach(listenLivenessCheckThread);
@@ -734,6 +757,11 @@ void primaryReplicaStart() {
     pthread_t clientConnThread;
     pthread_create(&clientConnThread, NULL, clientConn, NULL);
     pthread_detach(clientConnThread);
+
+    if(electionSocketThread != NULL){
+        pthread_cond_wait(&backupsReadyCond, &backupsReadyMutex);
+        pthread_mutex_unlock(&backupsReadyMutex);
+    }
 
     wait(1);
     broadcastNewPrimaryToBackups();
@@ -863,15 +891,10 @@ int main()
             backupReplicaStart();
         }
         pthread_cond_wait(&electionFinished, &startElectionMutex);
-        if (!isPrimary)
-            pthread_cond_wait(&primaryIsRunning, &waitForPrimaryMutex);
 
         isElectionRunning = false;
         fflush(stdout);
         printf("\n[main] restarting replica\n");
-
-        if (!isPrimary)
-            pthread_mutex_unlock(&waitForPrimaryMutex);
         pthread_mutex_unlock(&startElectionMutex);
     }
 

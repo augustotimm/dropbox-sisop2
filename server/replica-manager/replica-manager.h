@@ -31,6 +31,7 @@ void deletePrimary();
 
 int sendMessageToFrontEnd(user_session_t session, const char* message);
 void broadcastNewPrimaryToBackups();
+void* sendBackupReadyMessage(void* args);
 #endif //DROPBOX_SISOP2_REPLICA_MANAGER_H
 
 // front end

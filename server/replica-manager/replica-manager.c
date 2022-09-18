@@ -215,6 +215,10 @@ void* startElection(){
     printf("\n--------Starting Election Process--------\n");
     replica_info_list* element = NULL;
 
+    if(!isPrimary){
+        deletePrimary();
+    }
+
     bool hasHigherValue = false;
 
     pthread_mutex_lock(&connectedReplicaListMutex);
@@ -235,8 +239,6 @@ void* startElection(){
         printf("\nI BECAME PRIMARY\n");
         isPrimary = true;
         pthread_cond_signal(&electionFinished);
-
-        deletePrimary();
 
     }
 
@@ -445,4 +447,37 @@ void broadcastNewPrimaryToBackups(){
     }
 
     pthread_mutex_unlock(&connectedReplicaListMutex);
+}
+
+void* sendBackupReadyMessage(void* args) {
+    printf("\n[sendBackupReadyMessage]");
+    replica_info_list* primary = findPrimaryReplica(replicaList);
+    struct sockaddr_in servaddr;
+    char buff[20];
+    bzero(buff, sizeof(buff));
+
+
+    servaddr.sin_family = AF_INET;
+    servaddr.sin_addr.s_addr = inet_addr(primary->replica.ipAddr);
+    servaddr.sin_port = htons(primary->replica.port);
+
+    int sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    if (sockfd == -1) {
+        printf("Backup ready socket creation failed\nbackupId: %d\n", primary->replica.electionValue);
+    }
+    if (connect(sockfd, (struct sockaddr*)&servaddr, sizeof(servaddr)) != 0) {
+        printf("Backup ready connection failed backupId: %d\n", primary->replica.electionValue);
+    }
+
+    write(sockfd, &socketTypes[RESTARTEDSOCKET], sizeof(socketTypes[RESTARTEDSOCKET]));
+    recv(sockfd, buff, sizeof(buff), 0);
+
+
+    close(sockfd);
+
+    if(strcmp(buff, endCommand) != 0) {
+        return -1;
+    }
+
+    return 0;
 }

@@ -44,6 +44,7 @@
 #define ELECTIONSOCKET 4
 #define ELECTIONCOORDSOCKET 5
 #define NEWPRIMARYSOCKET 6
+#define RESTARTEDSOCKET 7
 
 #define DEAD 0
 #define NEWPRIMARY 1
@@ -69,14 +70,15 @@ static const char commands[10][13] = {
         "user conn",
         "user close"
 };
-static const char socketTypes[7][SOCKETTYPESIZE] = {
+static const char socketTypes[8][SOCKETTYPESIZE] = {
         "client",
         "syncdir",
         "synclisten",
         "backup",
         "election",
         "coordinator",
-        "primary ready"
+        "primary ready",
+        "restarted"
 };
 
 typedef struct received_file_list {
