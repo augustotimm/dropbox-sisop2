@@ -39,7 +39,7 @@ pthread_cond_t primaryIsRunning;
 
 
 bool isElectionRunning = false;
-int backupsReady = 0;
+bool backupsReady = true;
 
 char rootPath[KBYTE];
 
@@ -588,10 +588,25 @@ void* newBackupConnection(void* args) {
 
        newConn->prev = NULL;
        newConn->next = NULL;
-
+       int backupCount;
        pthread_mutex_lock(&backupConnectionMutex);
+       backup_conn_list  *elt = NULL;
        DL_APPEND(backupConnectionList, newConn);
+       DL_COUNT(backupConnectionList, elt, backupCount);
        pthread_mutex_unlock(&backupConnectionMutex);
+
+        backupsReady +=1;
+        replica_info_list *elt2 = NULL;
+        int replicaCount;
+        pthread_mutex_lock(&connectedReplicaListMutex);
+        DL_COUNT(replicaList, elt2, replicaCount);
+        pthread_mutex_unlock(&connectedReplicaListMutex);
+        if(backupCount == replicaCount) {
+            backupsReady = true;
+            while (backupsReady)
+                pthread_cond_signal(&backupsReadyCond);
+            printf("\n---BackupsReady---\n");
+        }
 
        return NULL;
    }
@@ -659,17 +674,6 @@ void* newBackupConnection(void* args) {
     if(strcmp(newSocketType, socketTypes[RESTARTEDSOCKET]) == 0) {
         printf("\n---RESTARTEDBACKUP---\n");
 
-        backupsReady +=1;
-        replica_info_list *elt = NULL;
-        int count;
-        pthread_mutex_lock(&connectedReplicaListMutex);
-        DL_COUNT(replicaList, elt, count);
-        pthread_mutex_unlock(&connectedReplicaListMutex);
-        if(backupsReady == count) {
-            printf("\n---BackupsReady---\n");
-            pthread_cond_signal(&backupsReadyCond);
-            backupsReady = 0;
-        }
     }
 
 
@@ -758,13 +762,21 @@ void primaryReplicaStart() {
     pthread_create(&clientConnThread, NULL, clientConn, NULL);
     pthread_detach(clientConnThread);
 
-    if(electionSocketThread != NULL){
+    int replicaCount;
+    replica_info_list *elt = NULL;
+    pthread_mutex_lock(&connectedReplicaListMutex);
+    DL_COUNT(replicaList, elt, replicaCount);
+    pthread_mutex_unlock(&connectedReplicaListMutex);
+
+    broadcastNewPrimaryToBackups();
+    if(electionSocketThread != NULL && replicaCount > 0){
         pthread_cond_wait(&backupsReadyCond, &backupsReadyMutex);
+        backupsReady = false;
         pthread_mutex_unlock(&backupsReadyMutex);
     }
 
+
     wait(1);
-    broadcastNewPrimaryToBackups();
     broadcastMessageToAllFrontEnd(frontEndCommands[NEWPRIMARY]);
 }
 
