@@ -654,17 +654,20 @@ void* newBackupConnection(void* args) {
         printf("\n----[ELECTIONCOORDSOCKET]startElectionMutex unlocked----\n");
 
 
-        printf("\n----[ELECTIONCOORDSOCKET]connectedReplicaListMutex locked----\n");
-        pthread_mutex_lock(&connectedReplicaListMutex);
-        deletePrimary();
-        pthread_mutex_unlock(&connectedReplicaListMutex);
-        printf("\n----[ELECTIONCOORDSOCKET]connectedReplicaListMutex unlocked----\n");
 
-        updatePrimary(replicaElectionValue);
-        pthread_cond_signal(&electionFinished);
-        printf("\n----[ELECTIONCOORDSOCKET]electionFinished cond----\n");
+        replica_info_list *primary = findPrimaryReplica(replicaList);
 
+        if(primary->replica.electionValue != replicaElectionValue){
+            printf("\n----[ELECTIONCOORDSOCKET]connectedReplicaListMutex locked----\n");
+            pthread_mutex_lock(&connectedReplicaListMutex);
+            deletePrimary();
+            pthread_mutex_unlock(&connectedReplicaListMutex);
+            printf("\n----[ELECTIONCOORDSOCKET]connectedReplicaListMutex unlocked----\n");
+            updatePrimary(replicaElectionValue);
+            pthread_cond_signal(&electionFinished);
+            printf("\n----[ELECTIONCOORDSOCKET]electionFinished cond----\n");
 
+        }
 
     }
     if(strcmp(newSocketType, socketTypes[NEWPRIMARYSOCKET]) == 0) {
