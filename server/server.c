@@ -647,6 +647,14 @@ void* newBackupConnection(void* args) {
         int replicaElectionValue;
         sscanf(buff, "%d", &replicaElectionValue);
 
+        replica_info_list *primary = findPrimaryReplica(replicaList);
+
+        if(primary->replica.electionValue == replicaElectionValue){
+            close(socket);
+            return NULL;
+
+        }
+
         printf("\n----[ELECTIONCOORDSOCKET]startElectionMutex locked----\n");
         pthread_mutex_lock(&startElectionMutex);
         isElectionRunning = true;
@@ -655,19 +663,16 @@ void* newBackupConnection(void* args) {
 
 
 
-        replica_info_list *primary = findPrimaryReplica(replicaList);
+        printf("\n----[ELECTIONCOORDSOCKET]connectedReplicaListMutex locked----\n");
+        pthread_mutex_lock(&connectedReplicaListMutex);
+        deletePrimary();
+        pthread_mutex_unlock(&connectedReplicaListMutex);
+        printf("\n----[ELECTIONCOORDSOCKET]connectedReplicaListMutex unlocked----\n");
 
-        if(primary->replica.electionValue != replicaElectionValue){
-            printf("\n----[ELECTIONCOORDSOCKET]connectedReplicaListMutex locked----\n");
-            pthread_mutex_lock(&connectedReplicaListMutex);
-            deletePrimary();
-            pthread_mutex_unlock(&connectedReplicaListMutex);
-            printf("\n----[ELECTIONCOORDSOCKET]connectedReplicaListMutex unlocked----\n");
-            updatePrimary(replicaElectionValue);
-            pthread_cond_signal(&electionFinished);
-            printf("\n----[ELECTIONCOORDSOCKET]electionFinished cond----\n");
+        updatePrimary(replicaElectionValue);
 
-        }
+        pthread_cond_signal(&electionFinished);
+        printf("\n----[ELECTIONCOORDSOCKET]electionFinished cond----\n");
 
     }
     if(strcmp(newSocketType, socketTypes[NEWPRIMARYSOCKET]) == 0) {
@@ -778,8 +783,6 @@ void primaryReplicaStart() {
         pthread_mutex_unlock(&backupsReadyMutex);
     }
 
-
-    wait(1);
     broadcastMessageToAllFrontEnd(frontEndCommands[NEWPRIMARY]);
 }
 
