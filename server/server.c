@@ -649,7 +649,7 @@ void* newBackupConnection(void* args) {
 
         replica_info_list *primary = findPrimaryReplica(replicaList);
 
-        if(primary->replica.electionValue == replicaElectionValue){
+        if(primary != NULL && primary->replica.electionValue == replicaElectionValue){
             close(socket);
             return NULL;
 
