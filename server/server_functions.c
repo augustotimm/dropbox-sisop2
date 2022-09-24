@@ -130,8 +130,8 @@ int receiveFile(int socket, char* fileName) {
     fclose(file);
     printf("\nreceiveFile end endC\n");
     write(socket, endCommand, sizeof(endCommand));
+    while ( recv(socket, buff, KBYTE, 0) == 0);
 
-    recv(socket, buff, KBYTE, 0);
     if(strcmp(buff, endCommand) != 0) {
         printf("Connection out of sync\n");
         printf("[receiveFile] Expected end command signal but received: %s\n\n", buff);
@@ -240,7 +240,7 @@ void broadCastFile(socket_conn_list* socketList, int forbiddenSocket, char* file
         if (current->listenerSocket != forbiddenSocket) {
             recv(current->socket, buff, sizeof(buff), 0);
             if(strcmp(buff, commands[WAITING]) != 0) {
-                printf("[clientThreadFunction] expected waiting command");
+                printf("[broadCastFile] expected waiting command");
             }
 
             write(current->socket, &commands[UPLOAD], sizeof(commands[UPLOAD]));
