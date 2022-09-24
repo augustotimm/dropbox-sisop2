@@ -438,6 +438,8 @@ int sendNewPrimaryBackupMessage(replica_info_t replica) {
 }
 
 void broadcastNewPrimaryToBackups(){
+    printf("\n[broadcastNewPrimaryToBackups]");
+
     pthread_mutex_lock(&connectedReplicaListMutex);
 
     replica_info_list* element = NULL;

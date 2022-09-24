@@ -267,12 +267,12 @@ int startClient(bool shouldDownloadAll) {
 
     if(shouldDownloadAll){
         recv(*clientSocket, buff, sizeof(buff), 0);
-        printf("\n[startClient]Waiting command received");
+
         if(strcmp(buff, commands[WAITING]) != 0) {
-            printf("[clientThreadFunction] expected waiting command");
+            printf("[clientThreadFunction] expected waiting command, received: %s", buff);
             exit(OUTOFSYNCERROR);
         }
-
+        printf("\n[startClient]Waiting command received");
         if(downloadAll(*clientSocket) != 0) {
             exit(OUTOFSYNCERROR);
         }

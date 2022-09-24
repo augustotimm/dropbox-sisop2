@@ -464,6 +464,7 @@ void* syncDirListenerConn(void* args) {
 }
 
 void broadcastMessageToAllFrontEnd(const char* message){
+    printf("\n[broadcastMessageToAllFrontEnd]");
     pthread_mutex_lock(&connectedUsersMutex);
     user_list *current = NULL;
     DL_FOREACH(connectedUserListHead, current){
@@ -778,6 +779,7 @@ void primaryReplicaStart() {
 
     broadcastNewPrimaryToBackups();
     if(electionSocketThread != NULL && replicaCount > 0){
+        printf("\nbackupsReadyCond wait");
         pthread_cond_wait(&backupsReadyCond, &backupsReadyMutex);
         backupsReady = false;
         pthread_mutex_unlock(&backupsReadyMutex);

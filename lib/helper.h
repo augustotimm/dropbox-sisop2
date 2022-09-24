@@ -51,7 +51,7 @@
 
 #define SOCKETTYPESIZE 16
 
-static const char endCommand[] = "\nend\n";
+static const char endCommand[] = "--end--";
 static const char continueCommand[] = "\ncontinue\n";
 static const char frontEndCommands [2][13] = {
         "dead",
