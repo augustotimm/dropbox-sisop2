@@ -170,7 +170,7 @@ void connectToServer(int* connSocket, int port) {
 
 void newConnection(int sockfd, int socketType){
     write(sockfd, &socketTypes[socketType], sizeof(socketTypes[socketType]));
-    char endCommand[6];
+    char endCommand[10];
     bzero(endCommand, sizeof(endCommand));
 
     recv(sockfd, &endCommand, sizeof(endCommand), 0);
