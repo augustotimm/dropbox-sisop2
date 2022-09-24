@@ -128,6 +128,7 @@ int receiveFile(int socket, char* fileName) {
         // printf("bytes left: %d\n", bytesLeft);
     }
     fclose(file);
+    bzero(buff, sizeof(buff));
     printf("\nreceiveFile end endC\n");
     write(socket, endCommand, sizeof(endCommand));
     while ( recv(socket, buff, KBYTE, 0) == 0);
@@ -194,6 +195,7 @@ int sendFile(int socket, char* filepath) {
         byteCount = write(socket, &fileSize, sizeof(fileSize));
         return -1;
     }
+    bzero(buff, sizeof(buff));
     recv(socket, buff, KBYTE, 0);
     if(strcmp(buff, endCommand) != 0) {
         printf("Connection out of sync\n");
