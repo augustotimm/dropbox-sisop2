@@ -36,6 +36,8 @@ void upload(int socket, char* filePath, char* fileName) {
 
     write(socket, buff, strlen(buff));
 
+    recv(socket, buff, sizeof(buff), 0);
+
     sendFile(socket, filePath);
     printf("FILE %s uploaded successfully\n", fileName);
 
@@ -53,6 +55,7 @@ char* download(int socket, char* path, received_file_list* list, bool appendFile
         printf("Expected filename but received: endCommand\n\n");
         return NULL;
     }
+    write(socket, &endCommand, sizeof(endCommand));
 
 
     char* filePath = strcatSafe(path, fileName);
