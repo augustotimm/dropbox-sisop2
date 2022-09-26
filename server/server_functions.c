@@ -35,8 +35,9 @@ void upload(int socket, char* filePath, char* fileName) {
     strcpy(buff, fileName);
 
     write(socket, buff, strlen(buff));
-
+    bzero(buff, sizeof(buff));
     recv(socket, buff, sizeof(buff), 0);
+
 
     sendFile(socket, filePath);
     printf("FILE %s uploaded successfully\n", fileName);
@@ -133,16 +134,17 @@ int receiveFile(int socket, char* fileName) {
         // printf("bytes left: %d\n", bytesLeft);
     }
     fclose(file);
-    bzero(buff, sizeof(buff));
+    char endCommandBuff[BUFFERSIZE];
+    bzero(endCommandBuff, sizeof(endCommandBuff));
     printf("\nreceiveFile end endC\n");
     write(socket, endCommand, sizeof(endCommand));
-    int commandBytes = recv(socket, buff, sizeof(endCommand), MSG_WAITALL);
+    int commandBytes = recv(socket, endCommandBuff, sizeof(endCommand), MSG_WAITALL);
 
-    printf("\n[receiveFile] last command signal received: %s bytesRead: %d **\n", buff, commandBytes);
+    printf("\n[receiveFile] last command signal received: %s bytesRead: %d **\n", endCommandBuff, commandBytes);
 
-    if(strcmp(buff, endCommand) != 0) {
+    if(strcmp(endCommandBuff, endCommand) != 0) {
         printf("Connection out of sync\n");
-        printf("[receiveFile] Expected end command signal but received: %s\n\n", buff);
+        printf("[receiveFile] Expected end command signal but received: %s\n\n", endCommandBuff);
         return OUTOFSYNCERROR;
     }
     return 0;
