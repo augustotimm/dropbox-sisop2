@@ -422,9 +422,11 @@ int sendNewPrimaryBackupMessage(replica_info_t replica) {
     int sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd == -1) {
         printf("Election socket to backup replica creation failed\nbackupId: %d\n", replica.electionValue);
+        return -1;
     }
     if (connect(sockfd, (struct sockaddr*)&servaddr, sizeof(servaddr)) != 0) {
         printf("election connection failed backupId: %d\n", replica.electionValue);
+        return -1;
     }
 
     write(sockfd, &socketTypes[NEWPRIMARYSOCKET], sizeof(socketTypes[NEWPRIMARYSOCKET]));

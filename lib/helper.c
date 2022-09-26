@@ -177,13 +177,3 @@ received_file_list* createReceivedFile(char* name, int socket){
 
     return newFile;
 }
-
-void freeReceivedFile(received_file_list* file) {
-    free(file->fileName);
-}
-
-void freeFileInfo(file_info info) {
-    free(info.lastModificationDate);
-    free(info.lastAccessDate);
-    free(info.lastChangeDate);
-}
