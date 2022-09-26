@@ -314,7 +314,7 @@ int downloadAll(int socket) {
         if(strcmp(currentCommand, commands[UPLOAD]) ==0 ) {
             download(socket, path, filesReceived, false);
         }else if (strcmp(currentCommand, commands[EXIT]) == 0 ) {
-
+            write(socket, endCommand, sizeof(endCommand));
             return 0;
         } else{
             return OUTOFSYNCERROR;

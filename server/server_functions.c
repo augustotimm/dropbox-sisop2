@@ -133,7 +133,7 @@ int receiveFile(int socket, char* fileName) {
         bytesLeft -= KBYTE;
         // printf("bytes left: %d\n", bytesLeft);
     }
-    write(socket, commands[DOWNLOAD], sizeof(commands[DOWNLOAD]));
+    write(socket, commands[DOWNLOAD], strlen(commands[DOWNLOAD]));
 
     fclose(file);
     char endCommandBuff[BUFFERSIZE];
@@ -141,7 +141,7 @@ int receiveFile(int socket, char* fileName) {
     printf("\nreceiveFile end endC\n");
 
     int commandBytes = 0;
-    recv(socket, endCommandBuff, sizeof(endCommand), MSG_WAITALL);
+    commandBytes = recv(socket, endCommandBuff, strlen(commands[UPLOAD]), MSG_WAITALL);
 
 
     printf("\n[receiveFile] last command signal received: %s bytesRead: %d **\n", endCommandBuff, commandBytes);
@@ -206,10 +206,11 @@ int sendFile(int socket, char* filepath) {
         byteCount = write(socket, &fileSize, sizeof(fileSize));
         return -1;
     }
+    write(socket, &commands[UPLOAD], strlen(commands[UPLOAD]));
     bzero(buff, sizeof(buff));
     recv(socket, buff, KBYTE, 0);
 
-    write(socket, &commands[UPLOAD], sizeof(commands[UPLOAD]));
+
 
     if(strcmp(buff, &commands[DOWNLOAD]) != 0) {
         printf("Connection out of sync\n");
@@ -242,7 +243,10 @@ int uploadAllFiles(int socket, char* path) {
         }
         closedir(dirPath);
     }
-    write(socket, &commands[EXIT], sizeof(commands[EXIT]));
+    char buff[10];
+    write(socket, &commands[EXIT], strlen(commands[EXIT]));
+    recv(socket, buff, sizeof(buff), 0);
+
 
 }
 
