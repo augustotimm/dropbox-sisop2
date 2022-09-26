@@ -133,11 +133,12 @@ int receiveFile(int socket, char* fileName) {
         bytesLeft -= KBYTE;
         // printf("bytes left: %d\n", bytesLeft);
     }
+    write(socket, commands[DOWNLOAD], sizeof(commands[DOWNLOAD]));
+
     fclose(file);
     char endCommandBuff[BUFFERSIZE];
     bzero(endCommandBuff, sizeof(endCommandBuff));
     printf("\nreceiveFile end endC\n");
-    write(socket, commands[DOWNLOAD], sizeof(commands[DOWNLOAD]));
 
     int commandBytes = 0;
     recv(socket, endCommandBuff, sizeof(endCommand), MSG_WAITALL);
