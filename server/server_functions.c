@@ -131,7 +131,8 @@ int receiveFile(int socket, char* fileName) {
     bzero(buff, sizeof(buff));
     printf("\nreceiveFile end endC\n");
     write(socket, endCommand, sizeof(endCommand));
-    while ( recv(socket, buff, KBYTE, 0) == 0);
+    write(socket, endCommand, sizeof(endCommand));
+    recv(socket, buff, KBYTE, 0);
 
     if(strcmp(buff, endCommand) != 0) {
         printf("Connection out of sync\n");
@@ -197,6 +198,10 @@ int sendFile(int socket, char* filepath) {
     }
     bzero(buff, sizeof(buff));
     recv(socket, buff, KBYTE, 0);
+
+    bzero(buff, sizeof(buff));
+    recv(socket, buff, KBYTE, 0);
+
     if(strcmp(buff, endCommand) != 0) {
         printf("Connection out of sync\n");
         printf("[sendFile] Expected end command signal but received: %s\n\n", buff);
