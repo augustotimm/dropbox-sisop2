@@ -149,8 +149,17 @@ int receiveFile(int socket, char* fileName) {
     if(strcmp(endCommandBuff, commands[UPLOAD]) != 0) {
         printf("Connection out of sync\n");
         printf("[receiveFile] Expected end command signal but received: %s\n\n", endCommandBuff);
-        return OUTOFSYNCERROR;
+        write(socket, endCommand, strlen(endCommand));
+        bzero(endCommandBuff, sizeof(endCommandBuff));
+        recv(socket, endCommandBuff, strlen(continueCommand), 0);
+        if(strcmp(endCommandBuff, continueCommand) != 0)
+            return OUTOFSYNCERROR;
+        write(socket, continueCommand, strlen(continueCommand));
     }
+    else {
+        write(socket, continueCommand, strlen(continueCommand));
+    }
+
     return 0;
 }
 
@@ -216,6 +225,17 @@ int sendFile(int socket, char* filepath) {
         printf("Connection out of sync\n");
         printf("[sendFile] Expected end command signal but received: %s\n\n", buff);
         return OUTOFSYNCERROR;
+    }
+    bzero(buff, sizeof(buff));
+    recv(socket, buff, strlen(continueCommand), 0);
+
+    if(strcmp(buff, continueCommand) != 0) {
+        printf("Connection out of sync\n");
+        printf("[sendFile] Expected continue command signal but received: %s\n\n", buff);
+        write(socket, continueCommand, strlen(continueCommand));
+        recv(socket, buff, strlen(continueCommand), 0);
+        if(strcmp(buff, continueCommand) != 0)
+            return OUTOFSYNCERROR;
     }
     return 0;
 }
