@@ -208,7 +208,7 @@ int sendFile(int socket, char* filepath) {
     }
     write(socket, &commands[UPLOAD], strlen(commands[UPLOAD]));
     bzero(buff, sizeof(buff));
-    recv(socket, buff, KBYTE, 0);
+    recv(socket, buff, strlen(commands[DOWNLOAD]), 0);
 
 
 
