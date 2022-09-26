@@ -115,7 +115,7 @@ int listenForSocketMessage(int socket, char* clientDirPath, user_t*  user, bool 
         bzero(fileName, sizeof(fileName));
 
         printf("\n[listenForSocketMessage] WAITING\n");
-        write(socket, &commands[WAITING], sizeof(commands[WAITING]));
+        write(socket, &commands[WAITING], strlen(commands[WAITING]));
 
         // read the message from client and copy it in buffer
         recv(socket, currentCommand, sizeof(currentCommand), 0);

@@ -274,15 +274,15 @@ void broadCastFile(socket_conn_list* socketList, int forbiddenSocket, char* file
     socket_conn_list *current = NULL, *tmp = NULL;
     char* filePath = strcatSafe(clientDirPath, fileName);
     char buff[20];
-    bzero(buff, sizeof(buff));
     DL_FOREACH_SAFE(socketList, current, tmp) {
+        bzero(buff, sizeof(buff));
         if (current->listenerSocket != forbiddenSocket) {
-            recv(current->socket, buff, sizeof(buff), 0);
+            recv(current->socket, buff, strlen(commands[WAITING]), 0);
             if(strcmp(buff, commands[WAITING]) != 0) {
                 printf("[broadCastFile] expected waiting command");
             }
 
-            write(current->socket, &commands[UPLOAD], sizeof(commands[UPLOAD]));
+            write(current->socket, &commands[UPLOAD], strlen(commands[UPLOAD]));
 
             upload(current->socket, filePath, fileName);
 
@@ -342,7 +342,10 @@ void broadCastDelete(socket_conn_list* socketList, int forbiddenSocket, char* fi
             }
             write(current->socket, &commands[DELETE], sizeof(commands[DELETE]));
             write(current->socket, fileName, strlen(fileName));
-
+            recv(current->socket, buff, sizeof(buff), 0);
+            if(strcmp(buff, endCommand) != 0) {
+                printf("expected waiting command");
+            }
         }
     }
 
@@ -375,6 +378,11 @@ void broadCastDeleteToBackups(char* fileName, backup_conn_list *backupList, pthr
         }
 
         write(elt->socket, fileName, strlen(fileName));
+
+        recv(current->socket, buff, sizeof(buff), 0);
+        if(strcmp(buff, endCommand) != 0) {
+            printf("expected waiting command");
+        }
     }
     pthread_mutex_unlock(backupMutex);
 
