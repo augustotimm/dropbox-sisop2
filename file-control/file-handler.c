@@ -117,7 +117,7 @@ void* watchDir(void* args){
 
                     printf( "The file %s was removed.\n", event->name );
                     bzero(buff, sizeof(buff));
-                    recv(*conn->socket, buff, sizeof(buff), 0);
+                    recv(*conn->socket, buff, strlen(commands[WAITING]), 0);
                     if(strcmp(buff, commands[WAITING]) != 0) {
                         printf("\n[watchDir delete] expected waiting command received: %s\n", buff);
                     }

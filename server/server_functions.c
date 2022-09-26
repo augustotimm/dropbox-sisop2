@@ -40,6 +40,12 @@ void upload(int socket, char* filePath, char* fileName) {
 
 
     sendFile(socket, filePath);
+    recv(socket, buff, sizeof(buff), 0);
+    if(strcmp(buff, endCommand) != 0) {
+        printf("Connection out of sync\n");
+        printf("[upload end] Expected end command signal but received: %s\n\n", buff);
+        return;
+    }
     printf("FILE %s uploaded successfully\n", fileName);
 
 }
@@ -60,11 +66,15 @@ char* download(int socket, char* path, received_file_list* list, bool appendFile
 
 
     char* filePath = strcatSafe(path, fileName);
-    if(receiveFile(socket, filePath) == 0 && appendFile) {
-        received_file_list* newFile = createReceivedFile(fileName, socket);
-        DL_APPEND(list, newFile);
+    if(receiveFile(socket, filePath) == 0 ) {
+        printf("File %s downloaded successfully\n\n", fileName);
+        write(socket, &endCommand, sizeof(endCommand));
+
+        if(appendFile) {
+            received_file_list* newFile = createReceivedFile(fileName, socket);
+            DL_APPEND(list, newFile);
+        }
     }
-    printf("File %s downloaded successfully\n\n", fileName);
     free(filePath);
     char *returnFileName = calloc(strlen(fileName) + 1, sizeof(char));
     strcpy(returnFileName, fileName);
@@ -133,32 +143,7 @@ int receiveFile(int socket, char* fileName) {
         bytesLeft -= KBYTE;
         // printf("bytes left: %d\n", bytesLeft);
     }
-    write(socket, commands[DOWNLOAD], strlen(commands[DOWNLOAD]));
-
     fclose(file);
-    char endCommandBuff[BUFFERSIZE];
-    bzero(endCommandBuff, sizeof(endCommandBuff));
-    printf("\nreceiveFile end endC\n");
-
-    int commandBytes = 0;
-    commandBytes = recv(socket, endCommandBuff, strlen(commands[UPLOAD]), MSG_WAITALL);
-
-
-    printf("\n[receiveFile] last command signal received: %s bytesRead: %d **\n", endCommandBuff, commandBytes);
-
-    if(strcmp(endCommandBuff, commands[UPLOAD]) != 0) {
-        printf("Connection out of sync\n");
-        printf("[receiveFile] Expected end command signal but received: %s\n\n", endCommandBuff);
-        write(socket, endCommand, strlen(endCommand));
-        bzero(endCommandBuff, sizeof(endCommandBuff));
-        recv(socket, endCommandBuff, strlen(continueCommand), 0);
-        if(strcmp(endCommandBuff, continueCommand) != 0)
-            return OUTOFSYNCERROR;
-        write(socket, continueCommand, strlen(continueCommand));
-    }
-    else {
-        write(socket, continueCommand, strlen(continueCommand));
-    }
 
     return 0;
 }
@@ -214,28 +199,6 @@ int sendFile(int socket, char* filepath) {
         fileSize = -1;
         byteCount = write(socket, &fileSize, sizeof(fileSize));
         return -1;
-    }
-    write(socket, &commands[UPLOAD], strlen(commands[UPLOAD]));
-    bzero(buff, sizeof(buff));
-    recv(socket, buff, strlen(commands[DOWNLOAD]), 0);
-
-
-
-    if(strcmp(buff, &commands[DOWNLOAD]) != 0) {
-        printf("Connection out of sync\n");
-        printf("[sendFile] Expected end command signal but received: %s\n\n", buff);
-        return OUTOFSYNCERROR;
-    }
-    bzero(buff, sizeof(buff));
-    recv(socket, buff, strlen(continueCommand), 0);
-
-    if(strcmp(buff, continueCommand) != 0) {
-        printf("Connection out of sync\n");
-        printf("[sendFile] Expected continue command signal but received: %s\n\n", buff);
-        write(socket, continueCommand, strlen(continueCommand));
-        recv(socket, buff, strlen(continueCommand), 0);
-        if(strcmp(buff, continueCommand) != 0)
-            return OUTOFSYNCERROR;
     }
     return 0;
 }
