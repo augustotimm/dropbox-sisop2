@@ -167,6 +167,7 @@ int sendFile(int socket, char* filepath) {
     }
     bzero(buff, sizeof(buff));
 
+
     if (file = fopen(filepath, "rb"))
     {
         fileSize = getFileSize(filepath);
@@ -174,8 +175,8 @@ int sendFile(int socket, char* filepath) {
         // escreve estrutura do arquivo no socket
         byteCount = write(socket, &fileSize, sizeof(int));
         printf("File size: %d\n", fileSize);
-
-        while(!feof(file) && fileSize > 0)
+        int missingBytes = fileSize;
+        while(!feof(file) && missingBytes > 0)
         {
             byteCount = -1;
 
@@ -183,8 +184,14 @@ int sendFile(int socket, char* filepath) {
 
             fread(buff, KBYTE, 1, file);
 
-            byteCount = write(socket, buff, KBYTE);
+            if(missingBytes > KBYTE) {
+                byteCount = write(socket, buff, KBYTE);
+            }
+            else {
+                byteCount = write(socket, buff, missingBytes);
+            }
 
+            missingBytes -= byteCount;
             if(byteCount < 0) {
                 printf("ERROR sending file\n");
                 printf("byteCount: %d\n\n");
@@ -218,7 +225,7 @@ int uploadAllFiles(int socket, char* path) {
         while ((dir = readdir(dirPath)) != NULL) {
             if (dir->d_type == DT_REG) { // verifica se é um arquivo
                 char* filePath = strcatSafe(path, dir->d_name);
-                write(socket, &commands[UPLOAD], sizeof(commands[UPLOAD]));
+                write(socket, &commands[UPLOAD], strlen(commands[UPLOAD]));
                 char* fileName = strcatSafe(dir->d_name, "");
                 upload(socket, filePath, fileName);
                 free(filePath);
