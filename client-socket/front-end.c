@@ -357,7 +357,7 @@ int clientDownload(int *socket) {
     fgets(filePath, sizeof(filePath), stdin);
     filePath[strcspn(filePath, "\n")] = 0;
 
-    write(*socket, fileName, strlen(fileName));
+    write(*socket, fileName, FILENAMESIZE);
 
     char* filePathName = strcatSafe(filePath, fileName);
 
@@ -371,7 +371,12 @@ int clientDownload(int *socket) {
         printf("Expected filename but received: endCommand\n\n");
         return OUTOFSYNCERROR;
     }
-    receiveFile(*socket, filePathName);
+    write(*socket, &endCommand, sizeof(endCommand));
+
+    if(receiveFile(*socket, filePathName) == 0 ) {
+        printf("File %s downloaded successfully\n\n", fileName);
+        write(*socket, &endCommand, strlen(endCommand));
+    }
 
 
     free(filePathName);

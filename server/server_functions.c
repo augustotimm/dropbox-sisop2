@@ -40,7 +40,7 @@ void upload(int socket, char* filePath, char* fileName) {
 
 
     sendFile(socket, filePath);
-    recv(socket, buff, strlen(endCommand), 0);
+    recv(socket, buff, sizeof(buff), 0);
     if(strcmp(buff, endCommand) != 0) {
         printf("Connection out of sync\n");
         printf("[upload end] Expected end command signal but received: %s\n\n", buff);
