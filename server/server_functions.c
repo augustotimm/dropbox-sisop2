@@ -322,7 +322,6 @@ void broadCastDelete(socket_conn_list* socketList, int forbiddenSocket, char* fi
 }
 
 void broadCastDeleteToBackups(char* fileName, backup_conn_list *backupList, pthread_mutex_t* backupMutex, char* username) {
-    backup_conn_list *current = NULL, *tmp = NULL;
     char buff[20];
     bzero(buff, sizeof(buff));
     backup_conn_list* elt = NULL;
@@ -349,9 +348,9 @@ void broadCastDeleteToBackups(char* fileName, backup_conn_list *backupList, pthr
 
         write(elt->socket, fileName, strlen(fileName));
 
-        recv(current->socket, buff, sizeof(buff), 0);
+        recv(elt->socket, buff, sizeof(buff), 0);
         if(strcmp(buff, endCommand) != 0) {
-            printf("expected waiting command");
+            printf("expected endCommand command");
         }
     }
     pthread_mutex_unlock(backupMutex);
