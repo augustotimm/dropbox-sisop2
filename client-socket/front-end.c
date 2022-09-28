@@ -52,13 +52,13 @@ void* newServerConnection(void* args) {
     if(strcmp(buff, frontEndCommands[DEAD]) == 0 && !isPrimaryDead) {
         pthread_mutex_lock(&isConnectionOpenMutex);
         isPrimaryDead = true;
+	pthread_cancel(clientThread);
+        pthread_cancel(listenSyncThread);
+        printf("\nold threads canceled");
     }
     if(strcmp(buff, frontEndCommands[NEWPRIMARY]) == 0) {
         pthread_mutex_lock(&newServerConnectionMutex);
         if(isPrimaryDead) {
-            pthread_cancel(clientThread);
-            pthread_cancel(listenSyncThread);
-            printf("\nold threads canceled");
 
             bzero(serverIp, sizeof(serverIp));
             strcpy(serverIp, newConnArgs->ipAddress);
@@ -66,6 +66,7 @@ void* newServerConnection(void* args) {
 
             int clientStarted = startClient(false);
             if(clientStarted != 0) {
+	        printf("\nStart client failed");
                 exit(OUTOFSYNCERROR);
             }
 
