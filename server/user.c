@@ -95,12 +95,22 @@ void freeUserList(user_list* userList){
 
 bool addSession(user_t* user, user_session_t* clientThread){
     int i = 0;
-    while(i < USERSESSIONNUMBER) {
-        if(isSessionAvailable(*user, i)){
-            user->clientThread[i] = clientThread;
-            return true;
+    if(isPrimary) {
+        while (i < USERSESSIONNUMBER) {
+            if (isSessionAvailable(*user, i)) {
+                user->clientThread[i] = clientThread;
+                return true;
+            }
+            i++;
         }
-        i++;
+    } else {
+        while (i < USERSESSIONNUMBER) {
+            if (user->clientThread[i] == NULL) {
+                user->clientThread[i] = clientThread;
+                return true;
+            }
+            i++;
+        }
     }
     return false;
 }
@@ -144,6 +154,7 @@ int startNewSession(user_list* user, int sessionSocket, char* userDirPath, char*
         newClientSession->frontEndPort = port;
 
         if(!addSession(&user->user, newClientSession)) {
+            pthread_cancel(newClientSession);
             return OUTOFSESSION;
         }
         return 0;

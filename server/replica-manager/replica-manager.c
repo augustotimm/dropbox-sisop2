@@ -329,6 +329,7 @@ int backupListenForMessage(int socket, char* rootFolderPath, bool *isElectionRun
 
             printf("\n\b[listenForBackupMessage] finished delete\n\n");
         } else if(strcmp(currentCommand, commands[USERCONN]) ==0 ) {
+            printf("\nnew user connected: %s\n", username);
             char ipAddr[BUFFERSIZE];
 
             bzero(ipAddr, sizeof(ipAddr));
