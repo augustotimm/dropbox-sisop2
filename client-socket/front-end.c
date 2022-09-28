@@ -411,7 +411,7 @@ void list_local(char * pathname) {
 void* clientThreadFunction(void* args)
 {
     int connfd = *(int*) args;
-    free(args);
+    //free(args);
     char userInput[BUFFERSIZE];
     char buff[BUFFERSIZE];
     bzero(buff, sizeof(buff));
