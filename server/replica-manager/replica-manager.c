@@ -27,7 +27,7 @@ replica_info_list* readConfig(char* filePath) {
 
     int rowCount = 0;
 
-    while (feof(fp) != true)
+    for(rowCount = 0; rowCount <=2; rowCount++)
     {
         fgets(row, KBYTE, fp);
         printf("Row: %s", row);
@@ -86,10 +86,6 @@ replica_info_list* readConfig(char* filePath) {
                 token = strtok(NULL, ",");
             }
         }
-
-
-
-        rowCount += 1;
     }
 
     return replicaList;
