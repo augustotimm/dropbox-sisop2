@@ -790,6 +790,7 @@ void primaryReplicaStart() {
         pthread_mutex_unlock(&backupsReadyMutex);
     }
 
+	sleep(2);
     broadcastMessageToAllFrontEnd(frontEndCommands[NEWPRIMARY]);
 }
 
