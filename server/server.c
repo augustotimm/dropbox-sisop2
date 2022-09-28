@@ -36,6 +36,7 @@ pthread_cond_t electionFinished;
 
 pthread_mutex_t waitForPrimaryMutex;
 pthread_cond_t primaryIsRunning;
+bool primaryReady = false;
 
 
 bool isElectionRunning = false;
@@ -549,6 +550,7 @@ void backupReplicaStart() {
     pthread_detach(backupReadyThread);
 
     pthread_cond_wait(&primaryIsRunning, &waitForPrimaryMutex);
+	primaryReady = false;
     pthread_mutex_unlock(&waitForPrimaryMutex);
     printf("\n[backupReplicaStart5] Starting connection to primary");
 
@@ -678,7 +680,10 @@ void* newBackupConnection(void* args) {
     }
     if(strcmp(newSocketType, socketTypes[NEWPRIMARYSOCKET]) == 0) {
         printf("\nNew primary found me");
-        pthread_cond_signal(&primaryIsRunning);
+	primaryReady = true;
+	while(primaryReady){
+	        pthread_cond_signal(&primaryIsRunning);
+	}
     }
     if(strcmp(newSocketType, socketTypes[RESTARTEDSOCKET]) == 0) {
         printf("\n---RESTARTEDBACKUP---\n");
